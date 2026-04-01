@@ -1,0 +1,26 @@
+# 编译生成的文件
+/miniprogram_npm/
+/npm/
+/project.config.json
+/project.private.config.json
+
+# 开发工具自动生成的文件
+/.vscode/
+/.idea/
+/.DS_Store
+
+# node_modules（如果项目中有 package.json）
+/node_modules/
+
+# 日志文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 环境变量文件（如有）
+.env.local
+.env
+
+# 其他临时文件
+*.tmp
+*.log

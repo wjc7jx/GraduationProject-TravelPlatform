@@ -2,6 +2,15 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 
 export function authMiddleware(req, res, next) {
+  if (env.isDev && env.jwt.bypassInDev) {
+    req.user = {
+      user_id: Number(req.headers['x-dev-user-id']) || env.jwt.devUserId,
+      openid: 'dev_bypass',
+      role: 'developer',
+    };
+    return next();
+  }
+
   const header = req.headers['authorization'];
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Unauthorized' });

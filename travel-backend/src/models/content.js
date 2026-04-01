@@ -15,7 +15,7 @@ export function initContent(sequelize) {
         allowNull: false,
       },
       content_type: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.ENUM('photo', 'note', 'audio', 'track'),
         allowNull: false,
       },
       content_data: {
@@ -35,6 +35,15 @@ export function initContent(sequelize) {
         allowNull: false,
         defaultValue: 0,
       },
+      is_deleted: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      deleted_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       sequelize,
@@ -43,7 +52,13 @@ export function initContent(sequelize) {
       timestamps: true,
       underscored: true,
       createdAt: 'created_at',
-      updatedAt: false,
+      updatedAt: 'updated_at',
+      indexes: [
+        { fields: ['project_id'] },
+        { fields: ['project_id', 'record_time'] },
+        { fields: ['location_id'] },
+        { fields: ['is_deleted'] },
+      ],
     }
   );
   return Content;

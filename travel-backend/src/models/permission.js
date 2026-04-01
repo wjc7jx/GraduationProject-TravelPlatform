@@ -11,7 +11,7 @@ export function initPermission(sequelize) {
         primaryKey: true,
       },
       target_type: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.ENUM('project', 'content'),
         allowNull: false,
       },
       target_id: {
@@ -36,6 +36,10 @@ export function initPermission(sequelize) {
       underscored: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',
+      indexes: [
+        { unique: true, fields: ['target_type', 'target_id'] },
+        { fields: ['visibility'] },
+      ],
     }
   );
   return Permission;

@@ -1,28 +1,36 @@
 <!--index.wxml-->
-<navigation-bar title="Weixin" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar title="Journals" back="{{false}}" color="#1C1C1C" background="transparent"></navigation-bar>
+
 <scroll-view class="scrollarea" scroll-y type="list">
-  <view class="container">
-    <view class="userinfo">
-      <block wx:if="{{canIUseNicknameComp && !hasUserInfo}}">
-        <button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
-          <image class="avatar" src="{{userInfo.avatarUrl}}"></image>
-        </button>
-        <view class="nickname-wrapper">
-          <text class="nickname-label">昵称</text>
-          <input type="nickname" class="nickname-input" placeholder="请输入昵称" bind:change="onInputChange" />
-        </view>
-      </block>
-      <block wx:elif="{{!hasUserInfo}}">
-        <button wx:if="{{canIUseGetUserProfile}}" bindtap="getUserProfile"> 获取头像昵称 </button>
-        <view wx:else> 请使用2.10.4及以上版本基础库 </view>
-      </block>
-      <block wx:else>
-        <image bindtap="bindViewTap" class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
-    </view>
-    <view class="usermotto">
-      <text class="user-motto">{{motto}}</text>
-    </view>
+  
+  <!-- 头部：大标题，展示杂志风格 -->
+  <view class="header-section fade-up" style="animation-delay: 0.1s">
+    <view class="date-stamp">Vol. 1 / {{projects.length}} Trips</view>
+    <view class="editorial-title">Travel</view>
+    <view class="editorial-title title-offset">Journals.</view>
+    <view class="editorial-subtitle">Record your footsteps on earth.</view>
   </view>
+
+  <!-- 瀑布流/非对称卡片展示 -->
+  <view class="gallery-container">
+    <block wx:for="{{projects}}" wx:key="id">
+      <view class="project-card {{item.style}} fade-up" style="animation-delay: {{0.2 + index * 0.1}}s" bindtap="goToDetail">
+        <view class="card-image-wrap">
+          <image class="card-image" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
+          <view class="card-label">{{item.label}}</view>
+        </view>
+        
+        <view class="card-content">
+          <view class="card-meta">
+            <text class="card-date">{{item.date}}</text>
+            <text class="card-loc-count">📍 {{item.locationCount}} stops</text>
+          </view>
+          <view class="card-title">{{item.title}}</view>
+          <view class="card-subtitle">{{item.subtitle}}</view>
+        </view>
+      </view>
+    </block>
+  </view>
+
 </scroll-view>
+

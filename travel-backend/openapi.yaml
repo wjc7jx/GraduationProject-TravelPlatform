@@ -1,0 +1,539 @@
+openapi: 3.0.3
+info:
+  title: Travel Backend API
+  version: 1.0.0
+  description: Express + Sequelize travel project backend API generated from the existing codebase.
+servers:
+  - url: http://localhost:3000
+
+tags:
+  - name: auth
+    description: Authentication and user session bootstrap.
+  - name: projects
+    description: Project management for the current user.
+  - name: contents
+    description: Content entries under a project.
+
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - auth
+      summary: Login or register by openid
+      operationId: login
+      description: |
+        Logs in the user by openid and returns a JWT token.
+        In development, the auth middleware may support a dev bypass for protected routes, but this endpoint itself is public.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Parameter error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/projects:
+    get:
+      tags:
+        - projects
+      summary: List current user's projects
+      operationId: getProjects
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Project list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+        '401':
+          description: Unauthorized or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - projects
+      summary: Create a project
+      operationId: addProject
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+      responses:
+        '201':
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Parameter error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/projects/{projectId}/contents:
+    get:
+      tags:
+        - contents
+      summary: List contents in a project
+      operationId: getContents
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Content list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Content'
+        '401':
+          description: Unauthorized or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found or not owned by the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - contents
+      summary: Create a content entry under a project
+      operationId: addContent
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentCreateRequest'
+      responses:
+        '201':
+          description: Created content entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          description: Parameter error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found or not owned by the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer authentication.
+        Development mode may support an auth bypass in middleware when enabled, but production requests must send Authorization: Bearer <token>.
+
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        openid:
+          type: string
+          maxLength: 64
+          description: OpenID from the client identity provider.
+        nickname:
+          type: string
+          maxLength: 50
+          description: Optional nickname; defaults to 旅行者 when omitted.
+        avatar_url:
+          type: string
+          maxLength: 255
+          description: Optional avatar URL.
+      required:
+        - openid
+
+    LoginResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        token:
+          type: string
+          description: JWT token for protected routes.
+      required:
+        - user
+        - token
+
+    UserSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        user_id:
+          type: integer
+          format: int64
+        openid:
+          type: string
+          maxLength: 64
+        nickname:
+          type: string
+          maxLength: 50
+        avatar_url:
+          type: string
+          maxLength: 255
+          nullable: true
+      required:
+        - user_id
+        - openid
+        - nickname
+
+    ProjectCreateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          maxLength: 100
+          description: Project title.
+        cover_image:
+          type: string
+          maxLength: 255
+          nullable: true
+          description: Optional cover image URL.
+        start_date:
+          type: string
+          format: date
+          description: Project start date.
+        end_date:
+          type: string
+          format: date
+          nullable: true
+          description: Optional project end date.
+        tags:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: Comma-separated tag string; the model stores it as a single string field.
+      required:
+        - title
+        - start_date
+
+    Project:
+      type: object
+      additionalProperties: false
+      properties:
+        project_id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int64
+        title:
+          type: string
+          maxLength: 100
+        cover_image:
+          type: string
+          maxLength: 255
+          nullable: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        tags:
+          type: string
+          maxLength: 100
+          nullable: true
+        is_archived:
+          type: integer
+          format: int32
+          example: 0
+        is_deleted:
+          type: integer
+          format: int32
+          example: 0
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - project_id
+        - user_id
+        - title
+        - start_date
+        - is_archived
+        - is_deleted
+        - created_at
+        - updated_at
+
+    ContentCreateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        content_type:
+          type: string
+          enum:
+            - photo
+            - note
+            - audio
+            - track
+          description: Content type enum from the model.
+        content_data:
+          type: object
+          description: |
+            Flexible JSON payload. The code stores this as JSON without enforcing a fixed nested structure, so the exact shape needs backend confirmation.
+          additionalProperties: true
+        record_time:
+          type: string
+          format: date-time
+          description: Recording time.
+        location_id:
+          type: integer
+          format: int64
+          nullable: true
+        sort_order:
+          type: integer
+          format: int32
+          nullable: true
+          description: Optional ordering value; defaults to 0 when omitted.
+      required:
+        - content_type
+        - content_data
+        - record_time
+
+    Content:
+      type: object
+      additionalProperties: false
+      properties:
+        content_id:
+          type: integer
+          format: int64
+        project_id:
+          type: integer
+          format: int64
+        content_type:
+          type: string
+          enum:
+            - photo
+            - note
+            - audio
+            - track
+        content_data:
+          type: object
+          additionalProperties: true
+        record_time:
+          type: string
+          format: date-time
+        location_id:
+          type: integer
+          format: int64
+          nullable: true
+        sort_order:
+          type: integer
+          format: int32
+        is_deleted:
+          type: integer
+          format: int32
+          example: 0
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - content_id
+        - project_id
+        - content_type
+        - content_data
+        - record_time
+        - sort_order
+        - is_deleted
+        - created_at
+        - updated_at
+
+    Location:
+      type: object
+      additionalProperties: false
+      properties:
+        location_id:
+          type: integer
+          format: int64
+        longitude:
+          type: number
+          format: double
+          description: Stored as DECIMAL(10,7) in the model.
+        latitude:
+          type: number
+          format: double
+          description: Stored as DECIMAL(10,7) in the model.
+        name:
+          type: string
+          maxLength: 100
+          nullable: true
+        address:
+          type: string
+          maxLength: 255
+          nullable: true
+        city:
+          type: string
+          maxLength: 50
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - location_id
+        - longitude
+        - latitude
+        - created_at
+
+    Permission:
+      type: object
+      additionalProperties: false
+      properties:
+        permission_id:
+          type: integer
+          format: int64
+        target_type:
+          type: string
+          enum:
+            - project
+            - content
+        target_id:
+          type: integer
+          format: int64
+        visibility:
+          type: integer
+          format: int32
+          example: 1
+        white_list:
+          type: object
+          nullable: true
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - permission_id
+        - target_type
+        - target_id
+        - visibility
+        - created_at
+        - updated_at

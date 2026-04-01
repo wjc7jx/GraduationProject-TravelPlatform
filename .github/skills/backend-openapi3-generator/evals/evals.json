@@ -1,0 +1,23 @@
+{
+  "skill_name": "backend-openapi3-generator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请基于当前 travel-backend 项目代码生成 OpenAPI 3.0.3 YAML，覆盖 /api/auth/login、/api/projects、/api/projects/{projectId}/contents，并包含 Bearer 鉴权定义。",
+      "expected_output": "输出完整 OpenAPI YAML，包含 paths、components.schemas、components.securitySchemes，且路径参数和请求体字段与代码一致。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "只生成项目与内容模块接口文档（不含 auth），要求给出接口映射摘要 + 不确定项列表 + OpenAPI 3.0 YAML。",
+      "expected_output": "输出仅包含 /api/projects 和 /api/projects/{projectId}/contents 路径，明确鉴权要求，并在不确定项中说明 content_data 的结构假设。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "请在已有文档基础上做增量更新：补充 400/401/404/500 错误响应模型，并为每个接口添加示例响应。输出 OpenAPI 3.0 JSON。",
+      "expected_output": "输出合法 OpenAPI 3.0 JSON，具备通用错误模型和每个接口的示例响应。",
+      "files": []
+    }
+  ]
+}

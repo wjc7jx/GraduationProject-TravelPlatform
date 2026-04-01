@@ -1,0 +1,224 @@
+/**pages/timeline-map/timeline-map.scss**/
+.page-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-base);
+  overflow: hidden;
+}
+
+/* --- 地图区域 --- */
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 48vh; /* 地图占据略小于一半，留给沉浸式日记 */
+  flex-shrink: 0;
+}
+
+.story-map {
+  width: 100%;
+  height: 100%;
+  /* 过滤掉默认的一些丑陋底色 */
+  background: var(--bg-base); 
+}
+
+/* 渐变遮罩：让地图和下方列表的过渡不再生硬，而是像纸张消散 */
+.map-gradient-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 120rpx;
+  background: linear-gradient(to bottom, rgba(247,245,240,0) 0%, rgba(247,245,240,1) 100%);
+  pointer-events: none;
+}
+
+
+/* --- 时间轴面板区域 --- */
+.timeline-panel {
+  flex: 1;
+  background-color: var(--bg-base);
+  border-radius: 40rpx 40rpx 0 0;
+  margin-top: -40rpx; /* 上移一部分与地图交叠 */
+  position: relative;
+  z-index: 10;
+  /* 强烈的顶部弥散阴影，赋予抽屉感 */
+  box-shadow: 0 -20rpx 60rpx rgba(42, 75, 60, 0.08);
+  overflow: hidden;
+}
+
+.timeline-scroll {
+  height: 100%;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.timeline-track {
+  padding: 60rpx 40rpx 100rpx 40rpx;
+}
+
+/* 章节头部 */
+.timeline-header {
+  margin-bottom: 80rpx;
+  padding-left: 60rpx; /* 对齐节点内容区 */
+}
+
+.chapter-text {
+  font-family: var(--font-sans);
+  font-size: 20rpx;
+  text-transform: uppercase;
+  letter-spacing: 4rpx;
+  color: var(--color-accent);
+  margin-bottom: 12rpx;
+  font-weight: 700;
+}
+
+/* --- 时间轴节点 --- */
+.timeline-node {
+  display: flex;
+  position: relative;
+  margin-bottom: 24rpx;
+  opacity: 0.5; /* 非激活状态偏淡 */
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.timeline-node.active {
+  opacity: 1;
+  transform: translateX(10rpx); /* 激活时轻微右移弹出 */
+}
+
+/* 坐标轴线设计 */
+.node-axis {
+  position: relative;
+  width: 60rpx;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.node-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background-color: var(--color-border);
+  margin-top: 10rpx;
+  transition: all 0.4s ease;
+  position: relative;
+  z-index: 2;
+}
+
+/* 激活状态的原点变红并带呼吸圈 */
+.timeline-node.active .node-dot {
+  background-color: var(--color-accent);
+  box-shadow: 0 0 0 8rpx rgba(200, 90, 61, 0.2);
+}
+
+.node-line {
+  width: 2rpx;
+  flex: 1;
+  background-color: var(--color-border);
+  min-height: 80rpx;
+  margin-top: 10rpx;
+}
+.timeline-node.active .node-line {
+  /* 激活节点下方的线加深 */
+  background: linear-gradient(to bottom, var(--color-accent) 0%, var(--color-border) 100%);
+}
+
+/* 叙事内容卡片 */
+.node-content {
+  flex: 1;
+  padding-bottom: 80rpx;
+}
+
+.node-meta {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 2rpx;
+}
+
+.node-time {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--color-text-main);
+  font-feature-settings: "tnum", "lnum"; /* 等宽数字 */
+}
+
+.node-category {
+  font-size: 20rpx;
+  color: var(--color-primary);
+  background: rgba(42, 75, 60, 0.08);
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+}
+
+.node-title {
+  font-family: var(--font-serif);
+  font-size: 36rpx;
+  color: var(--color-primary);
+  line-height: 1.3;
+  margin-bottom: 16rpx;
+}
+
+.node-desc {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--color-text-main);
+  opacity: 0.85;
+}
+
+/* 胶片质感媒体展示 */
+.node-media {
+  margin-top: 32rpx;
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.node-image {
+  width: 100%;
+  height: 400rpx;
+  display: block;
+  background-color: var(--bg-surface);
+  border-radius: 8rpx;
+}
+
+.timeline-node.active .node-image {
+  box-shadow: 0 16rpx 48rpx -16rpx rgba(42, 75, 60, 0.2);
+}
+
+.media-caption {
+  margin-top: 16rpx;
+  font-family: var(--font-serif);
+  font-size: 22rpx;
+  font-style: italic;
+  color: var(--color-text-sub);
+  text-align: right;
+}
+
+/* 剧末标记 */
+.end-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  margin-top: 40rpx;
+  opacity: 0.4;
+}
+
+.end-mark-line {
+  height: 1px;
+  width: 60rpx;
+  background-color: var(--color-text-sub);
+}
+
+.end-mark-text {
+  font-family: var(--font-serif);
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+  color: var(--color-text-sub);
+}

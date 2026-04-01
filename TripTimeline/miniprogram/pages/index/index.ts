@@ -46,8 +46,9 @@ Component({
       })
     },
     goToDetail(e: any) {
-      // TODO: 跳转到 timeline 页
-      wx.showToast({ title: '即将开发: 故事地图', icon: 'none' })
+      wx.navigateTo({
+        url: '../timeline-map/timeline-map',
+      })
     }
   }
 })

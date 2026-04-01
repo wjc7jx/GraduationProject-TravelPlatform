@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "Map & Timeline",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "navigation-bar": "../../components/navigation-bar/navigation-bar"
+  }
+}

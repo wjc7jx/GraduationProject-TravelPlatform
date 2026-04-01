@@ -1,0 +1,76 @@
+<!--pages/timeline-map/timeline-map.wxml-->
+<navigation-bar title="{{currentDay}}" back="{{true}}" color="#1C1C1C" background="rgba(247,245,240,0.85)"></navigation-bar>
+
+<view class="page-container">
+  <!-- 上半部分：沉浸式地图 -->
+  <view class="map-wrapper fade-up" style="animation-delay: 0.1s">
+    <map 
+      id="storyMap" 
+      class="story-map" 
+      longitude="{{centerLon}}" 
+      latitude="{{centerLat}}" 
+      scale="{{mapScale}}" 
+      markers="{{markers}}"
+      polyline="{{polylines}}"
+      bindmarkertap="onMarkerTap"
+    ></map>
+    <!-- 地图覆盖层：渐变边缘，与时间轴柔和过渡 -->
+    <view class="map-gradient-overlay"></view>
+  </view>
+
+  <!-- 下半部分：纸质感玻璃态时间轴 -->
+  <view class="timeline-panel fade-up" style="animation-delay: 0.2s">
+    <scroll-view 
+      class="timeline-scroll" 
+      scroll-y 
+      scroll-into-view="{{scrollToId}}" 
+      scroll-with-animation
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <view class="timeline-track">
+        
+        <!-- 导语区 -->
+        <view class="timeline-header">
+          <view class="chapter-text">Chapter 01</view>
+          <view class="editorial-title" style="font-size: 44rpx;">Into the Wild.</view>
+          <view class="editorial-subtitle" style="margin-top: 10rpx;">A journey measuring 120km walked.</view>
+        </view>
+
+        <!-- 节点列表 -->
+        <block wx:for="{{timelineData}}" wx:key="id">
+          <view class="timeline-node {{activeIndex === index ? 'active' : ''}}" id="node-{{item.id}}" bindtap="onNodeTap" data-index="{{index}}">
+            <!-- 左侧：线与地理标记原点 -->
+            <view class="node-axis">
+              <view class="node-dot"></view>
+              <view class="node-line" wx:if="{{index !== timelineData.length - 1}}"></view>
+            </view>
+            
+            <!-- 右侧：叙事内容 -->
+            <view class="node-content">
+              <view class="node-meta">
+                <text class="node-time">{{item.time}}</text>
+                <text class="node-category">{{item.category}}</text>
+              </view>
+              <view class="node-title">{{item.title}}</view>
+              <view class="node-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+              
+              <!-- 沉浸式图文排版重叠效果 -->
+              <view class="node-media" wx:if="{{item.image}}">
+                <image src="{{item.image}}" class="node-image" mode="aspectFill" lazy-load></image>
+                <view class="media-caption" wx:if="{{item.caption}}">{{item.caption}}</view>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <view class="end-mark">
+          <text class="end-mark-line"></text>
+          <text class="end-mark-text">END OF DAY</text>
+          <text class="end-mark-line"></text>
+        </view>
+
+      </view>
+    </scroll-view>
+  </view>
+</view>

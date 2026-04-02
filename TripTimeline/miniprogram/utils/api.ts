@@ -1,0 +1,22 @@
+export default {
+  // 用户权限与认证模块
+  auth: {
+    login: '/auth/login',
+    register: '/auth/register'
+  },
+  // 项目模块
+  project: {
+    list: '/projects',
+    create: '/projects',
+    detail: (id: string) => `/projects/${id}`,
+    update: (id: string) => `/projects/${id}`,
+    delete: (id: string) => `/projects/${id}`
+  },
+  // 节点(内容)模块
+  content: {
+    list: (projectId: string) => `/projects/${projectId}/contents`,
+    create: (projectId: string) => `/projects/${projectId}/contents`,
+    update: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`,
+    delete: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`
+  }
+};

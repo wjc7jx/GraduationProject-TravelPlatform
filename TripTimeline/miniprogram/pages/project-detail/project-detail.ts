@@ -12,7 +12,7 @@ Page({
   },
 
   fetchProjectDetail(id: string) {
-    // TODO: 从后端获取旅行项目详情 (包含基本的封面和标题，后续加载timeline数据)
+    // ... logic earlier ...
     this.setData({
       projectDetail: {
         id: id,
@@ -23,6 +23,15 @@ Page({
       }
     })
     wx.setNavigationBarTitle({ title: this.data.projectDetail.title })
+  },
+
+  goBack() {
+    wx.navigateBack({ 
+      delta: 1, 
+      fail: () => {
+        wx.switchTab({ url: '/pages/index/index' })
+      }
+    })
   },
 
   // 跳转到故事地图（即现有的 timeline-map）

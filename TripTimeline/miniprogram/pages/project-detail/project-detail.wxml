@@ -3,6 +3,9 @@
   
   <!-- 顶部封面与信息 -->
   <view class="header-banner">
+    <view class="back-btn" bindtap="goBack">
+      <view class="back-icon">←</view>
+    </view>
     <image class="cover-image" src="{{projectDetail.cover}}" mode="aspectFill"></image>
     <view class="overlay">
       <view class="project-info">

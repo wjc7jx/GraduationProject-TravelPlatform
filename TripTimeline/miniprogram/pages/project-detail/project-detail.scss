@@ -10,6 +10,27 @@
   width: 100%;
   height: 480rpx;
   position: relative;
+  
+  .back-btn {
+    position: absolute;
+    top: 64rpx; /* 根据状态栏高度微调，或通过JS获取状态栏高度 */
+    left: 32rpx;
+    width: 72rpx;
+    height: 72rpx;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(8px);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    
+    .back-icon {
+      font-size: 32rpx;
+      color: #333;
+      font-weight: bold;
+    }
+  }
 
   .cover-image {
     width: 100%;

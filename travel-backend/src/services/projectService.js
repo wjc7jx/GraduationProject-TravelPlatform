@@ -7,7 +7,7 @@ export async function listProjects(userId) {
 export async function createProject(userId, payload) {
   const { title, cover_image, start_date, end_date, tags } = payload;
   if (!title || !start_date) {
-    const err = new Error('title and start_date are required');
+    const err = new Error('旅行名称和开始时间是必填项');
     err.status = 400;
     throw err;
   }
@@ -24,7 +24,7 @@ export async function createProject(userId, payload) {
 export async function getProjectOrThrow(projectId, userId) {
   const project = await Project.findOne({ where: { project_id: projectId, user_id: userId } });
   if (!project) {
-    const err = new Error('Project not found');
+    const err = new Error('未找到该旅行项目');
     err.status = 404;
     throw err;
   }

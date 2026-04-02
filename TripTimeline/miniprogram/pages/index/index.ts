@@ -8,20 +8,20 @@ Component({
     projects: [
       {
         id: 1,
-        title: "Kanas",
+        title: "喀纳斯",
         subtitle: "寻迹喀纳斯",
         date: "2025.09.12 - 09.18",
-        label: "ROAD TRIP",
+        label: "自驾游",
         cover: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1000&auto=format&fit=crop", 
         locationCount: 14,
         style: "card-large"
       },
       {
         id: 2,
-        title: "Kyoto",
+        title: "京都",
         subtitle: "京都的红叶与枯山水",
         date: "2024.11.02 - 11.08",
-        label: "CITY WALK",
+        label: "城市漫步",
         cover: "https://images.unsplash.com/photo-1493976040375-3affeacfcdce?q=80&w=1000&auto=format&fit=crop",
         locationCount: 8,
         style: "card-medium right"

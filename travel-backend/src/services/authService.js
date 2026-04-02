@@ -4,7 +4,7 @@ import { env } from '../config/env.js';
 
 export async function loginOrRegister({ openid, nickname, avatar_url }) {
   if (!openid) {
-    throw new Error('openid is required');
+    throw new Error('openid 是必填项目');
   }
   const [user] = await User.findOrCreate({
     where: { openid },

@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "New Entry",
+  "navigationBarTitleText": "记录足迹",
   "navigationStyle": "custom",
   "usingComponents": {
     "navigation-bar": "../../components/navigation-bar/navigation-bar"

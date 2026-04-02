@@ -7,11 +7,10 @@ async function bootstrap() {
   await sequelize.sync();
 
   app.listen(env.port, () => {
-    console.log(`🚀 Server is running at http://localhost:${env.port}`);
+    console.log(`🚀 服务正在运行于 http://localhost:${env.port}`);      
   });
 }
 
 bootstrap().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
+  console.error('服务器启动失败:', err);
 });

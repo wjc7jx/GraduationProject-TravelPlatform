@@ -32,9 +32,9 @@
         
         <!-- 导语区 -->
         <view class="timeline-header">
-          <view class="chapter-text">Chapter 01</view>
-          <view class="editorial-title" style="font-size: 44rpx;">Into the Wild.</view>
-          <view class="editorial-subtitle" style="margin-top: 10rpx;">A journey measuring 120km walked.</view>
+          <view class="chapter-text">第一章</view>
+          <view class="editorial-title" style="font-size: 44rpx;">启程.</view>
+          <view class="editorial-subtitle" style="margin-top: 10rpx;">一段全长 120 公里的旅途。</view>
         </view>
 
         <!-- 节点列表 -->
@@ -66,7 +66,7 @@
 
         <view class="end-mark">
           <text class="end-mark-line"></text>
-          <text class="end-mark-text">END OF DAY</text>
+          <text class="end-mark-text">今日结束</text>
           <text class="end-mark-line"></text>
         </view>
 

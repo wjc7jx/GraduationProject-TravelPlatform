@@ -36,12 +36,12 @@ Page({
     // TODO: 从接口获取旅行详细信息并填充表单
     // Mock data
     this.setData({
-      title: 'Kanas',
+      title: '喀纳斯',
       subtitle: '寻迹喀纳斯',
       coverImage: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800',
       startDate: '2025-09-12',
       endDate: '2025-09-18',
-      tags: ['ROAD TRIP', '新疆']
+      tags: ['自驾游', '新疆']
     })
   },
 

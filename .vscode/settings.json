@@ -1,5 +1,16 @@
 {
-    "chat.tools.terminal.autoApprove": {
-        "Add-Content": true
-    }
+  "chat.tools.terminal.autoApprove": {
+    "Add-Content": true,
+    "Create-File": true,
+    "Edit-File": true,
+    "Delete-File": false,
+    "Install-Package": false,
+    "Run-Command": false,
+    "Git-Commit": false,
+    "Git-Push": false,
+    "Execute-Script": false,
+    "Open-URL": true,
+    "Copy-to-Clipboard": true,
+    "type": true
+  }
 }

@@ -3,7 +3,9 @@
     "pages/index/index",
     "pages/timeline-map/timeline-map",
     "pages/editor/editor",
-    "pages/logs/logs"
+    "pages/logs/logs",
+    "pages/project-editor/project-editor",
+    "pages/project-detail/project-detail"
   ],
   "window": {
     "navigationBarTextStyle": "black",

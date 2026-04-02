@@ -8,7 +8,7 @@ Component({
         index: 0
       },
       {
-        pagePath: "/pages/editor/editor",
+        pagePath: "/pages/project-editor/project-editor",
         isCenter: true // 标识这是中间的悬浮新建按钮
       },
       {
@@ -29,7 +29,7 @@ Component({
       const url = data.path;
 
       // 如果点击的是中间新建按钮，使用 wx.navigateTo 跳转（不作为真的 tabBar 页面）
-      if (url === '/pages/editor/editor') {
+      if (url === '/pages/project-editor/project-editor') {
         wx.navigateTo({
           url
         });

@@ -1,0 +1,159 @@
+/* pages/project-editor/project-editor.scss */
+.container {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 120rpx; // 留出底部按钮空间
+}
+
+// 封面图区域
+.cover-section {
+  width: 100%;
+  height: 480rpx;
+  background-color: #E8E5DF;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+
+  .cover-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cover-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #8A877E;
+    font-size: 28rpx;
+
+    .icon-camera {
+      font-size: 64rpx;
+      margin-bottom: 16rpx;
+    }
+  }
+}
+
+// 表单区域
+.form-section {
+  padding: 40rpx 32rpx;
+  
+  .form-item {
+    margin-bottom: 40rpx;
+
+    .label {
+      font-size: 28rpx;
+      color: #666;
+      margin-bottom: 16rpx;
+      font-weight: 500;
+
+      .required {
+        color: #E53935;
+      }
+    }
+
+    .input-field {
+      width: 100%;
+      height: 88rpx;
+      background: #fff;
+      border-radius: 12rpx;
+      padding: 0 24rpx;
+      font-size: 30rpx;
+      box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
+      box-sizing: border-box;
+
+      &.header-input {
+        font-size: 34rpx;
+        font-family: serif;
+      }
+    }
+  }
+
+  .form-row {
+    display: flex;
+    justify-content: space-between;
+
+    .half {
+      width: 48%;
+    }
+  }
+
+  .date-picker {
+    height: 88rpx;
+    background: #fff;
+    border-radius: 12rpx;
+    display: flex;
+    align-items: center;
+    padding: 0 24rpx;
+    font-size: 30rpx;
+    color: #333;
+    box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
+  }
+}
+
+// 标签样式
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+
+  .tag-item {
+    display: flex;
+    align-items: center;
+    background: #2A4B3C;
+    color: #fff;
+    padding: 12rpx 24rpx;
+    border-radius: 40rpx;
+    font-size: 24rpx;
+
+    .tag-close {
+      margin-left: 12rpx;
+      font-size: 28rpx;
+      line-height: 1;
+      padding: 0 8rpx;
+    }
+  }
+
+  .tag-input-wrap {
+    .tag-input {
+      width: 200rpx;
+      height: 60rpx;
+      background: #fff;
+      border: 1px dashed #ccc;
+      border-radius: 40rpx;
+      padding: 0 24rpx;
+      font-size: 24rpx;
+      text-align: center;
+    }
+  }
+}
+
+// 底部按钮栏
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120rpx;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx;
+  box-shadow: 0 -4rpx 16rpx rgba(0,0,0,0.05);
+
+  .btn-submit {
+    flex: 1;
+    height: 88rpx;
+    background: #2A4B3C;
+    color: #fff;
+    border-radius: 44rpx;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32rpx;
+    font-weight: 500;
+  }
+}

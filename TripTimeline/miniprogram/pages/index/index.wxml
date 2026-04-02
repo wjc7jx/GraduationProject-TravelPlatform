@@ -14,7 +14,7 @@
   <!-- 瀑布流/非对称卡片展示 -->
   <view class="gallery-container">
     <block wx:for="{{projects}}" wx:key="id">
-      <view class="project-card {{item.style}} fade-up" style="animation-delay: {{0.2 + index * 0.1}}s" bindtap="goToDetail">
+      <view class="project-card {{item.style}} fade-up" style="animation-delay: {{0.2 + index * 0.1}}s" bindtap="goToDetail" bindlongpress="onProjectLongPress" data-id="{{item.id}}">
         <view class="card-image-wrap">
           <image class="card-image" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
           <view class="card-label">{{item.label}}</view>
@@ -30,6 +30,11 @@
         </view>
       </view>
     </block>
+  </view>
+
+  <!-- 新建旅行悬浮按钮 -->
+  <view class="fab-container" bindtap="createProject">
+    <view class="fab-btn">+</view>
   </view>
 
 </scroll-view>

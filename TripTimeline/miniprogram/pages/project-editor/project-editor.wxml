@@ -1,0 +1,66 @@
+<!--pages/project-editor/project-editor.wxml-->
+<navigation-bar title="{{isEdit ? '编辑旅行' : '新建旅行'}}" back="{{true}}" color="#1C1C1C" background="#F7F5F0"></navigation-bar>
+
+<view class="container">
+  
+  <!-- 封面图设置 -->
+  <view class="cover-section" bindtap="chooseCover">
+    <image wx:if="{{coverImage}}" class="cover-image" src="{{coverImage}}" mode="aspectFill"></image>
+    <view class="cover-placeholder" wx:else>
+      <view class="icon-camera">📷</view>
+      <text>点击设置旅行封面</text>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <!-- 主标题 -->
+    <view class="form-item">
+      <view class="label">项目标题 <text class="required">*</text></view>
+      <input class="input-field header-input" placeholder="给这次旅行起个名字 (如: 京都漫步)" value="{{title}}" bindinput="onTitleInput" />
+    </view>
+
+    <!-- 副标题 -->
+    <view class="form-item">
+      <view class="label">副标题</view>
+      <input class="input-field" placeholder="一句话描述 (如: 寻迹红色与枯山水)" value="{{subtitle}}" bindinput="onSubtitleInput" />
+    </view>
+
+    <!-- 时间选择 -->
+    <view class="form-row">
+      <view class="form-item half">
+        <view class="label">出发日期 <text class="required">*</text></view>
+        <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+          <view class="date-picker">{{startDate || '选择日期'}}</view>
+        </picker>
+      </view>
+      <view class="form-item half">
+        <view class="label">结束日期 <text class="required">*</text></view>
+        <picker mode="date" value="{{endDate}}" start="{{startDate}}" bindchange="onEndDateChange">
+          <view class="date-picker">{{endDate || '选择日期'}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 旅行标签 -->
+    <view class="form-item">
+      <view class="label">旅行标签 (最多5个)</view>
+      <view class="tags-container">
+        <block wx:for="{{tags}}" wx:key="*this">
+          <view class="tag-item">
+            <text>{{item}}</text>
+            <view class="tag-close" bindtap="removeTag" data-index="{{index}}">×</view>
+          </view>
+        </block>
+        <view class="tag-input-wrap" wx:if="{{tags.length < 5}}">
+          <input class="tag-input" placeholder="输入后按回车" value="{{tagInput}}" bindinput="onTagInput" bindconfirm="addTag" confirm-type="done" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <button class="btn-submit" bindtap="onSubmit">{{isEdit ? '保存修改' : '创建项目'}}</button>
+  </view>
+
+</view>

@@ -1,0 +1,58 @@
+<!--pages/project-detail/project-detail.wxml-->
+<view class="container">
+  
+  <!-- 顶部封面与信息 -->
+  <view class="header-banner">
+    <image class="cover-image" src="{{projectDetail.cover}}" mode="aspectFill"></image>
+    <view class="overlay">
+      <view class="project-info">
+        <text class="date">{{projectDetail.date}}</text>
+        <text class="title">{{projectDetail.title}}</text>
+        <text class="subtitle">{{projectDetail.subtitle}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作导航区 -->
+  <view class="action-grid">
+    <!-- 进入时间轴与地图 -->
+    <view class="action-card primary" bindtap="goToTimelineMap">
+      <view class="icon">🗺️</view>
+      <view class="text-group">
+        <text class="main">故事地图</text>
+        <text class="sub">查看我的路线与回忆</text>
+      </view>
+      <view class="arrow">→</view>
+    </view>
+
+    <!-- 新建打卡内容 -->
+    <view class="action-card secondary" bindtap="goToEditor">
+      <view class="icon">✍️</view>
+      <view class="text-group">
+        <text class="main">写新日志</text>
+        <text class="sub">记录当下的足迹与感受</text>
+      </view>
+      <view class="arrow">+</view>
+    </view>
+  </view>
+
+  <!-- 这里可以未来添加该项目下最新的几条日记预览 / 统计信息 -->
+  <view class="stats-section">
+    <view class="section-title">旅行概览</view>
+    <view class="stats-cards">
+      <view class="stat-card">
+        <text class="num">8</text>
+        <text class="label">足迹点</text>
+      </view>
+      <view class="stat-card">
+        <text class="num">42</text>
+        <text class="label">照片</text>
+      </view>
+      <view class="stat-card">
+        <text class="num">3</text>
+        <text class="label">天数</text>
+      </view>
+    </view>
+  </view>
+
+</view>

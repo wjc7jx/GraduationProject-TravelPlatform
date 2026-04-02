@@ -45,9 +45,49 @@ Component({
         url: '../logs/logs',
       })
     },
+    // 前往项目详情容器
     goToDetail(e: any) {
+      const id = e.currentTarget.dataset.id
       wx.navigateTo({
-        url: '../timeline-map/timeline-map',
+        url: `/pages/project-detail/project-detail?id=${id || 1}`,
+      })
+    },
+    // 新建旅行项目
+    createProject() {
+      wx.navigateTo({
+        url: '/pages/project-editor/project-editor',
+      })
+    },
+    // 长按项目卡片进行管理操作
+    onProjectLongPress(e: any) {
+      const id = e.currentTarget.dataset.id
+      wx.showActionSheet({
+        itemList: ['编辑项目', '归档项目', '删除项目'],
+        itemColor: '#1C1C1C',
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            // 编辑
+            wx.navigateTo({
+              url: `/pages/project-editor/project-editor?id=${id}`
+            })
+          } else if (res.tapIndex === 1) {
+            // 归档
+            wx.showToast({ title: '项目已归档', icon: 'success' })
+          } else if (res.tapIndex === 2) {
+            // 删除
+            wx.showModal({
+              title: '确认删除',
+              content: '删除后无法恢复，确定要删除吗？',
+              confirmColor: '#E53935',
+              success: (mRes) => {
+                if (mRes.confirm) {
+                  wx.showToast({ title: '已删除', icon: 'success' })
+                  // TODO: 调用后端删除接口，并在前端刷新列表
+                }
+              }
+            })
+          }
+        }
       })
     }
   }

@@ -141,30 +141,3 @@ page {
   align-self: flex-start;
 }
 
-/* �½���Ŀ������ť (FAB) */
-.fab-container {
-  position: fixed;
-  right: 48rpx;
-  bottom: calc(48rpx + env(safe-area-inset-bottom));
-  z-index: 100;
-  
-  .fab-btn {
-    width: 112rpx;
-    height: 112rpx;
-    border-radius: 50%;
-    background-color: var(--color-accent, #2A4B3C);
-    color: #fff;
-    font-size: 64rpx;
-    font-weight: 300;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 8rpx 32rpx rgba(42, 75, 60, 0.3);
-    transition: transform 0.2s ease;
-    
-    &:active {
-      transform: scale(0.9);
-    }
-  }
-}
-

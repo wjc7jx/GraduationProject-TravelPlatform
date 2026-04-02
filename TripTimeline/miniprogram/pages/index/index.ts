@@ -52,12 +52,6 @@ Component({
         url: `/pages/project-detail/project-detail?id=${id || 1}`,
       })
     },
-    // 新建旅行项目
-    createProject() {
-      wx.navigateTo({
-        url: '/pages/project-editor/project-editor',
-      })
-    },
     // 长按项目卡片进行管理操作
     onProjectLongPress(e: any) {
       const id = e.currentTarget.dataset.id

@@ -31,11 +31,5 @@
       </view>
     </block>
   </view>
-
-  <!-- 新建旅行悬浮按钮 -->
-  <view class="fab-container" bindtap="createProject">
-    <view class="fab-btn">+</view>
-  </view>
-
 </scroll-view>
 

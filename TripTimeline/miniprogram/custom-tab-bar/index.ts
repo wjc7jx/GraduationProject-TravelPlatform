@@ -12,14 +12,9 @@ Component({
         isCenter: true // 标识这是中间的悬浮新建按钮
       },
       {
-        pagePath: "/pages/timeline-map/timeline-map",
-        text: "回忆",
-        index: 1
-      },
-      {
         pagePath: "/pages/logs/logs",
         text: "我的",
-        index: 2
+        index: 1
       }
     ]
   },

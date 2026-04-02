@@ -34,10 +34,6 @@
         "text": "旅途"
       },
       {
-        "pagePath": "pages/timeline-map/timeline-map",
-        "text": "回忆"
-      },
-      {
         "pagePath": "pages/logs/logs",
         "text": "我的"
       }

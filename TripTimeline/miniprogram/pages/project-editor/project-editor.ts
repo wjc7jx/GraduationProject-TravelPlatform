@@ -1,7 +1,10 @@
+import { request, baseUrl } from '../../utils/request'
+import api from '../../utils/api'
+
 Page({
   data: {
     isEdit: false,
-    projectId: null,
+    projectId: null as string | null,
     // 表单数据
     title: '',
     subtitle: '',
@@ -14,7 +17,7 @@ Page({
     tagInput: ''
   },
 
-  onLoad(options) {
+  onLoad(options: any) {
     if (options.id) {
       // 携带 ID 说明是编辑模式
       this.setData({
@@ -32,20 +35,30 @@ Page({
     }
   },
 
-  loadProjectDetail(id: string) {
-    // TODO: 从接口获取旅行详细信息并填充表单
-    // Mock data
-    this.setData({
-      title: '喀纳斯',
-      subtitle: '寻迹喀纳斯',
-      coverImage: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800',
-      startDate: '2025-09-12',
-      endDate: '2025-09-18',
-      tags: ['自驾游', '新疆']
-    })
+  async loadProjectDetail(id: string) {
+    try {
+      const res = await request<any>({
+        url: api.project.detail(id),
+        method: 'GET'
+      })
+      
+      this.setData({
+        title: res.title || '',
+        // 我们的数据库直接拼接到了 tags，为了简便暂不区分，如果是复杂业务 subtitle 也可以存在 tags 里或新建字段
+        subtitle: '',
+        coverImage: res.cover_image 
+          ? (res.cover_image.startsWith('http') ? res.cover_image : `${baseUrl}${res.cover_image}`)
+          : '',
+        startDate: res.start_date || '',
+        endDate: res.end_date || '',
+        tags: res.tags ? res.tags.split(',') : []
+      })
+    } catch(e) {
+      // Request util has shown error
+    }
   },
 
-  // 选择封面图
+  // 选择封面图并上传
   chooseCover() {
     wx.chooseMedia({
       count: 1,
@@ -53,9 +66,34 @@ Page({
       sourceType: ['album', 'camera'],
       success: (res) => {
         const tempFilePath = res.tempFiles[0].tempFilePath
-        this.setData({
-          coverImage: tempFilePath
-        })
+        this.uploadImage(tempFilePath)
+      }
+    })
+  },
+
+  // 调用封装后的原生 wx.uploadFile 接口
+  uploadImage(filePath: string) {
+    wx.showLoading({ title: '上传中...' })
+    const token = wx.getStorageSync('token')
+    wx.uploadFile({
+      url: `${baseUrl}${api.upload}`,
+      filePath: filePath,
+      name: 'file',
+      header: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      success: (uploadRes) => {
+        wx.hideLoading()
+        if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
+          const data = JSON.parse(uploadRes.data)
+          this.setData({ coverImage: `${baseUrl}${data.url}` })
+        } else {
+          wx.showToast({ title: '图片上传失败', icon: 'error' })
+        }
+      },
+      fail: () => {
+        wx.hideLoading()
+        wx.showToast({ title: '上传出现网络错误', icon: 'none' })
       }
     })
   },
@@ -95,21 +133,49 @@ Page({
   },
 
   // 提交保存
-  onSubmit() {
-    const { title, startDate, endDate } = this.data
-    if (!title || !startDate || !endDate) {
-      wx.showToast({ title: '必填项未完成', icon: 'error' })
+  async onSubmit() {
+    const { title, subtitle, coverImage, startDate, endDate, tags, isEdit, projectId } = this.data
+    if (!title || !startDate) {
+      wx.showToast({ title: '必填项(标题/时间)未完成', icon: 'error' })
       return
     }
 
-    wx.showLoading({ title: '保存中' })
-    // TODO: 调用后端接口提交数据 (POST /projects 或 PUT /projects/:id)
-    setTimeout(() => {
-      wx.hideLoading()
+    // 将绝对路径的图片再替换为相对路径以存入后端
+    let finalCover = coverImage
+    if (coverImage.startsWith(baseUrl)) {
+      finalCover = coverImage.replace(baseUrl, '')
+    }
+
+    const payload = {
+      title,
+      // 后端暂无 subtitle 字段设计，你可以考虑将 subtitle 放进 tags，或加字段
+      cover_image: finalCover,
+      start_date: startDate,
+      end_date: endDate || null,
+      tags: tags.length ? tags.join(',') : null
+    }
+
+    try {
+      if (isEdit && projectId) {
+        await request({
+          url: api.project.update(projectId),
+          method: 'PUT',
+          data: payload
+        })
+      } else {
+        await request({
+          url: api.project.create,
+          method: 'POST',
+          data: payload
+        })
+      }
+      
       wx.showToast({ title: '保存成功', icon: 'success' })
       setTimeout(() => {
         wx.navigateBack() // 返回列表页
       }, 1500)
-    }, 1000)
+    } catch(e) {
+      // 错误由 request 工具统一拦截提示
+    }
   }
 })

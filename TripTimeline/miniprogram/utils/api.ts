@@ -4,6 +4,8 @@ export default {
     login: '/auth/login',
     register: '/auth/register'
   },
+  // 上传模块
+  upload: '/upload',
   // 项目模块
   project: {
     list: '/projects',

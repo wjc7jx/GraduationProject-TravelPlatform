@@ -1,0 +1,21 @@
+<!-- 测绘学家复古风 TabBar -->
+<view class="tab-bar">
+  <view class="tab-bar-border"></view>
+  
+  <block wx:for="{{list}}" wx:key="index">
+    <!-- 如果是中间的插入按钮，独立处理样式 -->
+    <view wx:if="{{item.isCenter}}" class="tab-bar-item center-btn" data-path="{{item.pagePath}}" bindtap="switchTab">
+      <view class="center-icon-wrap">
+        <!-- 这里用一个简单的 + 字符替代图标 -->
+        <text class="center-icon">+</text>
+      </view>
+    </view>
+    
+    <!-- 正常的 Tab 按钮 -->
+    <view wx:else class="tab-bar-item {{selected === item.index ? 'active' : ''}}" data-path="{{item.pagePath}}" data-index="{{item.index}}" bindtap="switchTab">
+      <!-- 若有图标可以加入 image -->
+      <view class="tab-text">{{item.text}}</view>
+      <view class="active-dot" wx:if="{{selected === item.index}}"></view>
+    </view>
+  </block>
+</view>

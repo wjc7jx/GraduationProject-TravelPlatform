@@ -21,6 +21,26 @@
     }
   },
   "componentFramework": "glass-easel",
+  "tabBar": {
+    "custom": true,
+    "color": "#8A877E",
+    "selectedColor": "#2A4B3C",
+    "backgroundColor": "#F7F5F0",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "旅途"
+      },
+      {
+        "pagePath": "pages/timeline-map/timeline-map",
+        "text": "回忆"
+      },
+      {
+        "pagePath": "pages/logs/logs",
+        "text": "我的"
+      }
+    ]
+  },
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"
 }

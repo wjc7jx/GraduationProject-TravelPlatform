@@ -21,6 +21,10 @@ export const env = {
     secret: process.env.JWT_SECRET || 'dev_secret',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
+  wechat: {
+    appId: process.env.WX_APP_ID || '',        // 请在 .env 文件中填写真实的 APPID
+    appSecret: process.env.WX_APP_SECRET || '' // 请在 .env 文件中填写真实的 APPSECRET
+  },
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
   },

@@ -73,7 +73,7 @@ Page({
       id: index,
       latitude: item.lat,
       longitude: item.lon,
-      iconPath: index === 0 ? '/assets/img/marker-active.png' : '/assets/img/marker.png', // 实际开发可使用本地图片
+      iconPath: index === 0 ? '/assets/img/marker-active.svg' : '/assets/img/marker.svg', // 实际开发可使用本地图片
       width: index === 0 ? 32 : 24,
       height: index === 0 ? 32 : 24,
       callout: {

@@ -1,0 +1,174 @@
+/**pages/editor/editor.scss**/
+.editor-scroll {
+  height: 100vh;
+  background-color: var(--bg-base);
+  box-sizing: border-box;
+}
+
+.editor-container {
+  padding: 40rpx 48rpx 160rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 60rpx;
+}
+
+/* 测绘日志抬头样式 (Logbook Header) */
+.meta-section {
+  border-top: 2rpx solid var(--color-border);
+  border-bottom: 2rpx solid var(--color-border);
+  padding: 24rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meta-label {
+  font-family: var(--font-sans);
+  font-size: 20rpx;
+  letter-spacing: 6rpx;
+  color: var(--color-text-sub);
+  width: 160rpx;
+}
+
+.meta-value {
+  font-family: var(--font-serif);
+  font-size: 28rpx;
+  color: var(--color-title);
+  text-align: right;
+  flex: 1;
+}
+
+/* 如果选中了坐标则采用强烈的红砖色，营造印章感 */
+.meta-value.has-loc {
+  color: var(--color-accent);
+  font-style: italic;
+  font-weight: 600;
+}
+
+/* 照片挂载区 (Media Frame) */
+.media-section {
+  width: 100%;
+  min-height: 520rpx;
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
+}
+
+.empty-media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.plus-icon {
+  font-size: 64rpx;
+  font-weight: 300;
+  color: var(--color-text-main);
+  margin-bottom: 16rpx;
+}
+
+.empty-text {
+  font-family: var(--font-serif);
+  font-size: 24rpx;
+  font-style: italic;
+}
+
+.uploaded-image {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* 玻璃态移除按钮 */
+.remove-btn {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
+  width: 48rpx;
+  height: 48rpx;
+  background: rgba(28, 28, 28, 0.4);
+  backdrop-filter: blur(8rpx);
+  color: #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 24rpx;
+  z-index: 10;
+}
+
+/* 极简排版文字输入 (Typography Editors) */
+.text-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.title-input {
+  font-family: var(--font-serif);
+  font-size: 56rpx;
+  font-weight: 600;
+  color: var(--color-primary);
+  height: 80rpx;
+  line-height: 80rpx;
+}
+
+.ph-title {
+  color: var(--color-text-sub);
+  opacity: 0.5;
+}
+
+.body-textarea {
+  width: 100%;
+  min-height: 300rpx;
+  font-family: var(--font-sans);
+  font-size: 32rpx;
+  line-height: 1.8;
+  color: var(--color-text-main);
+}
+
+.ph-body {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--color-text-sub);
+  opacity: 0.6;
+}
+
+/* 日志封存按钮 */
+.action-section {
+  margin-top: 40rpx;
+}
+
+.save-btn {
+  background-color: var(--color-primary);
+  color: var(--bg-base);
+  font-family: var(--font-sans);
+  font-size: 24rpx;
+  font-weight: 600;
+  letter-spacing: 6rpx;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 36rpx 0;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.2);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.save-btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}

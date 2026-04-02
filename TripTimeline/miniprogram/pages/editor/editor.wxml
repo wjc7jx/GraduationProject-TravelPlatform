@@ -1,0 +1,69 @@
+<!--pages/editor/editor.wxml-->
+<navigation-bar title="Draft" back="{{true}}" color="#1C1C1C" background="transparent"></navigation-bar>
+
+<scroll-view class="editor-scroll" scroll-y>
+  <view class="editor-container fade-up">
+    
+    <!-- 头部元数据区：类似护照印章或考察日志版头 -->
+    <view class="meta-section">
+      <view class="meta-row">
+        <text class="meta-label">DATE</text>
+        <picker mode="date" value="{{date}}" bindchange="bindDateChange">
+          <view class="meta-value">{{date}}</view>
+        </picker>
+      </view>
+      <view class="meta-row">
+        <text class="meta-label">TIME</text>
+        <picker mode="time" value="{{time}}" bindchange="bindTimeChange">
+          <view class="meta-value">{{time}}</view>
+        </picker>
+      </view>
+      <view class="meta-row loc-row" bindtap="chooseLocation">
+        <text class="meta-label">COORDS</text>
+        <view class="meta-value {{location ? 'has-loc' : ''}}">
+          {{location ? location.name : 'Tap to pin location 📍'}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 媒体展示区（纯粹的画框感） -->
+    <view class="media-section" bindtap="chooseImage">
+      <block wx:if="{{imagePath}}">
+        <image class="uploaded-image" src="{{imagePath}}" mode="aspectFill"></image>
+        <view class="remove-btn" catchtap="removeImage">✕</view>
+      </block>
+      <block wx:else>
+        <view class="empty-media">
+          <view class="plus-icon">+</view>
+          <view class="empty-text">Attach a photograph</view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 沉浸式图文沉淀区 -->
+    <view class="text-section">
+      <input 
+        class="title-input" 
+        placeholder="Title your moment..." 
+        placeholder-class="ph-title" 
+        value="{{title}}" 
+        bindinput="onTitleInput" 
+      />
+      <textarea 
+        class="body-textarea" 
+        placeholder="Start typing the story of this exact coordinate..." 
+        placeholder-class="ph-body" 
+        maxlength="-1" 
+        auto-height 
+        value="{{content}}" 
+        bindinput="onContentInput" 
+      />
+    </view>
+
+    <!-- 操作区 -->
+    <view class="action-section">
+      <view class="save-btn" bindtap="saveEntry">PRESS TO JOURNAL</view>
+    </view>
+    
+  </view>
+</scroll-view>

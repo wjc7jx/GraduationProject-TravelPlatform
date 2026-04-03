@@ -99,8 +99,9 @@ Component({
     // 前往项目详情容器
     goToDetail(e: any) {
       const id = e.currentTarget.dataset.id
+      if (!id) return;
       wx.navigateTo({
-        url: `/pages/project-detail/project-detail?id=${id || 1}`,
+        url: `/pages/project-detail/project-detail?id=${id}`,
       })
     },
     // 长按项目卡片进行管理操作

@@ -6,6 +6,9 @@
     <view class="back-btn" bindtap="goBack">
       <view class="back-icon">←</view>
     </view>
+    <view class="edit-btn" bindtap="goToProjectEditor">
+      <view class="edit-icon">编辑</view>
+    </view>
     <image class="cover-image" src="{{projectDetail.cover}}" mode="aspectFill"></image>
     <view class="overlay">
       <view class="project-info">

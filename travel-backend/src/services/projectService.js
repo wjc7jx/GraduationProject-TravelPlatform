@@ -27,6 +27,10 @@ export async function createProject(userId, payload) {
   });
 }
 
+export async function getProjectById(projectId, userId) {
+  return await getProjectOrThrow(projectId, userId);
+}
+
 export async function getProjectOrThrow(projectId, userId) {
   const project = await Project.findOne({ 
     where: { 

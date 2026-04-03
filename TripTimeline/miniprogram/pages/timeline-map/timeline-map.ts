@@ -1,89 +1,94 @@
-// pages/timeline-map/timeline-map.ts
+import { request, baseUrl } from '../../utils/request';
+import api from '../../utils/api';
+
 Page({
   data: {
-    currentDay: '第 1 天',
-    // 喀纳斯初始坐标
-    centerLon: 87.0142,
-    centerLat: 48.7061,
+    projectId: null,
+    currentDay: '全部',
+    centerLon: 116.404,
+    centerLat: 39.915,
     mapScale: 14,
     
     activeIndex: 0,
     scrollToId: '',
     
-    // 地图点位与连线
     markers: [],
     polylines: [],
     
-    // 时间轴日记数据
-    timelineData: [
-      {
-        id: 'n1',
-        time: '09:30',
-        category: '出发',
-        title: '启程与晨雾',
-        desc: '沿着盘山公路驶入景区，晨雾还没有散去，喀纳斯河在山谷里若隐若现。像走进了一幅巨大的水墨画。',
-        image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?q=80&w=1000&auto=format&fit=crop',
-        caption: '晨光的折射点',
-        lon: 87.0142,
-        lat: 48.7061
-      },
-      {
-        id: 'n2',
-        time: '12:15',
-        category: '探索',
-        title: '神仙湾的徒步',
-        desc: '在三湾中最为神秘的一个。这里的河水流动缓慢，水面如镜。由于独特的地理形态，这里几乎终年云雾缭绕。',
-        image: '',
-        lon: 87.0253,
-        lat: 48.6942
-      },
-      {
-        id: 'n3',
-        time: '15:40',
-        category: '休息',
-        title: '木屋与热茶',
-        desc: '图瓦人的古老村落，木刻楞房屋散落在草原上。我们在一家当地人的木屋里喝了一杯滚烫的奶茶，缓解了刺骨的寒意。',
-        image: 'https://images.unsplash.com/photo-1542332213-9b5a5a3fad35?q=80&w=1000&auto=format&fit=crop',
-        caption: '原始的栖息感',
-        lon: 87.0315,
-        lat: 48.6811
-      },
-      {
-        id: 'n4',
-        time: '18:50',
-        category: '景点',
-        title: '月亮湾的晚霞',
-        desc: '河床在这里形成两个半月牙边缘，水色随光线变幻。日落时分，周围的白桦林被染成一片金红。',
-        image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1000&auto=format&fit=crop',
-        caption: '最后的光线',
-        lon: 87.0392,
-        lat: 48.6750
-      }
-    ]
+    timelineData: [] as any[]
   },
 
-  onLoad() {
-    this.initMapData();
+  onLoad(options: any) {
+    if (options.projectId) {
+      this.setData({ projectId: options.projectId });
+    }
+  },
+
+  onShow() {
+    if (this.data.projectId) {
+      this.fetchTimelineData(this.data.projectId);
+    }
+  },
+
+  async fetchTimelineData(projectId: string) {
+    try {
+      const res = await request<any[]>({
+        url: api.content.list(projectId),
+        method: 'GET'
+      });
+      if (res && res.length > 0) {
+        const mappedData = res.map((item: any) => ({
+          id: item.content_id,
+          time: new Date(item.log_time || item.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+          category: item.type === 'location' ? '足迹' : '日记',
+          title: item.title || '无标题',
+          desc: item.content || '',
+          image: item.images ? JSON.parse(item.images)[0] : '', // parse JSON or use as string based on your DB
+          lon: item.longitude || 0,
+          lat: item.latitude || 0
+        })).filter(item => item.lon && item.lat);
+        
+        mappedData.forEach((d: any) => {
+          if (d.image && !d.image.startsWith('http')) {
+            d.image = `${baseUrl}${d.image}`;
+          }
+        });
+
+        this.setData({ timelineData: mappedData });
+
+        if (mappedData.length > 0) {
+          this.setData({
+            centerLon: mappedData[0].lon,
+            centerLat: mappedData[0].lat
+          });
+        }
+      } else {
+        this.setData({ timelineData: [] });
+      }
+      this.initMapData();
+    } catch (e) {
+      wx.showToast({ title: '加载失败', icon: 'none' });
+    }
   },
 
   initMapData() {
     const list = this.data.timelineData;
     // 1. 构建地图标记 (Markers)
-    const markers = list.map((item, index) => ({
+    const markers = list.map((item: any, index: number) => ({
       id: index,
       latitude: item.lat,
       longitude: item.lon,
-      iconPath: index === 0 ? '/assets/img/marker-active.svg' : '/assets/img/marker.svg', // 实际开发可使用本地图片
-      width: index === 0 ? 32 : 24,
-      height: index === 0 ? 32 : 24,
+      iconPath: index === this.data.activeIndex ? '/assets/img/marker-active.svg' : '/assets/img/marker.svg',
+      width: index === this.data.activeIndex ? 32 : 24,
+      height: index === this.data.activeIndex ? 32 : 24,
       callout: {
         content: item.title,
-        color: index === 0 ? '#FFFFFF' : '#1C1C1C',
+        color: index === this.data.activeIndex ? '#FFFFFF' : '#1C1C1C',
         fontSize: 12,
         borderRadius: 4,
-        bgColor: index === 0 ? '#C85A3D' : '#FFFFFF',
+        bgColor: index === this.data.activeIndex ? '#C85A3D' : '#FFFFFF',
         padding: 6,
-        display: index === 0 ? 'ALWAYS' : 'BYCLICK'
+        display: index === this.data.activeIndex ? 'ALWAYS' : 'BYCLICK'
       }
     }));
 

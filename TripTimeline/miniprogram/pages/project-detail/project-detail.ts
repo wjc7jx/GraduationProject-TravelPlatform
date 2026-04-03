@@ -1,28 +1,55 @@
+import { request, baseUrl } from '../../utils/request';
+import api from '../../utils/api';
+
 Page({
   data: {
     projectId: null,
     projectDetail: {} as any
   },
 
-  onLoad(options) {
+  onLoad(options: any) {
     if (options.id) {
       this.setData({ projectId: options.id })
-      this.fetchProjectDetail(options.id)
     }
   },
 
-  fetchProjectDetail(id: string) {
-    // ... logic earlier ...
-    this.setData({
-      projectDetail: {
-        id: id,
-        title: "Kyoto",
-        subtitle: "京都的红叶与枯山水",
-        cover: "https://images.unsplash.com/photo-1493976040375-3affeacfcdce",
-        date: "2024.11.02 - 11.08"
+  onShow() {
+    if (this.data.projectId) {
+      this.fetchProjectDetail(this.data.projectId);
+    }
+  },
+
+  async fetchProjectDetail(id: string) {
+    try {
+      const res = await request<any>({
+        url: api.project.detail(id),
+        method: 'GET'
+      });
+      
+      let dateStr = '未定时间';
+      if (res.start_date && res.end_date) {
+        dateStr = `${res.start_date.split('T')[0].replace(/-/g, '.')} - ${res.end_date.split('T')[0].replace(/-/g, '.')}`;
+      } else if (res.start_date) {
+        dateStr = res.start_date.split('T')[0].replace(/-/g, '.');
       }
-    })
-    wx.setNavigationBarTitle({ title: this.data.projectDetail.title })
+
+      const cover = res.cover_image 
+        ? (res.cover_image.startsWith('http') ? res.cover_image : `${baseUrl}${res.cover_image}`)
+        : 'https://images.unsplash.com/photo-1493976040375-3affeacfcdce';
+
+      this.setData({
+        projectDetail: {
+          id: res.id,
+          title: res.title || '无标题',
+          subtitle: res.description || res.tags || '',
+          cover: cover,
+          date: dateStr
+        }
+      });
+      wx.setNavigationBarTitle({ title: this.data.projectDetail.title });
+    } catch (err) {
+      wx.showToast({ title: '加载失败', icon: 'error' });
+    }
   },
 
   goBack() {
@@ -45,6 +72,13 @@ Page({
   goToEditor() {
     wx.navigateTo({
       url: `/pages/editor/editor?projectId=${this.data.projectId}`,
+    })
+  },
+
+  // 编辑当前项目
+  goToProjectEditor() {
+    wx.navigateTo({
+      url: `/pages/project-editor/project-editor?id=${this.data.projectId}`,
     })
   }
 })

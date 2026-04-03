@@ -7,21 +7,58 @@ const app = getApp<IAppOption>()
 
 Component({
   data: {
-    projects: [] as any[]
+    projects: [] as any[],
+    isLoading: true,
+    hasAuth: false,
   },
   lifetimes: {
     attached() {
-      this.loadProjects()
+      this.checkAuthAndLoad()
     }
   },
   pageLifetimes: {
     show() {
       // 页面显示时刷新列表
-      this.loadProjects()
+      if(this.data.hasAuth) {
+        this.loadProjects()
+      }
     }
   },
   methods: {
+    async checkAuthAndLoad() {
+      const token = wx.getStorageSync('token')
+      if (token) {
+        this.setData({ hasAuth: true })
+        await this.loadProjects()
+      } else {
+        this.setData({ isLoading: false, hasAuth: false })
+      }
+    },
+    
+    // 手动点击授权/登录
+    async onLoginTap() {
+      this.setData({ isLoading: true })
+      try {
+        if (app.doWechatLogin) {
+          await app.doWechatLogin()
+        }
+        this.setData({ hasAuth: true })
+        await this.loadProjects()
+      } catch (e) {
+        wx.showToast({ title: '登录失败，请重试', icon: 'none' })
+        this.setData({ isLoading: false })
+      }
+    },
+
+    // 创建新项目入口
+    onCreateProjectTap() {
+      wx.navigateTo({
+        url: '/pages/project-editor/project-editor',
+      })
+    },
+
     async loadProjects() {
+      this.setData({ isLoading: true })
       try {
         const res = await request<any[]>({
           url: api.project.list,
@@ -46,9 +83,10 @@ Component({
           }
         })
         
-        this.setData({ projects })
+        this.setData({ projects, isLoading: false })
       } catch (err) {
         console.error('加载项目列表失败', err)
+        this.setData({ isLoading: false })
       }
     },
     

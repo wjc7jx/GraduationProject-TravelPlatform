@@ -5,5 +5,5 @@ interface IAppOption {
     userInfo?: WechatMiniprogram.UserInfo,
   }
   userInfoReadyCallback?: WechatMiniprogram.GetUserInfoSuccessCallback,
-  doWechatLogin?: () => void,
+  doWechatLogin?: () => Promise<any>,
 }

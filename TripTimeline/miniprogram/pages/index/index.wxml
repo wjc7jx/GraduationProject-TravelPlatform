@@ -5,14 +5,31 @@
   
   <!-- 头部：大标题，展示杂志风格 -->
   <view class="header-section fade-up" style="animation-delay: 0.1s">
-    <view class="date-stamp">第 1 卷 / 共 {{projects.length}} 次旅行</view>
+    <view class="date-stamp" wx:if="{{hasAuth}}">第 1 卷 / 共 {{projects.length}} 次旅行</view>
+    <view class="date-stamp" wx:else>旅行即将开始</view>
     <view class="editorial-title">Travel</view>
     <view class="editorial-title title-offset">Journals.</view>
     <view class="editorial-subtitle">记录你在地球上的足迹。</view>
   </view>
 
+  <!-- 授权与登录状态 -->
+  <view wx:if="{{!hasAuth && !isLoading}}" class="empty-state container fade-up" style="animation-delay: 0.3s">
+    <image class="empty-icon" src="/assets/img/empty-travel.png" mode="aspectFit"></image>
+    <view class="empty-title">欢迎使用旅行时光轴</view>
+    <view class="empty-desc">请先授权登录，开启你的专属旅行日记</view>
+    <button class="primary-btn" bindtap="onLoginTap">探索旅程 (授权登录)</button>
+  </view>
+
+  <!-- 空项目状态 -->
+  <view wx:elif="{{hasAuth && projects.length === 0 && !isLoading}}" class="empty-state container fade-up" style="animation-delay: 0.3s">
+    <view class="empty-icon">🌍</view>
+    <view class="empty-title">第一本旅行日记</view>
+    <view class="empty-desc">还没有记录任何旅行故事，开启你的第一次记录吧</view>
+    <button class="primary-btn" bindtap="onCreateProjectTap">创建新项目</button>
+  </view>
+
   <!-- 瀑布流/非对称卡片展示 -->
-  <view class="gallery-container">
+  <view wx:else class="gallery-container">
     <block wx:for="{{projects}}" wx:key="id">
       <view class="project-card {{item.style}} fade-up" style="animation-delay: {{0.2 + index * 0.1}}s" bindtap="goToDetail" bindlongpress="onProjectLongPress" data-id="{{item.id}}">
         <view class="card-image-wrap">

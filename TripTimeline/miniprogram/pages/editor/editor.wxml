@@ -1,69 +1,110 @@
 <!--pages/editor/editor.wxml-->
-<navigation-bar title="草稿" back="{{true}}" color="#1C1C1C" background="transparent"></navigation-bar>
+<navigation-bar title="新建记录" back="{{true}}" color="#1C1C1C" background="transparent"></navigation-bar>
 
 <scroll-view class="editor-scroll" scroll-y>
   <view class="editor-container fade-up">
-    
-    <!-- 头部元数据区：类似护照印章或考察日志版头 -->
-    <view class="meta-section">
-      <view class="meta-row">
-        <text class="meta-label">日期</text>
-        <picker mode="date" value="{{date}}" bindchange="bindDateChange">
-          <view class="meta-value">{{date}}</view>
-        </picker>
-      </view>
-      <view class="meta-row">
-        <text class="meta-label">时间</text>
-        <picker mode="time" value="{{time}}" bindchange="bindTimeChange">
-          <view class="meta-value">{{time}}</view>
-        </picker>
-      </view>
-      <view class="meta-row loc-row" bindtap="chooseLocation">
-        <text class="meta-label">地理位置</text>
-        <view class="meta-value {{location ? 'has-loc' : ''}}">
-          {{location ? location.name : '点击标注位置 📍'}}
-        </view>
-      </view>
+    <view class="page-head">
+      <view class="page-title">记录你的旅行瞬间</view>
+      <view class="page-subtitle">手动填写为主，系统仅在识别到信息时自动填入表单</view>
     </view>
 
-    <!-- 媒体展示区（纯粹的画框感） -->
-    <view class="media-section" bindtap="chooseImage">
+    <view class="type-section">
+      <view class="type-chip {{contentType === 'note' ? 'active' : ''}}" data-type="note" bindtap="onTypeChange">文字</view>
+      <view class="type-chip {{contentType === 'photo' ? 'active' : ''}}" data-type="photo" bindtap="onTypeChange">图片</view>
+      <view class="type-chip {{contentType === 'audio' ? 'active' : ''}}" data-type="audio" bindtap="onTypeChange">音频</view>
+      <view class="type-chip {{contentType === 'track' ? 'active' : ''}}" data-type="track" bindtap="onTypeChange">轨迹</view>
+    </view>
+
+    <view wx:if="{{contentType === 'photo'}}" class="media-section" bindtap="chooseImage">
       <block wx:if="{{imagePath}}">
         <image class="uploaded-image" src="{{imagePath}}" mode="aspectFill"></image>
-        <view class="remove-btn" catchtap="removeImage">✕</view>
+        <view class="remove-btn" catchtap="removeImage">X</view>
       </block>
       <block wx:else>
         <view class="empty-media">
           <view class="plus-icon">+</view>
-          <view class="empty-text">添加照片</view>
+          <view class="empty-text">选择图片并自动识别 EXIF</view>
         </view>
       </block>
     </view>
 
-    <!-- 沉浸式图文沉淀区 -->
+    <view wx:if="{{contentType === 'audio'}}" class="asset-section">
+      <view class="asset-action" bindtap="chooseAudio">选择音频文件</view>
+      <view wx:if="{{audioFileName}}" class="asset-result">已选择：{{audioFileName}}</view>
+    </view>
+
+    <view wx:if="{{contentType === 'track'}}" class="asset-section">
+      <view class="asset-action" bindtap="chooseTrack">导入 GPX/KML 轨迹</view>
+      <view wx:if="{{trackFileName}}" class="asset-result">已导入：{{trackFileName}}</view>
+    </view>
+
     <view class="text-section">
-      <input 
-        class="title-input" 
-        placeholder="为这一刻命名..." 
-        placeholder-class="ph-title" 
-        value="{{title}}" 
-        bindinput="onTitleInput" 
+      <input
+        class="title-input"
+        placeholder="标题（可选）"
+        placeholder-class="ph-title"
+        value="{{title}}"
+        bindinput="onTitleInput"
       />
-      <textarea 
-        class="body-textarea" 
-        placeholder="在这里记录你的故事..." 
-        placeholder-class="ph-body" 
-        maxlength="-1" 
-        auto-height 
-        value="{{content}}" 
-        bindinput="onContentInput" 
+      <textarea
+        class="body-textarea"
+        placeholder="输入你的旅行记录内容"
+        placeholder-class="ph-body"
+        maxlength="-1"
+        auto-height
+        value="{{content}}"
+        bindinput="onContentInput"
       />
     </view>
 
-    <!-- 操作区 -->
-    <view class="action-section">
-      <view class="save-btn" bindtap="saveEntry">保存至旅行日记</view>
+    <view class="form-section">
+      <view class="form-row">
+        <text class="form-label">日期</text>
+        <picker mode="date" value="{{date}}" bindchange="bindDateChange">
+          <view class="picker-value">{{date}}</view>
+        </picker>
+      </view>
+
+      <view class="form-row">
+        <text class="form-label">时间</text>
+        <picker mode="time" value="{{time}}" bindchange="bindTimeChange">
+          <view class="picker-value">{{time}}</view>
+        </picker>
+      </view>
+
+      <view class="form-row column">
+        <text class="form-label">地点名称</text>
+        <input
+          class="form-input"
+          placeholder="手动输入地点名称"
+          value="{{locationName}}"
+          bindinput="onLocationNameInput"
+        />
+      </view>
+
+      <view class="form-row column">
+        <text class="form-label">详细地址</text>
+        <input
+          class="form-input"
+          placeholder="手动输入地址"
+          value="{{locationAddress}}"
+          bindinput="onLocationAddressInput"
+        />
+      </view>
+
+      <view class="form-row column">
+        <view class="loc-actions">
+          <view class="loc-btn" bindtap="chooseLocation">地图选点</view>
+          <view wx:if="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
+        </view>
+        <view class="coord-text" wx:if="{{location && location.lat && location.lon}}">
+          坐标：{{location.lat}}, {{location.lon}}
+        </view>
+      </view>
     </view>
-    
+
+    <view class="action-section">
+      <view class="save-btn" bindtap="saveEntry">保存记录</view>
+    </view>
   </view>
 </scroll-view>

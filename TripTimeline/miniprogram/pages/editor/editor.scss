@@ -1,88 +1,95 @@
 /**pages/editor/editor.scss**/
 .editor-scroll {
   height: 100vh;
-  background-color: var(--bg-base);
+  background:
+    radial-gradient(circle at 100% 0, rgba(196, 226, 208, 0.28) 0%, rgba(196, 226, 208, 0) 36%),
+    linear-gradient(180deg, #f7f8f3 0%, #edf2ea 100%);
   box-sizing: border-box;
 }
 
 .editor-container {
-  padding: 40rpx 48rpx 160rpx;
+  padding: 36rpx 36rpx 140rpx;
   display: flex;
   flex-direction: column;
-  gap: 60rpx;
+  gap: 28rpx;
 }
 
-/* 测绘日志抬头样式 (Logbook Header) */
-.meta-section {
-  border-top: 2rpx solid var(--color-border);
-  border-bottom: 2rpx solid var(--color-border);
-  padding: 24rpx 0;
+.page-head {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 8rpx;
 }
 
-.meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.page-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #223329;
 }
 
-.meta-label {
-  font-family: var(--font-sans);
-  font-size: 20rpx;
-  letter-spacing: 6rpx;
-  color: var(--color-text-sub);
-  width: 160rpx;
+.page-subtitle {
+  font-size: 24rpx;
+  color: #5f6f65;
 }
 
-.meta-value {
-  font-family: var(--font-serif);
-  font-size: 28rpx;
-  color: var(--color-title);
-  text-align: right;
-  flex: 1;
+.type-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14rpx;
 }
 
-/* 如果选中了坐标则采用强烈的红砖色，营造印章感 */
-.meta-value.has-loc {
-  color: var(--color-accent);
-  font-style: italic;
-  font-weight: 600;
+.type-chip {
+  text-align: center;
+  padding: 16rpx 0;
+  border-radius: 999rpx;
+  border: 2rpx solid rgba(34, 51, 41, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+  color: #48574e;
+  font-size: 24rpx;
 }
 
-/* 照片挂载区 (Media Frame) */
+.type-chip.active {
+  border-color: #2f6145;
+  background: #2f6145;
+  color: #fff;
+}
+
+.media-section,
+.asset-section,
+.text-section,
+.form-section {
+  background: rgba(255, 255, 255, 0.84);
+  border-radius: 24rpx;
+  border: 2rpx solid rgba(34, 51, 41, 0.06);
+  box-shadow: 0 14rpx 36rpx rgba(28, 45, 35, 0.08);
+}
+
 .media-section {
   width: 100%;
-  min-height: 520rpx;
-  background-color: var(--bg-surface);
-  border-radius: var(--radius-sm);
+  min-height: 420rpx;
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
 }
 
 .empty-media {
   display: flex;
   flex-direction: column;
   align-items: center;
-  opacity: 0.6;
+  opacity: 0.72;
 }
 
 .plus-icon {
   font-size: 64rpx;
   font-weight: 300;
-  color: var(--color-text-main);
-  margin-bottom: 16rpx;
+  color: #355341;
+  margin-bottom: 12rpx;
 }
 
 .empty-text {
-  font-family: var(--font-serif);
   font-size: 24rpx;
-  font-style: italic;
+  color: #51645a;
 }
 
 .uploaded-image {
@@ -93,16 +100,14 @@
   left: 0;
 }
 
-/* 玻璃态移除按钮 */
 .remove-btn {
   position: absolute;
-  top: 24rpx;
-  right: 24rpx;
-  width: 48rpx;
-  height: 48rpx;
-  background: rgba(28, 28, 28, 0.4);
-  backdrop-filter: blur(8rpx);
-  color: #FFF;
+  top: 20rpx;
+  right: 20rpx;
+  width: 52rpx;
+  height: 52rpx;
+  background: rgba(17, 28, 21, 0.58);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,64 +116,142 @@
   z-index: 10;
 }
 
-/* 极简排版文字输入 (Typography Editors) */
-.text-section {
+.asset-section {
+  padding: 24rpx;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 14rpx;
+}
+
+.asset-action {
+  background: #ecf5ef;
+  border: 2rpx solid #d8e9dc;
+  color: #2f6145;
+  border-radius: 14rpx;
+  text-align: center;
+  padding: 18rpx 20rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.asset-result {
+  color: #4f6358;
+  font-size: 24rpx;
+  word-break: break-all;
+}
+
+.text-section {
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
 }
 
 .title-input {
-  font-family: var(--font-serif);
-  font-size: 56rpx;
-  font-weight: 600;
-  color: var(--color-primary);
-  height: 80rpx;
-  line-height: 80rpx;
-}
-
-.ph-title {
-  color: var(--color-text-sub);
-  opacity: 0.5;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #223329;
+  min-height: 58rpx;
 }
 
 .body-textarea {
   width: 100%;
-  min-height: 300rpx;
-  font-family: var(--font-sans);
-  font-size: 32rpx;
+  min-height: 240rpx;
+  font-size: 30rpx;
   line-height: 1.8;
-  color: var(--color-text-main);
+  color: #2f3e35;
 }
 
+.ph-title,
 .ph-body {
-  font-family: var(--font-serif);
-  font-style: italic;
-  color: var(--color-text-sub);
-  opacity: 0.6;
+  color: #91a39a;
 }
 
-/* 日志封存按钮 */
+.form-section {
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.form-row.column {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.form-label {
+  color: #4f6358;
+  font-size: 24rpx;
+  min-width: 100rpx;
+}
+
+.picker-value {
+  color: #223329;
+  font-size: 28rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 76rpx;
+  border-radius: 14rpx;
+  background: #f6faf7;
+  border: 2rpx solid #e2ece6;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  color: #2f3e35;
+}
+
+.loc-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.loc-btn {
+  background: #f4f8f3;
+  border: 2rpx solid #dce8dd;
+  color: #315540;
+  border-radius: 14rpx;
+  padding: 14rpx 18rpx;
+  font-size: 24rpx;
+}
+
+.hint-text {
+  flex: 1;
+  text-align: right;
+  color: #6d7f74;
+  font-size: 22rpx;
+}
+
+.coord-text {
+  color: #6b7d73;
+  font-size: 22rpx;
+}
+
 .action-section {
-  margin-top: 40rpx;
+  margin-top: 10rpx;
 }
 
 .save-btn {
-  background-color: var(--color-primary);
-  color: var(--bg-base);
-  font-family: var(--font-sans);
-  font-size: 24rpx;
-  font-weight: 600;
-  letter-spacing: 6rpx;
-  text-transform: uppercase;
+  background: linear-gradient(120deg, #2b5f42 0%, #456c55 100%);
+  color: #fff;
+  font-size: 28rpx;
   text-align: center;
-  padding: 36rpx 0;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.2);
-  transition: opacity 0.2s, transform 0.2s;
+  padding: 30rpx 0;
+  border-radius: 16rpx;
+  box-shadow: 0 16rpx 36rpx rgba(36, 82, 57, 0.28);
 }
 
 .save-btn:active {
   opacity: 0.9;
-  transform: scale(0.98);
 }

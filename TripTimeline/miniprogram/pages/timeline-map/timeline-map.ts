@@ -57,18 +57,25 @@ Page({
       if (res && res.length > 0) {
         let globalIndex = 0;
         const mappedData = res.map((item: any) => {
-          const d = new Date(item.log_time || item.created_at);
+          const payload = item.content_data || {};
+          const d = new Date(item.record_time || item.created_at);
+          const location = item.location || {};
+          const imageList = Array.isArray(payload.images)
+            ? payload.images
+            : (typeof payload.images === 'string' ? (() => {
+                try { return JSON.parse(payload.images); } catch (e) { return []; }
+              })() : []);
           return {
             id: item.content_id,
             dateStr: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`,
             time: d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-            category: item.type === 'location' ? '足迹' : '日记',
-            title: item.title || '无标题',
-            desc: item.content || '',
-            image: item.images ? JSON.parse(item.images)[0] : '',
-            lon: item.longitude || 0,
-            lat: item.latitude || 0,
-            hasLoc: !!(item.longitude && item.latitude)
+            category: item.content_type === 'track' ? '足迹' : '日记',
+            title: payload.title || '无标题',
+            desc: payload.content || '',
+            image: imageList[0] || '',
+            lon: Number(location.longitude) || 0,
+            lat: Number(location.latitude) || 0,
+            hasLoc: !!(location.longitude && location.latitude)
           };
         });
         

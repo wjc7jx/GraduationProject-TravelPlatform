@@ -1,9 +1,10 @@
 import { createProject, listProjects, updateProject, deleteProject, getProjectById } from '../services/projectService.js';
+import { sendSuccess } from '../utils/response.js';
 
 export async function getProjects(req, res, next) {
   try {
     const data = await listProjects(req.user.user_id);
-    res.json(data);
+    sendSuccess(res, data, '获取项目列表成功');
   } catch (error) {
     next(error);
   }
@@ -13,8 +14,7 @@ export async function getProjectDetail(req, res, next) {
   try {
     const { id } = req.params;
     const project = await getProjectById(id, req.user.user_id);
-    if (!project) return res.status(404).json({ message: 'Project not found' });
-    res.json(project);
+    sendSuccess(res, project, '获取项目详情成功');
   } catch (error) {
     next(error);
   }
@@ -23,7 +23,7 @@ export async function getProjectDetail(req, res, next) {
 export async function addProject(req, res, next) {
   try {
     const project = await createProject(req.user.user_id, req.body);
-    res.status(201).json(project);
+    sendSuccess(res, project, '创建项目成功', 201);
   } catch (error) {
     next(error);
   }
@@ -33,7 +33,7 @@ export async function editProject(req, res, next) {
   try {
     const { id } = req.params;
     const project = await updateProject(id, req.user.user_id, req.body);
-    res.json(project);
+    sendSuccess(res, project, '更新项目成功');
   } catch (error) {
     next(error);
   }
@@ -43,7 +43,7 @@ export async function removeProject(req, res, next) {
   try {
     const { id } = req.params;
     await deleteProject(id, req.user.user_id);
-    res.status(204).end();
+    sendSuccess(res, null, '删除项目成功');
   } catch (error) {
     next(error);
   }

@@ -50,7 +50,7 @@ export const request = <T = any>(options: RequestOptions): Promise<T> => {
           const data = res.data as any;
           // 若后端包含通用业务状态码如 code，处理业务错误
           if (data && typeof data === 'object' && 'code' in data) {
-            if (data.code === 0 || data.code === 200) {
+            if (data.code === 0 || (typeof data.code === 'number' && data.code >= 200 && data.code < 300)) {
               // 兼容: 若希望全局取 data.data 可在这里拆解，现为了不破坏已有的功能，直接原样返回或取标准data字段
               resolve((data.data !== undefined ? data.data : data) as T);
             } else {

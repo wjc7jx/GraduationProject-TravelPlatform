@@ -1,3 +1,5 @@
+import { sendError } from '../utils/response.js';
+
 export function notFound(req, res, next) {
-  res.status(404).json({ message: '资源未找到' });
+  sendError(res, '资源未找到', 404);
 }

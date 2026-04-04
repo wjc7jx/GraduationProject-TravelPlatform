@@ -1,5 +1,6 @@
 import { parseImageExif, parseTrajectory } from '../utils/parser.js';
 import path from 'path';
+import { sendSuccess } from '../utils/response.js';
 
 export function uploadFile(req, res, next) {
   try {
@@ -9,11 +10,11 @@ export function uploadFile(req, res, next) {
       throw err;
     }
     const fileUrl = `/uploads/${req.file.filename}`;
-    res.status(201).json({
+    sendSuccess(res, {
       url: fileUrl,
       mimetype: req.file.mimetype,
       size: req.file.size
-    });
+    }, '文件上传成功', 201);
   } catch (error) {
     next(error);
   }
@@ -31,12 +32,12 @@ export async function uploadAndParsePhoto(req, res, next) {
     
     const exifData = await parseImageExif(absolutePath);
 
-    res.status(201).json({
+    sendSuccess(res, {
       url: fileUrl,
       mimetype: req.file.mimetype,
       size: req.file.size,
       exif: exifData || {}
-    });
+    }, '图片上传并解析成功', 201);
   } catch (error) {
     next(error);
   }
@@ -54,12 +55,12 @@ export async function uploadAndParseTrajectory(req, res, next) {
     
     const geojson = await parseTrajectory(absolutePath);
 
-    res.status(201).json({
+    sendSuccess(res, {
       url: fileUrl,
       mimetype: req.file.mimetype,
       size: req.file.size,
       geojson: geojson || {}
-    });
+    }, '轨迹上传并解析成功', 201);
   } catch (error) {
     next(error);
   }

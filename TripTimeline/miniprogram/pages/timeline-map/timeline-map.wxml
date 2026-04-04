@@ -2,82 +2,98 @@
 <navigation-bar title="{{currentDay}}" back="{{true}}" color="#1C1C1C" background="rgba(247,245,240,0.85)"></navigation-bar>
 
 <view class="page-container">
-  <!-- 上半部分：沉浸式地图 -->
-  <view class="map-wrapper fade-up" style="animation-delay: 0.1s">
-    <map 
-      id="storyMap" 
-      class="story-map" 
-      longitude="{{centerLon}}" 
-      latitude="{{centerLat}}" 
-      scale="{{mapScale}}" 
-      markers="{{markers}}"
-      polyline="{{polylines}}"
-      bindmarkertap="onMarkerTap"
-    ></map>
-    <!-- 地图覆盖层：渐变边缘，与时间轴柔和过渡 -->
-    <view class="map-gradient-overlay"></view>
-  </view>
+  <!-- 沉浸式地图 (满屏底层) -->
+  <map 
+    id="storyMap" 
+    class="story-map fade-up" 
+    style="animation-delay: 0.1s"
+    longitude="{{centerLon}}" 
+    latitude="{{centerLat}}" 
+    scale="{{mapScale}}" 
+    markers="{{markers}}"
+    polyline="{{polylines}}"
+    bindmarkertap="onMarkerTap"
+    bindtap="onMapTap"
+    show-location
+  ></map>
 
-  <!-- 下半部分：纸质感玻璃态时间轴 -->
-  <view class="timeline-panel fade-up" style="animation-delay: 0.2s">
-    <scroll-view 
-      class="timeline-scroll" 
-      scroll-y 
-      scroll-into-view="{{scrollToId}}" 
-      scroll-with-animation
-      enhanced
-      show-scrollbar="{{false}}"
-    >
-      <view class="timeline-track">
-        
-        <!-- 导语区 -->
-        <view class="timeline-header" wx:if="{{projectDetail}}">
-          <view class="chapter-text">旅行记忆</view>
-          <view class="editorial-title" style="font-size: 44rpx;">{{projectDetail.title || '出发'}}.</view>
-          <view class="editorial-subtitle" style="margin-top: 10rpx;">一段记录了 {{timelineData.length}} 个足迹的奇妙旅程。</view>
-        </view>
+  <!-- 底部可拖拽抽屉 -->
+  <view class="bottom-sheet" style="height: {{sheetHeight}}vh; transition: {{isDragging ? 'none' : 'height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)'}}">
+    <!-- 拖拽把手区 -->
+    <view class="drag-handle-wrapper" catchtouchstart="onTouchStart" catchtouchmove="onTouchMove" catchtouchend="onTouchEnd">
+      <view class="drag-handle"></view>
+    </view>
 
-        <!-- 节点列表 (按天分组) -->
-        <block wx:for="{{timelineData}}" wx:key="date" wx:for-item="dayGroup" wx:for-index="gIndex">
-          <view class="timeline-day-header">{{dayGroup.date}}</view>
+    <!-- 纸质感玻璃态时间轴 -->
+    <view class="timeline-panel fade-up" style="animation-delay: 0.2s">
+      <scroll-view 
+        class="timeline-scroll" 
+        scroll-y 
+        scroll-into-view="{{scrollToId}}" 
+        scroll-with-animation
+        enhanced
+        show-scrollbar="{{false}}"
+      >
+        <view class="timeline-track">
           
-          <block wx:for="{{dayGroup.items}}" wx:key="id">
-            <view class="timeline-node {{activeIndex === item.globalIndex ? 'active' : ''}}" id="node-{{item.id}}" bindtap="onNodeTap" data-index="{{item.globalIndex}}">
-              <!-- 左侧：线与地理标记原点 -->
-              <view class="node-axis">
-                <view class="node-dot {{!item.hasLoc ? 'no-loc' : ''}}"></view>
-                <view class="node-line" wx:if="{{index !== dayGroup.items.length - 1 || gIndex !== timelineData.length - 1}}"></view>
-              </view>
-              
-              <!-- 右侧：叙事内容 -->
-              <view class="node-content">
-                <view class="node-meta">
-                  <text class="node-time">{{item.time}}</text>
-                  <text class="node-category">{{item.category}}</text>
+          <!-- 导语区 -->
+          <view class="timeline-header" wx:if="{{projectDetail}}">
+            <view class="chapter-text">旅行记忆</view>
+            <view class="editorial-title" style="font-size: 44rpx;">{{projectDetail.title || '出发'}}.</view>
+            <view class="editorial-subtitle" style="margin-top: 10rpx;">一段记录了 {{timelineData[0].items.length > 0 ? markers.length : 0}} 个足迹的奇妙旅程。</view>
+          </view>
+
+          <!-- 节点列表 (按天分组) -->
+          <block wx:for="{{timelineData}}" wx:key="date" wx:for-item="dayGroup" wx:for-index="gIndex">
+            <view class="timeline-day-header">{{dayGroup.date}}</view>
+            
+            <block wx:for="{{dayGroup.items}}" wx:key="id">
+              <!-- 手风琴节点 -->
+              <view class="timeline-node {{activeIndex === item.globalIndex ? 'active' : ''}}" id="node-{{item.id}}" bindtap="onNodeTap" data-index="{{item.globalIndex}}">
+                <!-- 左侧：线与地理标记原点 -->
+                <view class="node-axis">
+                  <view class="node-dot {{!item.hasLoc ? 'no-loc' : ''}}"></view>
+                  <view class="node-line" wx:if="{{index !== dayGroup.items.length - 1 || gIndex !== timelineData.length - 1}}"></view>
                 </view>
-                <view class="node-title">{{item.title}}</view>
-                <view class="node-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
                 
-                <!-- 沉浸式图文排版重叠效果 -->
-                <view class="node-media" wx:if="{{item.image}}">
-                  <image src="{{item.image}}" class="node-image" mode="aspectFill" lazy-load></image>
-                  <view class="media-caption" wx:if="{{item.caption}}">{{item.caption}}</view>
+                <!-- 右侧：叙事内容 -->
+                <view class="node-content">
+                  <view class="node-header-row">
+                    <view class="node-meta">
+                      <text class="node-time">{{item.time}}</text>
+                      <text class="node-category">{{item.category}}</text>
+                    </view>
+                    <!-- 折叠时也显示的简化的标题部分 -->
+                    <view class="node-title collapsed-title" wx:if="{{activeIndex !== item.globalIndex}}">{{item.title}}</view>
+                  </view>
+                  
+                  <!-- 只有在激活(active)状态下才展开的内容区域 -->
+                  <view class="node-details" wx:if="{{activeIndex === item.globalIndex}}">
+                    <view class="node-title">{{item.title}}</view>
+                    <view class="node-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+                    
+                    <!-- 沉浸式图文排版重叠效果 -->
+                    <view class="node-media" wx:if="{{item.image}}">
+                      <image src="{{item.image}}" class="node-image" mode="aspectFill" lazy-load></image>
+                      <view class="media-caption" wx:if="{{item.caption}}">{{item.caption}}</view>
+                    </view>
+                  </view>
                 </view>
               </view>
-            </view>
+            </block>
           </block>
-        </block>
 
-        <view class="end-mark">
-          <text class="end-mark-line"></text>
-          <text class="end-mark-text">全部看完了</text>
-          <text class="end-mark-line"></text>
+          <view class="end-mark">
+            <text class="end-mark-line"></text>
+            <text class="end-mark-text">全部看完了</text>
+            <text class="end-mark-line"></text>
+          </view>
+
+          <!-- 留白用于避免FAB遮挡内容 -->
+          <view style="height: 120px;"></view>
         </view>
-
-        <!-- 留白用于避免FAB遮挡内容 -->
-        <view style="height: 120px;"></view>
-      </view>
-    </scroll-view>
+      </scroll-view>
+    </view>
   </view>
 
   <!-- 杂志风悬浮内容发布菜单 (FAB) -->

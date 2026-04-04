@@ -1,64 +1,75 @@
 /**pages/timeline-map/timeline-map.scss**/
 .page-container {
   height: 100vh;
-  display: flex;
-  flex-direction: column;
+  position: relative;
   background-color: var(--bg-base);
   overflow: hidden;
 }
 
 /* --- 地图区域 --- */
-.map-wrapper {
-  position: relative;
-  width: 100%;
-  height: 48vh; /* 地图占据略小于一半，留给沉浸式日记 */
-  flex-shrink: 0;
-}
-
 .story-map {
-  width: 100%;
-  height: 100%;
-  /* 过滤掉默认的一些丑陋底色 */
-  background: var(--bg-base); 
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
 }
 
-/* 渐变遮罩：让地图和下方列表的过渡不再生硬，而是像纸张消散 */
-.map-gradient-overlay {
+/* --- 底部抽屉 --- */
+.bottom-sheet {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 100%;
-  height: 120rpx;
-  background: linear-gradient(to bottom, rgba(247,245,240,0) 0%, rgba(247,245,240,1) 100%);
-  pointer-events: none;
+  width: 100vw;
+  background: var(--bg-base);
+  border-radius: 40rpx 40rpx 0 0;
+  z-index: 10;
+  box-shadow: 0 -20rpx 60rpx rgba(42, 75, 60, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+.drag-handle-wrapper {
+  width: 100%;
+  height: 60rpx; /* 触控区域放大 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.drag-handle {
+  width: 80rpx;
+  height: 8rpx;
+  border-radius: 4rpx;
+  background-color: var(--color-border);
+  transition: background-color 0.3s;
+}
+
+.drag-handle-wrapper:active .drag-handle {
+  background-color: var(--color-text-sub);
+}
 
 /* --- 时间轴面板区域 --- */
 .timeline-panel {
   flex: 1;
-  background-color: var(--bg-base);
-  border-radius: 40rpx 40rpx 0 0;
-  margin-top: -40rpx; /* 上移一部分与地图交叠 */
   position: relative;
-  z-index: 10;
-  /* 强烈的顶部弥散阴影，赋予抽屉感 */
-  box-shadow: 0 -20rpx 60rpx rgba(42, 75, 60, 0.08);
   overflow: hidden;
 }
 
 .timeline-scroll {
   height: 100%;
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .timeline-track {
-  padding: 60rpx 40rpx 100rpx 40rpx;
+  padding: 20rpx 40rpx 100rpx 40rpx;
 }
 
 /* 章节头部 */
 .timeline-header {
-  margin-bottom: 80rpx;
+  margin-bottom: 60rpx;
   padding-left: 60rpx; /* 对齐节点内容区 */
 }
 
@@ -128,14 +139,41 @@
 /* 叙事内容卡片 */
 .node-content {
   flex: 1;
-  padding-bottom: 80rpx;
+  padding-bottom: 40rpx;
+}
+
+.node-header-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+/* 折叠时显示的简洁标题 */
+.collapsed-title {
+  font-size: 28rpx;
+  color: var(--color-text-main);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 展开的详情内容区 */
+.node-details {
+  margin-top: 16rpx;
+  animation: fadeInDown 0.4s ease forwards;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-10rpx); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .node-meta {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  margin-bottom: 12rpx;
   font-family: var(--font-sans);
   text-transform: uppercase;
   letter-spacing: 2rpx;

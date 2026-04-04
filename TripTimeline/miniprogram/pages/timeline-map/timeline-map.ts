@@ -9,6 +9,10 @@ Page({
     centerLat: 39.915,
     mapScale: 14,
     
+    // Bottom sheet state
+    sheetHeight: 30, // 初始 30vh
+    isDragging: false,
+    
     activeIndex: 0,
     scrollToId: '',
     
@@ -17,7 +21,9 @@ Page({
     
     projectDetail: null as any,
     timelineData: [] as any[],
-    showFabMenu: false
+    showFabMenu: false,
+    _startY: 0,
+    _startHeight: 0
   },
 
   onLoad(options: any) {
@@ -141,7 +147,62 @@ Page({
       markers,
       polylines
     });
+
+    if (points.length > 0) {
+      setTimeout(() => {
+        const mapCtx = wx.createMapContext('storyMap');
+        mapCtx.includePoints({
+          points: points,
+          padding: [50, 40, 350, 40] // 底部多留白以防被抽屉(30vh左右)完全遮挡
+        });
+      }, 500); // 延时保证地图渲染完毕
+    }
   },
+
+  // ---- Bottom Sheet 拖拽逻辑 ----
+  onTouchStart(e: any) {
+    this.setData({ isDragging: true });
+    this.data._startY = e.touches[0].clientY;
+    this.data._startHeight = this.data.sheetHeight;
+  },
+
+  onTouchMove(e: any) {
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - this.data._startY; // 滑动距离，下拉为正，上滑为负
+    
+    // 转换为 vh (高度相对屏幕比例)
+    const sysInfo = wx.getSystemInfoSync();
+    const deltaVH = (deltaY / sysInfo.windowHeight) * 100;
+    
+    // 高度反向：上滑高度增加，下拉高度减少
+    let newHeight = this.data._startHeight - deltaVH;
+    // 限制拖拽边界
+    if (newHeight < 20) newHeight = 20; 
+    if (newHeight > 85) newHeight = 85;
+    
+    this.setData({ sheetHeight: newHeight });
+  },
+
+  onTouchEnd() {
+    this.setData({ isDragging: false });
+    const currentHeight = this.data.sheetHeight;
+    // 吸附逻辑：滑动超过中间值吸附过去
+    let snapHeight = 30; // 默认缩起状态
+    if (currentHeight > 55) {
+      snapHeight = 80; // 展开状态
+    } else {
+      snapHeight = 30; 
+    }
+    this.setData({ sheetHeight: snapHeight });
+  },
+
+  onMapTap() {
+    // 点地图空白处自动收起抽屉
+    if (this.data.sheetHeight > 50) {
+      this.setData({ sheetHeight: 30 });
+    }
+  },
+  // ---- Bottom Sheet 拖拽逻辑 end ----
 
   // 点击时间轴节点联动地图
   onNodeTap(e: any) {

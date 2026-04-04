@@ -2,6 +2,10 @@ import { request, baseUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 Page({
+  recorderManager: null as any,
+  recordTicker: 0 as any,
+  recordStartMs: 0,
+
   data: {
     projectId: '',
     contentType: 'note',
@@ -16,10 +20,18 @@ Page({
     audioFileName: '',
     audioPath: '',
     audioUrl: '',
+    audioPreviewSrc: '',
+    isRecording: false,
+    recordingSeconds: 0,
     trackFileName: '',
     trackPath: '',
     trackUrl: '',
     trackGeojson: null as any,
+    trackPointCount: 0,
+    trackPolyline: [] as any[],
+    trackMarkers: [] as any[],
+    trackCenterLatitude: 39.9042,
+    trackCenterLongitude: 116.4074,
     title: '',
     content: ''
   },
@@ -33,6 +45,60 @@ Page({
     this.setData({
       date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
       time: `${pad(now.getHours())}:${pad(now.getMinutes())}`
+    });
+
+    this.initRecorder();
+  },
+
+  onUnload() {
+    if (this.recordTicker) {
+      clearInterval(this.recordTicker);
+      this.recordTicker = 0;
+    }
+    if (this.data.isRecording && this.recorderManager) {
+      this.recorderManager.stop();
+    }
+  },
+
+  initRecorder() {
+    this.recorderManager = wx.getRecorderManager();
+
+    this.recorderManager.onStop(async (res: any) => {
+      if (this.recordTicker) {
+        clearInterval(this.recordTicker);
+        this.recordTicker = 0;
+      }
+
+      const filename = `record-${Date.now()}.mp3`;
+      this.setData({
+        isRecording: false,
+        audioPath: res.tempFilePath,
+        audioFileName: filename,
+        audioPreviewSrc: res.tempFilePath
+      });
+
+      try {
+        wx.showLoading({ title: '上传音频中...', mask: true });
+        const uploaded = await this.uploadFile(res.tempFilePath, api.upload);
+        wx.hideLoading();
+        this.setData({
+          audioUrl: uploaded?.url || '',
+          audioPreviewSrc: uploaded?.url ? this.asAbsoluteUrl(uploaded.url) : res.tempFilePath
+        });
+        wx.showToast({ title: '录音已保存', icon: 'success' });
+      } catch (error) {
+        wx.hideLoading();
+        wx.showToast({ title: '上传失败，保存时重试', icon: 'none' });
+      }
+    });
+
+    this.recorderManager.onError(() => {
+      if (this.recordTicker) {
+        clearInterval(this.recordTicker);
+        this.recordTicker = 0;
+      }
+      this.setData({ isRecording: false });
+      wx.showToast({ title: '录音失败', icon: 'none' });
     });
   },
 
@@ -105,17 +171,79 @@ Page({
         this.setData({
           contentType: 'audio',
           audioPath: file.path,
-          audioFileName: file.name || 'audio'
+          audioFileName: file.name || 'audio',
+          audioPreviewSrc: file.path
         });
 
         try {
           const uploaded = await this.uploadFile(file.path, api.upload);
-          this.setData({ audioUrl: uploaded?.url || '' });
+          this.setData({
+            audioUrl: uploaded?.url || '',
+            audioPreviewSrc: uploaded?.url ? this.asAbsoluteUrl(uploaded.url) : file.path
+          });
         } catch (error) {
           wx.showToast({ title: '音频上传失败', icon: 'none' });
         }
       }
     });
+  },
+
+  async startRecordAudio() {
+    if (this.data.isRecording) return;
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        wx.authorize({
+          scope: 'scope.record',
+          success: () => resolve(),
+          fail: () => reject(new Error('no auth'))
+        });
+      });
+    } catch (error) {
+      wx.showModal({
+        title: '需要麦克风权限',
+        content: '请在设置中允许录音权限后重试',
+        showCancel: true,
+        success: (res) => {
+          if (res.confirm) {
+            wx.openSetting({});
+          }
+        }
+      });
+      return;
+    }
+
+    this.setData({
+      contentType: 'audio',
+      isRecording: true,
+      recordingSeconds: 0
+    });
+    this.recordStartMs = Date.now();
+
+    if (this.recordTicker) {
+      clearInterval(this.recordTicker);
+    }
+
+    this.recordTicker = setInterval(() => {
+      const passed = Math.floor((Date.now() - this.recordStartMs) / 1000);
+      this.setData({ recordingSeconds: passed });
+      if (passed >= 60) {
+        this.stopRecordAudio();
+      }
+    }, 500);
+
+    this.recorderManager.start({
+      duration: 60000,
+      sampleRate: 44100,
+      numberOfChannels: 1,
+      encodeBitRate: 96000,
+      format: 'mp3'
+    });
+  },
+
+  stopRecordAudio() {
+    if (!this.data.isRecording || !this.recorderManager) return;
+    this.recorderManager.stop();
   },
 
   chooseTrack() {
@@ -139,11 +267,99 @@ Page({
             trackUrl: uploaded?.url || '',
             trackGeojson: uploaded?.geojson || null
           });
+          this.updateTrackPreview(uploaded?.geojson || null);
         } catch (error) {
           wx.showToast({ title: '轨迹上传失败', icon: 'none' });
         }
       }
     });
+  },
+
+  updateTrackPreview(geojson: any) {
+    const points = this.extractTrackPoints(geojson);
+    if (!points.length) {
+      this.setData({
+        trackPointCount: 0,
+        trackPolyline: [],
+        trackMarkers: []
+      });
+      return;
+    }
+
+    const first = points[0];
+    const last = points[points.length - 1];
+
+    this.setData({
+      trackPointCount: points.length,
+      trackCenterLatitude: first.latitude,
+      trackCenterLongitude: first.longitude,
+      trackPolyline: [
+        {
+          points,
+          color: '#1f7a56',
+          width: 6
+        }
+      ],
+      trackMarkers: [
+        {
+          id: 1,
+          latitude: first.latitude,
+          longitude: first.longitude,
+          title: '起点',
+          width: 24,
+          height: 24
+        },
+        {
+          id: 2,
+          latitude: last.latitude,
+          longitude: last.longitude,
+          title: '终点',
+          width: 24,
+          height: 24
+        }
+      ]
+    });
+  },
+
+  extractTrackPoints(geojson: any) {
+    if (!geojson?.features?.length) return [];
+    const points: Array<{ latitude: number; longitude: number }> = [];
+
+    geojson.features.forEach((feature: any) => {
+      const geometry = feature?.geometry;
+      if (!geometry) return;
+
+      if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
+        geometry.coordinates.forEach((coord: any) => {
+          if (Array.isArray(coord) && coord.length >= 2) {
+            points.push({ latitude: Number(coord[1]), longitude: Number(coord[0]) });
+          }
+        });
+      }
+
+      if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
+        geometry.coordinates.forEach((line: any) => {
+          if (!Array.isArray(line)) return;
+          line.forEach((coord: any) => {
+            if (Array.isArray(coord) && coord.length >= 2) {
+              points.push({ latitude: Number(coord[1]), longitude: Number(coord[0]) });
+            }
+          });
+        });
+      }
+
+      if (geometry.type === 'Point' && Array.isArray(geometry.coordinates) && geometry.coordinates.length >= 2) {
+        points.push({ latitude: Number(geometry.coordinates[1]), longitude: Number(geometry.coordinates[0]) });
+      }
+    });
+
+    return points.filter((p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude)).slice(0, 800);
+  },
+
+  asAbsoluteUrl(url: string) {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${baseUrl}${url}`;
   },
 
   onLocationNameInput(e: any) {
@@ -277,12 +493,14 @@ Page({
       if (this.data.contentType === 'audio' && !audioUrl && this.data.audioPath) {
         const uploaded = await this.uploadFile(this.data.audioPath, api.upload);
         audioUrl = uploaded?.url || '';
+        this.setData({ audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : this.data.audioPath });
       }
 
       if (this.data.contentType === 'track' && !trackUrl && this.data.trackPath) {
         const uploaded = await this.uploadFile(this.data.trackPath, `${api.upload}/trajectory`);
         trackUrl = uploaded?.url || '';
         this.setData({ trackGeojson: uploaded?.geojson || null });
+        this.updateTrackPreview(uploaded?.geojson || null);
       }
 
       const logTime = `${this.data.date} ${this.data.time}:00`;

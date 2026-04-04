@@ -29,13 +29,31 @@
     </view>
 
     <view wx:if="{{contentType === 'audio'}}" class="asset-section">
-      <view class="asset-action" bindtap="chooseAudio">选择音频文件</view>
+      <view class="asset-actions-row">
+        <view class="asset-action half {{isRecording ? 'disabled' : ''}}" bindtap="startRecordAudio">开始录音</view>
+        <view class="asset-action half stop {{!isRecording ? 'disabled' : ''}}" bindtap="stopRecordAudio">结束录音</view>
+      </view>
+      <view class="recording-tip" wx:if="{{isRecording}}">录音中 {{recordingSeconds}}s / 60s</view>
+      <view class="asset-action" bindtap="chooseAudio">或选择音频文件</view>
       <view wx:if="{{audioFileName}}" class="asset-result">已选择：{{audioFileName}}</view>
+      <audio wx:if="{{audioPreviewSrc}}" class="audio-player" src="{{audioPreviewSrc}}" controls></audio>
     </view>
 
     <view wx:if="{{contentType === 'track'}}" class="asset-section">
       <view class="asset-action" bindtap="chooseTrack">导入 GPX/KML 轨迹</view>
       <view wx:if="{{trackFileName}}" class="asset-result">已导入：{{trackFileName}}</view>
+      <view wx:if="{{trackPointCount > 0}}" class="asset-result">轨迹点数：{{trackPointCount}}</view>
+      <map
+        wx:if="{{trackPointCount > 0}}"
+        class="track-map"
+        latitude="{{trackCenterLatitude}}"
+        longitude="{{trackCenterLongitude}}"
+        scale="10"
+        polyline="{{trackPolyline}}"
+        markers="{{trackMarkers}}"
+        show-location="{{true}}"
+      ></map>
+      <view wx:if="{{trackFileName && trackPointCount === 0}}" class="asset-result">当前轨迹暂无可预览坐标</view>
     </view>
 
     <view class="text-section">

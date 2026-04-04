@@ -123,6 +123,11 @@
   gap: 14rpx;
 }
 
+.asset-actions-row {
+  display: flex;
+  gap: 12rpx;
+}
+
 .asset-action {
   background: #ecf5ef;
   border: 2rpx solid #d8e9dc;
@@ -134,10 +139,40 @@
   font-weight: 600;
 }
 
+.asset-action.half {
+  flex: 1;
+}
+
+.asset-action.stop {
+  background: #fff4ef;
+  border-color: #f0ddd2;
+  color: #8a4a2e;
+}
+
+.asset-action.disabled {
+  opacity: 0.45;
+}
+
 .asset-result {
   color: #4f6358;
   font-size: 24rpx;
   word-break: break-all;
+}
+
+.recording-tip {
+  color: #96562f;
+  font-size: 24rpx;
+}
+
+.audio-player {
+  width: 100%;
+}
+
+.track-map {
+  width: 100%;
+  height: 320rpx;
+  border-radius: 14rpx;
+  overflow: hidden;
 }
 
 .text-section {

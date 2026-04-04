@@ -22,18 +22,32 @@ export async function listContents(projectId, userId) {
 
 export async function createContent(projectId, userId, payload) {
   const project = await getProjectOrThrow(projectId, userId);
-  const { content_type, content_data, record_time, location_id, sort_order } = payload;
+  const { content_type, content_data, record_time, sort_order, location } = payload;
+  let { location_id } = payload;
+
   if (!content_type || !content_data || !record_time) {
     const err = new Error('内容类型、内容数据和记录时间是必填选项');
     err.status = 400;
     throw err;
   }
+
+  // 如果传递了 location 对象且包含经纬度，则自动在后台创建 Location
+  if (location && location.latitude && location.longitude && !location_id) {
+    const newLoc = await Location.create({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      name: location.name || null,
+      address: location.address || null
+    });
+    location_id = newLoc.location_id;
+  }
+
   return Content.create({
     project_id: project.project_id,
     content_type,
     content_data,
     record_time,
-    location_id,
+    location_id: location_id || null,
     sort_order: sort_order || 0,
   });
 }

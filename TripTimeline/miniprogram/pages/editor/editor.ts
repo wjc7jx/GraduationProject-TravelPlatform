@@ -90,20 +90,26 @@ Page({
     wx.showLoading({ title: '保存中...', mask: true });
 
     try {
+      // @ts-ignore - options is passed from onLoad to instance, or read from getCurrentPages()
+      let isAudio = false; 
+
       let coverUrl = '';
       if (this.data.imagePath) {
         // 先上传图片
         coverUrl = await new Promise<string>((resolve, reject) => {
           wx.uploadFile({
-            url: `${baseUrl}${api.upload}`,
+            url: `${baseUrl}${api.upload}/photo`, // 发送到特殊提取地理信息的通道
             filePath: this.data.imagePath,
             name: 'file',
             header: {
               Authorization: `Bearer ${wx.getStorageSync('token')}`
             },
             success(res) {
-              const data = JSON.parse(res.data);
-              resolve(data.url);
+              try {
+                const data = JSON.parse(res.data);
+                // 暂时这里不处理返回的 exif 数据覆盖，直接解析并存图。可以升级这块能力。
+                resolve(data.url);
+              } catch(e) { reject(e); }
             },
             fail(err) {
               reject(err);
@@ -113,17 +119,28 @@ Page({
       }
 
       const logTime = `${this.data.date} ${this.data.time}:00`;
+      
+      const contentData = {
+        title: this.data.title,
+        content: this.data.content,
+        images: coverUrl ? [coverUrl] : []
+      };
+
+      let type = 'note';
+      if (coverUrl) type = 'photo';
+      
       await request({
         url: api.content.create(this.data.projectId),
         method: 'POST',
         data: {
-          type: this.data.location ? 'location' : 'note',
-          title: this.data.title,
-          content: this.data.content,
-          log_time: logTime,
-          images: coverUrl ? JSON.stringify([coverUrl]) : '[]',
-          latitude: this.data.location ? this.data.location.lat : null,
-          longitude: this.data.location ? this.data.location.lon : null
+          content_type: type,
+          content_data: contentData,
+          record_time: logTime,
+          location: this.data.location ? {
+            latitude: this.data.location.lat,
+            longitude: this.data.location.lon,
+            name: this.data.location.name
+          } : null
         }
       });
       

@@ -8,6 +8,12 @@ Page({
 
   data: {
     projectId: '',
+    contentId: '',
+    isEditMode: false,
+    existingLocationId: null as number | null,
+    pageTitle: '新建记录',
+    pageSubtitle: '手动填写为主，系统仅在识别到信息时自动填入表单',
+    saveBtnText: '保存记录',
     contentType: 'note',
     date: '',
     time: '',
@@ -40,6 +46,15 @@ Page({
     if (options.projectId) {
       this.setData({ projectId: options.projectId });
     }
+    if (options.contentId) {
+      this.setData({
+        contentId: options.contentId,
+        isEditMode: true,
+        pageTitle: '编辑记录',
+        pageSubtitle: '修改当前记录后保存',
+        saveBtnText: '保存修改'
+      });
+    }
     const now = new Date();
     const pad = (n: number) => n < 10 ? '0' + n : n.toString();
     this.setData({
@@ -48,6 +63,71 @@ Page({
     });
 
     this.initRecorder();
+
+    if (this.data.isEditMode && this.data.projectId && this.data.contentId) {
+      this.loadExistingContent(this.data.projectId, this.data.contentId);
+    }
+  },
+
+  async loadExistingContent(projectId: string, contentId: string) {
+    try {
+      wx.showLoading({ title: '加载记录中...', mask: true });
+      const list = await request<any[]>({
+        url: api.content.list(projectId),
+        method: 'GET'
+      });
+      const target = list.find((item) => `${item.content_id}` === `${contentId}`);
+      if (!target) {
+        wx.hideLoading();
+        wx.showToast({ title: '记录不存在', icon: 'none' });
+        return;
+      }
+
+      const payload = target.content_data || {};
+      const location = target.location || null;
+      const recordTime = new Date(target.record_time || target.created_at);
+      const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+
+      const imageUrl = Array.isArray(payload.images) ? (payload.images[0] || '') : '';
+      const audioUrl = payload.audio?.url || '';
+      const trackUrl = payload.track?.url || '';
+      const trackGeojson = payload.track?.geojson || null;
+
+      this.setData({
+        contentType: target.content_type || 'note',
+        title: payload.title || '',
+        content: payload.content || '',
+        date: Number.isNaN(recordTime.getTime()) ? this.data.date : `${recordTime.getFullYear()}-${pad(recordTime.getMonth() + 1)}-${pad(recordTime.getDate())}`,
+        time: Number.isNaN(recordTime.getTime()) ? this.data.time : `${pad(recordTime.getHours())}:${pad(recordTime.getMinutes())}`,
+        locationName: payload.location_text?.name || location?.name || '',
+        locationAddress: payload.location_text?.address || location?.address || '',
+        location: location ? {
+          name: location.name || '',
+          address: location.address || '',
+          lat: Number(location.latitude),
+          lon: Number(location.longitude)
+        } : null,
+        existingLocationId: target.location_id || null,
+        imageUrl,
+        imagePath: imageUrl ? this.asAbsoluteUrl(imageUrl) : '',
+        audioUrl,
+        audioPath: audioUrl ? this.asAbsoluteUrl(audioUrl) : '',
+        audioFileName: payload.audio?.name || '',
+        audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : '',
+        trackUrl,
+        trackPath: trackUrl ? this.asAbsoluteUrl(trackUrl) : '',
+        trackFileName: payload.track?.file_name || '',
+        trackGeojson
+      });
+
+      if (trackGeojson) {
+        this.updateTrackPreview(trackGeojson);
+      }
+      wx.hideLoading();
+    } catch (error) {
+      wx.hideLoading();
+      wx.showToast({ title: '加载记录失败', icon: 'none' });
+    }
   },
 
   onUnload() {
@@ -533,24 +613,33 @@ Page({
         };
       }
 
+      const requestData: any = {
+        content_type: this.data.contentType,
+        content_data: contentData,
+        record_time: logTime
+      };
+
+      if (!this.data.isEditMode) {
+        requestData.location = this.data.location && this.data.location.lat && this.data.location.lon ? {
+          latitude: this.data.location.lat,
+          longitude: this.data.location.lon,
+          name: this.data.locationName || this.data.location.name,
+          address: this.data.locationAddress || this.data.location.address
+        } : null;
+      } else {
+        requestData.location_id = this.data.existingLocationId;
+      }
+
       await request({
-        url: api.content.create(this.data.projectId),
-        method: 'POST',
-        data: {
-          content_type: this.data.contentType,
-          content_data: contentData,
-          record_time: logTime,
-          location: this.data.location && this.data.location.lat && this.data.location.lon ? {
-            latitude: this.data.location.lat,
-            longitude: this.data.location.lon,
-            name: this.data.locationName || this.data.location.name,
-            address: this.data.locationAddress || this.data.location.address
-          } : null
-        }
+        url: this.data.isEditMode
+          ? api.content.update(this.data.projectId, this.data.contentId)
+          : api.content.create(this.data.projectId),
+        method: this.data.isEditMode ? 'PUT' : 'POST',
+        data: requestData
       });
 
       wx.hideLoading();
-      wx.showToast({ title: '保存成功', icon: 'success' });
+      wx.showToast({ title: this.data.isEditMode ? '修改成功' : '保存成功', icon: 'success' });
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);

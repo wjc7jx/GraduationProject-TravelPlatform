@@ -1,11 +1,11 @@
 <!--pages/editor/editor.wxml-->
-<navigation-bar title="新建记录" back="{{true}}" color="#1C1C1C" background="transparent"></navigation-bar>
+<navigation-bar title="{{pageTitle}}" back="{{true}}" color="#1C1C1C" background="transparent"></navigation-bar>
 
 <scroll-view class="editor-scroll" scroll-y>
   <view class="editor-container fade-up">
     <view class="page-head">
       <view class="page-title">记录你的旅行瞬间</view>
-      <view class="page-subtitle">手动填写为主，系统仅在识别到信息时自动填入表单</view>
+      <view class="page-subtitle">{{pageSubtitle}}</view>
     </view>
 
     <view class="type-section">
@@ -122,7 +122,7 @@
     </view>
 
     <view class="action-section">
-      <view class="save-btn" bindtap="saveEntry">保存记录</view>
+      <view class="save-btn" bindtap="saveEntry">{{saveBtnText}}</view>
     </view>
   </view>
 </scroll-view>

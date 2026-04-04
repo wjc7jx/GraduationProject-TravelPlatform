@@ -21,7 +21,6 @@ Page({
     
     projectDetail: null as any,
     timelineData: [] as any[],
-    showFabMenu: false,
     _startY: 0,
     _startHeight: 0
   },
@@ -210,6 +209,58 @@ Page({
     this.focusNode(index);
   },
 
+  onNodeLongPress(e: any) {
+    const index = e.currentTarget.dataset.index;
+    const node = this.getNodeByIndex(index);
+    const projectId = this.data.projectId ? String(this.data.projectId) : '';
+    if (!node || !projectId) {
+      return;
+    }
+    wx.showActionSheet({
+      itemList: ['查看记录', '编辑记录', '删除记录'],
+      itemColor: '#1C1C1C',
+      success: async (res) => {
+        if (res.tapIndex === 0) {
+          wx.navigateTo({
+            url: `/pages/content-view/content-view?projectId=${projectId}&contentId=${node.id}`
+          });
+          return;
+        }
+
+        if (res.tapIndex === 1) {
+          wx.navigateTo({
+            url: `/pages/editor/editor?projectId=${projectId}&contentId=${node.id}`
+          });
+          return;
+        }
+
+        if (res.tapIndex === 2) {
+          wx.showModal({
+            title: '确认删除',
+            content: `确定删除「${node.title || '该记录'}」吗？删除后不可恢复。`,
+            confirmColor: '#E53935',
+            success: async (mRes) => {
+              if (!mRes.confirm) return;
+              try {
+                wx.showLoading({ title: '删除中...', mask: true });
+                await request({
+                  url: api.content.delete(projectId, node.id),
+                  method: 'DELETE'
+                });
+                wx.hideLoading();
+                wx.showToast({ title: '已删除', icon: 'success' });
+                this.setData({ activeIndex: 0, scrollToId: '' });
+                this.fetchTimelineData(projectId);
+              } catch (error) {
+                wx.hideLoading();
+              }
+            }
+          });
+        }
+      }
+    });
+  },
+
   // 点击地图标记联动时间轴
   onMarkerTap(e: any) {
     const index = e.detail.markerId;
@@ -228,8 +279,7 @@ Page({
   },
 
   focusNode(index: number) {
-    let targetItems = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
-    const target = targetItems.find(i => i.globalIndex === index);
+    const target = this.getNodeByIndex(index);
     if (!target || !target.hasLoc) {
       if (this.data.activeIndex !== index) {
         this.setData({ activeIndex: index });
@@ -270,65 +320,11 @@ Page({
     });
   },
 
-  // ==== FAB 分类型发布控制逻辑 ====
-
-  toggleFabMenu() {
-    this.setData({ showFabMenu: !this.data.showFabMenu })
+  getNodeByIndex(index: number) {
+    const targetItems = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+    return targetItems.find((i: any) => i.globalIndex === index);
   },
 
-  onAddPhoto() {
-    this.toggleFabMenu();
-    wx.chooseMedia({
-      count: 9,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        wx.navigateTo({
-           url: `/pages/editor/editor?projectId=${this.data.projectId}&mediaType=photo&path=${encodeURIComponent(res.tempFiles[0].tempFilePath)}`
-        })
-      }
-    })
-  },
-
-  onAddAudio() {
-    this.toggleFabMenu();
-    wx.navigateTo({
-      url: `/pages/editor/editor?projectId=${this.data.projectId}&mediaType=audio`
-    })
-  },
-
-  onAddTrack() {
-    this.toggleFabMenu();
-    wx.chooseMessageFile({
-      count: 1,
-      type: 'file',
-      extension: ['.gpx', '.kml'],
-      success: (res) => {
-        wx.showLoading({ title: '解析轨迹中...' });
-        const token = wx.getStorageSync('token');
-        wx.uploadFile({
-          url: `${baseUrl}/upload/trajectory`,
-          filePath: res.tempFiles[0].path,
-          name: 'file',
-          header: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-          success: async (uploadRes) => {
-            wx.hideLoading();
-            if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
-              wx.showToast({ title: '轨迹提取成功', icon: 'success' });
-              this.fetchTimelineData(this.data.projectId); // Refresh list
-            } else {
-              wx.showToast({ title: '轨迹解析失败', icon: 'error' });
-            }
-          },
-          fail: () => {
-            wx.hideLoading();
-            wx.showToast({ title: '网络错误', icon: 'none' });
-          }
-        })
-      }
-    })
-  },
-  
   goToEditor() {
     wx.navigateTo({
       url: `/pages/editor/editor?projectId=${this.data.projectId}`,

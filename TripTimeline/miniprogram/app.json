@@ -2,6 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/timeline-map/timeline-map",
+    "pages/content-view/content-view",
     "pages/editor/editor",
     "pages/logs/logs",
     "pages/project-editor/project-editor",

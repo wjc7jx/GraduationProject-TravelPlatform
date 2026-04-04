@@ -61,25 +61,10 @@
     </view>
   </view>
 
-  <!-- 杂志风悬浮内容发布菜单 (FAB) -->
-  <view class="fab-container {{showFabMenu ? 'active' : ''}}">
-    <view class="fab-backdrop" bindtap="toggleFabMenu"></view>
-    <view class="fab-menu">
-      <view class="fab-item" bindtap="onAddTrack" style="transition-delay: 0.1s">
-        <view class="fab-label">导入轨迹 (GPX)</view>
-        <view class="fab-icon-btn">🗺️</view>
-      </view>
-      <view class="fab-item" bindtap="onAddAudio" style="transition-delay: 0.05s">
-        <view class="fab-label">录制语音</view>
-        <view class="fab-icon-btn">🎙️</view>
-      </view>
-      <view class="fab-item" bindtap="onAddPhoto" style="transition-delay: 0s">
-        <view class="fab-label">极速传图 (自动取点)</view>
-        <view class="fab-icon-btn">📸</view>
-      </view>
-    </view>
-    <view class="fab-trigger" bindtap="toggleFabMenu">
-      <view class="fab-cross">+</view>
+  <!-- 单一入口：直接进入统一 editor -->
+  <view class="fab-container">
+    <view class="fab-trigger" bindtap="goToEditor">
+      <view class="fab-cross">✍</view>
     </view>
   </view>
 

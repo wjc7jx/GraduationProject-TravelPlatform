@@ -37,40 +37,73 @@
           <view class="editorial-subtitle" style="margin-top: 10rpx;">一段记录了 {{timelineData.length}} 个足迹的奇妙旅程。</view>
         </view>
 
-        <!-- 节点列表 -->
-        <block wx:for="{{timelineData}}" wx:key="id">
-          <view class="timeline-node {{activeIndex === index ? 'active' : ''}}" id="node-{{item.id}}" bindtap="onNodeTap" data-index="{{index}}">
-            <!-- 左侧：线与地理标记原点 -->
-            <view class="node-axis">
-              <view class="node-dot"></view>
-              <view class="node-line" wx:if="{{index !== timelineData.length - 1}}"></view>
-            </view>
-            
-            <!-- 右侧：叙事内容 -->
-            <view class="node-content">
-              <view class="node-meta">
-                <text class="node-time">{{item.time}}</text>
-                <text class="node-category">{{item.category}}</text>
+        <!-- 节点列表 (按天分组) -->
+        <block wx:for="{{timelineData}}" wx:key="date" wx:for-item="dayGroup" wx:for-index="gIndex">
+          <view class="timeline-day-header">{{dayGroup.date}}</view>
+          
+          <block wx:for="{{dayGroup.items}}" wx:key="id">
+            <view class="timeline-node {{activeIndex === item.globalIndex ? 'active' : ''}}" id="node-{{item.id}}" bindtap="onNodeTap" data-index="{{item.globalIndex}}">
+              <!-- 左侧：线与地理标记原点 -->
+              <view class="node-axis">
+                <view class="node-dot {{!item.hasLoc ? 'no-loc' : ''}}"></view>
+                <view class="node-line" wx:if="{{index !== dayGroup.items.length - 1 || gIndex !== timelineData.length - 1}}"></view>
               </view>
-              <view class="node-title">{{item.title}}</view>
-              <view class="node-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
               
-              <!-- 沉浸式图文排版重叠效果 -->
-              <view class="node-media" wx:if="{{item.image}}">
-                <image src="{{item.image}}" class="node-image" mode="aspectFill" lazy-load></image>
-                <view class="media-caption" wx:if="{{item.caption}}">{{item.caption}}</view>
+              <!-- 右侧：叙事内容 -->
+              <view class="node-content">
+                <view class="node-meta">
+                  <text class="node-time">{{item.time}}</text>
+                  <text class="node-category">{{item.category}}</text>
+                </view>
+                <view class="node-title">{{item.title}}</view>
+                <view class="node-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+                
+                <!-- 沉浸式图文排版重叠效果 -->
+                <view class="node-media" wx:if="{{item.image}}">
+                  <image src="{{item.image}}" class="node-image" mode="aspectFill" lazy-load></image>
+                  <view class="media-caption" wx:if="{{item.caption}}">{{item.caption}}</view>
+                </view>
               </view>
             </view>
-          </view>
+          </block>
         </block>
 
         <view class="end-mark">
           <text class="end-mark-line"></text>
-          <text class="end-mark-text">今日结束</text>
+          <text class="end-mark-text">全部看完了</text>
           <text class="end-mark-line"></text>
         </view>
 
+        <!-- 留白用于避免FAB遮挡内容 -->
+        <view style="height: 120px;"></view>
       </view>
     </scroll-view>
   </view>
+
+  <!-- 杂志风悬浮内容发布菜单 (FAB) -->
+  <view class="fab-container {{showFabMenu ? 'active' : ''}}">
+    <view class="fab-backdrop" bindtap="toggleFabMenu"></view>
+    <view class="fab-menu">
+      <view class="fab-item" bindtap="onAddTrack" style="transition-delay: 0.1s">
+        <view class="fab-label">导入轨迹 (GPX)</view>
+        <view class="fab-icon-btn">🗺️</view>
+      </view>
+      <view class="fab-item" bindtap="onAddAudio" style="transition-delay: 0.05s">
+        <view class="fab-label">录制语音</view>
+        <view class="fab-icon-btn">🎙️</view>
+      </view>
+      <view class="fab-item" bindtap="onAddPhoto" style="transition-delay: 0s">
+        <view class="fab-label">极速传图</view>
+        <view class="fab-icon-btn">📸</view>
+      </view>
+      <view class="fab-item" bindtap="goToEditor" style="transition-delay: 0s">
+        <view class="fab-label">手写日记</view>
+        <view class="fab-icon-btn">✍️</view>
+      </view>
+    </view>
+    <view class="fab-trigger" bindtap="toggleFabMenu">
+      <view class="fab-cross">+</view>
+    </view>
+  </view>
+
 </view>

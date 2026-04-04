@@ -101,7 +101,7 @@ Component({
       const id = e.currentTarget.dataset.id
       if (!id) return;
       wx.navigateTo({
-        url: `/pages/project-detail/project-detail?id=${id}`,
+        url: `/pages/timeline-map/timeline-map?projectId=${id}`,
       })
     },
     // 长按项目卡片进行管理操作

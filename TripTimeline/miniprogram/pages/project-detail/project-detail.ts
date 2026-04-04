@@ -170,7 +170,7 @@ Page({
           success: async (uploadRes) => {
             wx.hideLoading();
             if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
-              const data = JSON.parse(uploadRes.data);
+              // const data = JSON.parse(uploadRes.data);
               // 这里将解析好的轨迹存为 Content 记录...
               wx.showToast({ title: '轨迹提取成功', icon: 'success' });
             } else {

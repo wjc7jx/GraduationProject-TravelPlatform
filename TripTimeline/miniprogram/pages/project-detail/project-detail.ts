@@ -3,13 +3,14 @@ import api from '../../utils/api';
 
 Page({
   data: {
-    projectId: null,
+    projectId: null as string | null,
     projectDetail: {} as any,
     stats: {
       locations: 0,
       photos: 0,
       days: 0
-    }
+    },
+    showFabMenu: false // 悬浮菜单的开闭状态
   },
 
   onLoad(options: any) {
@@ -36,30 +37,15 @@ Page({
       let photosCount = 0;
       
       res.forEach(item => {
-        if (item.type === 'location') locationsCount++;
-        if (item.images) {
-          try {
-            const arr = JSON.parse(item.images);
-            if (Array.isArray(arr)) photosCount += arr.length;
-          } catch(e){}
-        } else if (item.image_url) {
-          // compatibility with other possible formats
+        if (item.content_type === 'track') locationsCount++;
+        if (item.content_type === 'photo') {
           photosCount++;
         }
       });
       
-      let days = 0;
-      // If we have projectDetail dates, we can calculate days diff
-      if (this.data.projectDetail && this.data.projectDetail.date) {
-        // we'll calculate it later after detail is fetched
-      }
-      
       this.setData({
-        stats: {
-          locations: locationsCount,
-          photos: photosCount,
-          days: 0 // Will compute in fetchProjectDetail
-        }
+        'stats.locations': locationsCount,
+        'stats.photos': photosCount
       });
     } catch(e) {
       console.error('Fetch stats failed', e);
@@ -93,9 +79,9 @@ Page({
 
       this.setData({
         projectDetail: {
-          id: res.id,
+          id: res.project_id,
           title: res.title || '无标题',
-          subtitle: res.description || res.tags || '',
+          subtitle: res.tags || '',
           cover: cover,
           date: dateStr
         },
@@ -116,7 +102,7 @@ Page({
     })
   },
 
-  // 跳转到故事地图（即现有的 timeline-map）
+  // 跳转到故事地图
   goToTimelineMap() {
     wx.navigateTo({
       url: `/pages/timeline-map/timeline-map?projectId=${this.data.projectId}`,
@@ -135,5 +121,69 @@ Page({
     wx.navigateTo({
       url: `/pages/project-editor/project-editor?id=${this.data.projectId}`,
     })
+  },
+
+  // ==== FAB 分类型发布控制逻辑 ====
+
+  toggleFabMenu() {
+    this.setData({ showFabMenu: !this.data.showFabMenu })
+  },
+
+  onAddPhoto() {
+    this.toggleFabMenu(); // 收起菜单
+    wx.chooseMedia({
+      count: 9,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        // 跳转到图文富文本编辑器，并可将 filePath 作为参数传递给它进行预览及背景上传
+        wx.navigateTo({
+           url: `/pages/editor/editor?projectId=${this.data.projectId}&mediaType=photo&path=${encodeURIComponent(res.tempFiles[0].tempFilePath)}`
+        })
+      }
+    })
+  },
+
+  onAddAudio() {
+    this.toggleFabMenu(); // 收起菜单
+    // 由于原 editor 可能还未完整支持音频形态，这里引导至同样的 editor 但附带 audio 标识
+    wx.navigateTo({
+      url: `/pages/editor/editor?projectId=${this.data.projectId}&mediaType=audio`
+    })
+  },
+
+  onAddTrack() {
+    this.toggleFabMenu(); // 收起菜单
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['.gpx', '.kml'],
+      success: (res) => {
+        wx.showLoading({ title: '解析轨迹中...' });
+        const token = wx.getStorageSync('token')
+        // 调用我们刚刚部署在 Epic 3 Stage 2 的 /upload/trajectory 接口
+        wx.uploadFile({
+          url: `${baseUrl}/upload/trajectory`,
+          filePath: res.tempFiles[0].path,
+          name: 'file',
+          header: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          success: async (uploadRes) => {
+            wx.hideLoading();
+            if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
+              const data = JSON.parse(uploadRes.data);
+              // 这里将解析好的轨迹存为 Content 记录...
+              wx.showToast({ title: '轨迹提取成功', icon: 'success' });
+            } else {
+              wx.showToast({ title: '轨迹解析失败', icon: 'error' });
+            }
+          },
+          fail: () => {
+            wx.hideLoading();
+            wx.showToast({ title: '网络错误', icon: 'none' });
+          }
+        })
+      }
+    })
   }
+
 })

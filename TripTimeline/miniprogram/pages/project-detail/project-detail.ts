@@ -4,7 +4,12 @@ import api from '../../utils/api';
 Page({
   data: {
     projectId: null,
-    projectDetail: {} as any
+    projectDetail: {} as any,
+    stats: {
+      locations: 0,
+      photos: 0,
+      days: 0
+    }
   },
 
   onLoad(options: any) {
@@ -16,6 +21,48 @@ Page({
   onShow() {
     if (this.data.projectId) {
       this.fetchProjectDetail(this.data.projectId);
+      this.fetchStats(this.data.projectId);
+    }
+  },
+
+  async fetchStats(id: string) {
+    try {
+      const res = await request<any[]>({
+        url: api.content.list(id),
+        method: 'GET'
+      });
+      
+      let locationsCount = 0;
+      let photosCount = 0;
+      
+      res.forEach(item => {
+        if (item.type === 'location') locationsCount++;
+        if (item.images) {
+          try {
+            const arr = JSON.parse(item.images);
+            if (Array.isArray(arr)) photosCount += arr.length;
+          } catch(e){}
+        } else if (item.image_url) {
+          // compatibility with other possible formats
+          photosCount++;
+        }
+      });
+      
+      let days = 0;
+      // If we have projectDetail dates, we can calculate days diff
+      if (this.data.projectDetail && this.data.projectDetail.date) {
+        // we'll calculate it later after detail is fetched
+      }
+      
+      this.setData({
+        stats: {
+          locations: locationsCount,
+          photos: photosCount,
+          days: 0 // Will compute in fetchProjectDetail
+        }
+      });
+    } catch(e) {
+      console.error('Fetch stats failed', e);
     }
   },
 
@@ -37,6 +84,13 @@ Page({
         ? (res.cover_image.startsWith('http') ? res.cover_image : `${baseUrl}${res.cover_image}`)
         : 'https://images.unsplash.com/photo-1493976040375-3affeacfcdce';
 
+      let days = 0;
+      if (res.start_date) {
+        const start = new Date(res.start_date).getTime();
+        const end = res.end_date ? new Date(res.end_date).getTime() : Date.now();
+        days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+      }
+
       this.setData({
         projectDetail: {
           id: res.id,
@@ -44,7 +98,8 @@ Page({
           subtitle: res.description || res.tags || '',
           cover: cover,
           date: dateStr
-        }
+        },
+        'stats.days': days
       });
       wx.setNavigationBarTitle({ title: this.data.projectDetail.title });
     } catch (err) {

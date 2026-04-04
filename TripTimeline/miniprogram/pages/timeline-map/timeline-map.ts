@@ -15,6 +15,7 @@ Page({
     markers: [],
     polylines: [],
     
+    projectDetail: null as any,
     timelineData: [] as any[]
   },
 
@@ -27,7 +28,18 @@ Page({
   onShow() {
     if (this.data.projectId) {
       this.fetchTimelineData(this.data.projectId);
+      this.fetchProjectDetail(this.data.projectId);
     }
+  },
+
+  async fetchProjectDetail(id: string) {
+    try {
+      const res = await request<any>({
+        url: api.project.detail(id),
+        method: 'GET'
+      });
+      this.setData({ projectDetail: res });
+    } catch(e) {}
   },
 
   async fetchTimelineData(projectId: string) {
@@ -49,8 +61,12 @@ Page({
         })).filter(item => item.lon && item.lat);
         
         mappedData.forEach((d: any) => {
-          if (d.image && !d.image.startsWith('http')) {
-            d.image = `${baseUrl}${d.image}`;
+          if (d.image) {
+            if (d.image.startsWith('http')) {
+              // 已经是完整网络路径
+            } else {
+              d.image = `${baseUrl}${d.image}`;
+            }
           }
         });
 

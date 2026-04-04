@@ -1,5 +1,5 @@
 // index.ts
-import { request } from '../../utils/request'
+import { request, baseUrl } from '../../utils/request'
 import api from '../../utils/api'
 
 // 获取应用实例
@@ -76,7 +76,7 @@ Component({
             date: `${p.start_date.replace(/-/g, '.')} - ${p.end_date ? p.end_date.replace(/-/g, '.') : '至今'}`,
             label: p.tags ? p.tags.split(',')[0] : '旅行',
             cover: p.cover_image 
-              ? (p.cover_image.startsWith('http') ? p.cover_image : `http://localhost:3000${p.cover_image}`) 
+              ? (p.cover_image.startsWith('http') ? p.cover_image : `${baseUrl}${p.cover_image}`) 
               : '',
             locationCount: 0,
             style: styles[i % styles.length]

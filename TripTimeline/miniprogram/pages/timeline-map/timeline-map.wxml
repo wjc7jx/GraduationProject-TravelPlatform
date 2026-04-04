@@ -31,10 +31,10 @@
       <view class="timeline-track">
         
         <!-- 导语区 -->
-        <view class="timeline-header">
-          <view class="chapter-text">第一章</view>
-          <view class="editorial-title" style="font-size: 44rpx;">启程.</view>
-          <view class="editorial-subtitle" style="margin-top: 10rpx;">一段全长 120 公里的旅途。</view>
+        <view class="timeline-header" wx:if="{{projectDetail}}">
+          <view class="chapter-text">旅行记忆</view>
+          <view class="editorial-title" style="font-size: 44rpx;">{{projectDetail.title || '出发'}}.</view>
+          <view class="editorial-subtitle" style="margin-top: 10rpx;">一段记录了 {{timelineData.length}} 个足迹的奇妙旅程。</view>
         </view>
 
         <!-- 节点列表 -->

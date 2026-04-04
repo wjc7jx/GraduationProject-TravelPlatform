@@ -47,15 +47,15 @@
     <view class="section-title">旅行概览</view>
     <view class="stats-cards">
       <view class="stat-card">
-        <text class="num">8</text>
+        <text class="num">{{stats.locations}}</text>
         <text class="label">足迹点</text>
       </view>
       <view class="stat-card">
-        <text class="num">42</text>
+        <text class="num">{{stats.photos}}</text>
         <text class="label">照片</text>
       </view>
       <view class="stat-card">
-        <text class="num">3</text>
+        <text class="num">{{stats.days}}</text>
         <text class="label">天数</text>
       </view>
     </view>

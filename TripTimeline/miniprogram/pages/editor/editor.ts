@@ -1,6 +1,9 @@
-// pages/editor/editor.ts
+import { request, baseUrl } from '../../utils/request';
+import api from '../../utils/api';
+
 Page({
   data: {
+    projectId: '', // 从路由获取
     date: '',
     time: '',
     location: null as any,
@@ -9,7 +12,10 @@ Page({
     content: ''
   },
 
-  onLoad() {
+  onLoad(options: any) {
+    if (options.projectId) {
+      this.setData({ projectId: options.projectId });
+    }
     const now = new Date();
     const pad = (n: number) => n < 10 ? '0' + n : n.toString();
     this.setData({
@@ -70,21 +76,66 @@ Page({
     this.setData({ content: e.detail.value });
   },
 
-  saveEntry() {
+  async saveEntry() {
     if (!this.data.title) {
       wx.showToast({ title: 'Requires a title', icon: 'none' });
       return;
     }
     
-    wx.showLoading({ title: 'Sealing...', mask: true });
-    
-    // 模拟保存请求延迟
-    setTimeout(() => {
+    if (!this.data.projectId) {
+      wx.showToast({ title: '未关联项目', icon: 'none' });
+      return;
+    }
+
+    wx.showLoading({ title: '保存中...', mask: true });
+
+    try {
+      let coverUrl = '';
+      if (this.data.imagePath) {
+        // 先上传图片
+        coverUrl = await new Promise<string>((resolve, reject) => {
+          wx.uploadFile({
+            url: `${baseUrl}${api.upload}`,
+            filePath: this.data.imagePath,
+            name: 'file',
+            header: {
+              Authorization: `Bearer ${wx.getStorageSync('token')}`
+            },
+            success(res) {
+              const data = JSON.parse(res.data);
+              resolve(data.url);
+            },
+            fail(err) {
+              reject(err);
+            }
+          });
+        });
+      }
+
+      const logTime = `${this.data.date} ${this.data.time}:00`;
+      await request({
+        url: api.content.create(this.data.projectId),
+        method: 'POST',
+        data: {
+          type: this.data.location ? 'location' : 'note',
+          title: this.data.title,
+          content: this.data.content,
+          log_time: logTime,
+          images: coverUrl ? JSON.stringify([coverUrl]) : '[]',
+          latitude: this.data.location ? this.data.location.lat : null,
+          longitude: this.data.location ? this.data.location.lon : null
+        }
+      });
+      
       wx.hideLoading();
-      wx.showToast({ title: 'Journal Saved', icon: 'success' });
+      wx.showToast({ title: '保存成功', icon: 'success' });
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
-    }, 800);
+
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '保存失败', icon: 'none' });
+    }
   }
 })

@@ -8,6 +8,7 @@ Page({
     centerLon: 116.404,
     centerLat: 39.915,
     mapScale: 14,
+    defaultMapScale: 14,
     
     // Bottom sheet state
     sheetHeight: 30, // 初始 30vh
@@ -15,9 +16,11 @@ Page({
     
     activeIndex: 0,
     scrollToId: '',
+    showResetViewport: false,
     
     markers: [] as any[],
     polylines: [] as any[],
+    allMapPoints: [] as any[],
     
     projectDetail: null as any,
     timelineData: [] as any[],
@@ -98,15 +101,23 @@ Page({
 
         this.setData({ timelineData: grouped });
 
-        const firstLoc = mappedData.find(i => i.hasLoc);
+        const groupedItems = grouped.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+        const firstLoc = groupedItems.find(i => i.hasLoc);
         if (firstLoc) {
           this.setData({
             centerLon: firstLoc.lon,
-            centerLat: firstLoc.lat
+            centerLat: firstLoc.lat,
+            activeIndex: firstLoc.globalIndex
           });
         }
       } else {
-        this.setData({ timelineData: [] });
+        this.setData({
+          timelineData: [],
+          markers: [],
+          polylines: [],
+          allMapPoints: [],
+          showResetViewport: false
+        });
       }
       this.initMapData();
     } catch (e) {
@@ -151,17 +162,41 @@ Page({
 
     this.setData({
       markers,
-      polylines
+      polylines,
+      allMapPoints: points,
+      showResetViewport: false
     });
 
-    if (points.length > 0) {
-      setTimeout(() => {
-        const mapCtx = wx.createMapContext('storyMap');
-        mapCtx.includePoints({
-          points: points,
-          padding: [50, 40, 350, 40] // 底部多留白以防被抽屉(30vh左右)完全遮挡
-        });
-      }, 500); // 延时保证地图渲染完毕
+    this.resetMapViewport(true);
+  },
+
+  resetMapViewport(initial = false) {
+    const points = this.data.allMapPoints || [];
+    if (!points.length) {
+      this.setData({
+        mapScale: this.data.defaultMapScale,
+        showResetViewport: false
+      });
+      return;
+    }
+    setTimeout(() => {
+      const mapCtx = wx.createMapContext('storyMap');
+      mapCtx.includePoints({
+        points,
+        padding: [60, 48, 360, 48] // 底部给抽屉和按钮留出空间
+      });
+    }, initial ? 500 : 80);
+    this.setData({ showResetViewport: false });
+  },
+
+  onResetViewportTap() {
+    this.resetMapViewport(false);
+  },
+
+  onMapRegionChange(e: any) {
+    // 地图手势结束后显示“回到全览”入口
+    if (e.type === 'end') {
+      this.setData({ showResetViewport: true });
     }
   },
 
@@ -207,6 +242,9 @@ Page({
     if (this.data.sheetHeight > 50) {
       this.setData({ sheetHeight: 30 });
     }
+    if (!this.data.showResetViewport) {
+      this.setData({ showResetViewport: true });
+    }
   },
   // ---- Bottom Sheet 拖拽逻辑 end ----
 
@@ -214,6 +252,10 @@ Page({
   onNodeTap(e: any) {
     const index = e.currentTarget.dataset.index;
     this.focusNode(index);
+    const node = this.getNodeByIndex(index);
+    if (node?.id) {
+      this.setData({ scrollToId: 'node-' + node.id });
+    }
   },
 
   onNodeLongPress(e: any) {
@@ -317,7 +359,8 @@ Page({
       centerLat: target.lat,
       centerLon: target.lon,
       markers: markers,
-      mapScale: 15 // 聚焦时微微放大
+      mapScale: 15, // 聚焦时微微放大
+      showResetViewport: true
     });
     
     const mapCtx = wx.createMapContext('storyMap');

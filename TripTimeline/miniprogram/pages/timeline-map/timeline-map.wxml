@@ -14,8 +14,13 @@
     polyline="{{polylines}}"
     bindmarkertap="onMarkerTap"
     bindtap="onMapTap"
+    bindregionchange="onMapRegionChange"
     show-location
   ></map>
+
+  <view class="map-tools" wx:if="{{markers.length > 1 && showResetViewport}}">
+    <view class="map-tool-btn" bindtap="onResetViewportTap">回到全览</view>
+  </view>
 
   <!-- 底部可拖拽抽屉 -->
   <view class="bottom-sheet" style="height: {{sheetHeight}}vh; transition: {{isDragging ? 'none' : 'height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)'}}">

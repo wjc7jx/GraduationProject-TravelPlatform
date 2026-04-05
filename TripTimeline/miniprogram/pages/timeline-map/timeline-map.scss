@@ -16,6 +16,35 @@
   z-index: 1;
 }
 
+.mode-switch {
+  position: absolute;
+  top: 180rpx;
+  left: 24rpx;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 10rpx;
+  border-radius: 999rpx;
+  background: rgba(247, 245, 240, 0.95);
+  border: 1px solid rgba(42, 75, 60, 0.16);
+  box-shadow: 0 8rpx 24rpx rgba(42, 75, 60, 0.16);
+}
+
+.mode-btn {
+  padding: 12rpx 22rpx;
+  border-radius: 999rpx;
+  color: var(--color-primary);
+  font-size: 24rpx;
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+.mode-btn.active {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
 .map-tools {
   position: absolute;
   top: 180rpx;

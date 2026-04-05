@@ -10,6 +10,7 @@ export default {
   project: {
     list: '/projects',
     create: '/projects',
+    timelineMap: '/projects/timeline-map',
     detail: (id: string) => `/projects/${id}`,
     update: (id: string) => `/projects/${id}`,
     delete: (id: string) => `/projects/${id}`

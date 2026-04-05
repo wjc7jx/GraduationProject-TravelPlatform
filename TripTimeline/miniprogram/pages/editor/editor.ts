@@ -1,14 +1,7 @@
 import { request, baseUrl } from '../../utils/request';
 import api from '../../utils/api';
 import config from '../../utils/config';
-
-interface LocationSuggestion {
-  id: string;
-  title: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-}
+import { searchTencentMapSuggestions, TencentMapSuggestion } from '../../utils/tencentMap';
 
 Page({
   recorderManager: null as any,
@@ -30,7 +23,7 @@ Page({
     locationName: '',
     locationAddress: '',
     locationSearchKeyword: '',
-    locationSuggestions: [] as LocationSuggestion[],
+    locationSuggestions: [] as TencentMapSuggestion[],
     isLocationSearching: false,
     locationMarker: [] as any[],
     autoFillHint: '',
@@ -242,6 +235,19 @@ Page({
     });
   },
 
+  inferSuggestionRegion() {
+    const text = `${this.data.locationAddress || ''} ${this.data.locationName || ''}`.trim();
+    if (!text) return '全国';
+
+    const cityMatch = text.match(/([^\s]+?(?:市|自治州|地区|盟))/);
+    if (cityMatch?.[1]) {
+      return cityMatch[1];
+    }
+
+    const provinceMatch = text.match(/([^\s]+?(?:省|自治区))/);
+    return provinceMatch?.[1] || '全国';
+  },
+
   async searchLocationByKeyword() {
     const keyword = (this.data.locationSearchKeyword || '').trim();
     if (!keyword) {
@@ -259,41 +265,14 @@ Page({
 
     try {
       const current = this.data.location;
-      const boundary = current && current.lat && current.lon
-        ? `nearby(${current.lat},${current.lon},50000,1)`
-        : 'nearby(39.9042,116.4074,5000000,1)';
-
-      const response = await new Promise<any>((resolve, reject) => {
-        wx.request({
-          url: 'https://apis.map.qq.com/ws/place/v1/suggestion',
-          method: 'GET',
-          data: {
-            key,
-            keyword,
-            boundary,
-            page_size: 12
-          },
-          success: (res) => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              resolve(res.data);
-              return;
-            }
-            reject(new Error(`status ${res.statusCode}`));
-          },
-          fail: (err) => reject(err)
-        });
+      const suggestions = await searchTencentMapSuggestions({
+        key,
+        keyword,
+        region: this.inferSuggestionRegion(),
+        latitude: Number(current?.lat),
+        longitude: Number(current?.lon),
+        pageSize: 12
       });
-
-      const rows = Array.isArray(response?.data) ? response.data : [];
-      const suggestions: LocationSuggestion[] = rows
-        .map((item: any, index: number) => ({
-          id: `${item.id || index}`,
-          title: item.title || keyword,
-          address: item.address || '',
-          latitude: Number(item.location?.lat),
-          longitude: Number(item.location?.lng)
-        }))
-        .filter((item: LocationSuggestion) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
 
       this.setData({ locationSuggestions: suggestions });
       if (!suggestions.length) {

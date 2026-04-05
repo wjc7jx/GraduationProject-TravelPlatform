@@ -1,6 +1,7 @@
 import { parseImageExif, parseTrajectory } from '../utils/parser.js';
 import path from 'path';
 import { sendSuccess } from '../utils/response.js';
+import { buildFileAccessMeta } from '../utils/fileAccess.js';
 
 export function uploadFile(req, res, next) {
   try {
@@ -9,9 +10,9 @@ export function uploadFile(req, res, next) {
       err.status = 400;
       throw err;
     }
-    const fileUrl = `/uploads/${req.file.filename}`;
+    const accessMeta = buildFileAccessMeta(req, req.file);
     sendSuccess(res, {
-      url: fileUrl,
+      ...accessMeta,
       mimetype: req.file.mimetype,
       size: req.file.size
     }, '文件上传成功', 201);
@@ -27,13 +28,13 @@ export async function uploadAndParsePhoto(req, res, next) {
       err.status = 400;
       throw err;
     }
-    const fileUrl = `/uploads/${req.file.filename}`;
+    const accessMeta = buildFileAccessMeta(req, req.file);
     const absolutePath = path.resolve(req.file.path);
     
     const exifData = await parseImageExif(absolutePath);
 
     sendSuccess(res, {
-      url: fileUrl,
+      ...accessMeta,
       mimetype: req.file.mimetype,
       size: req.file.size,
       exif: exifData || {}
@@ -50,13 +51,13 @@ export async function uploadAndParseTrajectory(req, res, next) {
       err.status = 400;
       throw err;
     }
-    const fileUrl = `/uploads/${req.file.filename}`;
+    const accessMeta = buildFileAccessMeta(req, req.file);
     const absolutePath = path.resolve(req.file.path);
     
     const geojson = await parseTrajectory(absolutePath);
 
     sendSuccess(res, {
-      url: fileUrl,
+      ...accessMeta,
       mimetype: req.file.mimetype,
       size: req.file.size,
       geojson: geojson || {}

@@ -1,5 +1,14 @@
 import { request, baseUrl } from '../../utils/request';
 import api from '../../utils/api';
+import config from '../../utils/config';
+
+interface LocationSuggestion {
+  id: string;
+  title: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
 
 Page({
   recorderManager: null as any,
@@ -20,6 +29,10 @@ Page({
     location: null as any,
     locationName: '',
     locationAddress: '',
+    locationSearchKeyword: '',
+    locationSuggestions: [] as LocationSuggestion[],
+    isLocationSearching: false,
+    locationMarker: [] as any[],
     autoFillHint: '',
     imagePath: '',
     imageUrl: '',
@@ -101,6 +114,7 @@ Page({
         time: Number.isNaN(recordTime.getTime()) ? this.data.time : `${pad(recordTime.getHours())}:${pad(recordTime.getMinutes())}`,
         locationName: payload.location_text?.name || location?.name || '',
         locationAddress: payload.location_text?.address || location?.address || '',
+        locationSearchKeyword: payload.location_text?.name || location?.name || '',
         location: location ? {
           name: location.name || '',
           address: location.address || '',
@@ -123,6 +137,7 @@ Page({
       if (trackGeojson) {
         this.updateTrackPreview(trackGeojson);
       }
+      this.syncLocationMarker(this.data.location);
       wx.hideLoading();
     } catch (error) {
       wx.hideLoading();
@@ -199,20 +214,138 @@ Page({
   chooseLocation() {
     wx.chooseLocation({
       success: (res) => {
+        const nextLocation = {
+          name: res.name || res.address,
+          address: res.address || '',
+          lat: res.latitude,
+          lon: res.longitude
+        };
         this.setData({
-          location: {
-            name: res.name || res.address,
-            address: res.address || '',
-            lat: res.latitude,
-            lon: res.longitude
-          },
+          location: nextLocation,
           locationName: res.name || res.address || this.data.locationName,
-          locationAddress: res.address || this.data.locationAddress
+          locationAddress: res.address || this.data.locationAddress,
+          locationSearchKeyword: res.name || res.address || this.data.locationSearchKeyword,
+          locationSuggestions: []
         });
+        this.syncLocationMarker(nextLocation);
       },
       fail: () => {
         // 用户取消或未授权
       }
+    });
+  },
+
+  onLocationSearchInput(e: WechatMiniprogram.Input) {
+    this.setData({
+      locationSearchKeyword: e.detail.value,
+      locationSuggestions: []
+    });
+  },
+
+  async searchLocationByKeyword() {
+    const keyword = (this.data.locationSearchKeyword || '').trim();
+    if (!keyword) {
+      wx.showToast({ title: '请输入地点名称', icon: 'none' });
+      return;
+    }
+
+    const key = config.map?.tencentKey;
+    if (!key) {
+      wx.showToast({ title: '请先配置腾讯地图Key', icon: 'none' });
+      return;
+    }
+
+    this.setData({ isLocationSearching: true });
+
+    try {
+      const current = this.data.location;
+      const boundary = current && current.lat && current.lon
+        ? `nearby(${current.lat},${current.lon},50000,1)`
+        : 'nearby(39.9042,116.4074,5000000,1)';
+
+      const response = await new Promise<any>((resolve, reject) => {
+        wx.request({
+          url: 'https://apis.map.qq.com/ws/place/v1/suggestion',
+          method: 'GET',
+          data: {
+            key,
+            keyword,
+            boundary,
+            page_size: 12
+          },
+          success: (res) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(res.data);
+              return;
+            }
+            reject(new Error(`status ${res.statusCode}`));
+          },
+          fail: (err) => reject(err)
+        });
+      });
+
+      const rows = Array.isArray(response?.data) ? response.data : [];
+      const suggestions: LocationSuggestion[] = rows
+        .map((item: any, index: number) => ({
+          id: `${item.id || index}`,
+          title: item.title || keyword,
+          address: item.address || '',
+          latitude: Number(item.location?.lat),
+          longitude: Number(item.location?.lng)
+        }))
+        .filter((item: LocationSuggestion) => Number.isFinite(item.latitude) && Number.isFinite(item.longitude));
+
+      this.setData({ locationSuggestions: suggestions });
+      if (!suggestions.length) {
+        wx.showToast({ title: '未找到匹配地点', icon: 'none' });
+      }
+    } catch (error) {
+      wx.showToast({ title: '地点搜索失败', icon: 'none' });
+    } finally {
+      this.setData({ isLocationSearching: false });
+    }
+  },
+
+  selectSuggestion(e: WechatMiniprogram.BaseEvent) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isFinite(index) || index < 0 || index >= this.data.locationSuggestions.length) {
+      return;
+    }
+
+    const selected = this.data.locationSuggestions[index];
+    const nextLocation = {
+      name: selected.title,
+      address: selected.address,
+      lat: selected.latitude,
+      lon: selected.longitude
+    };
+
+    this.setData({
+      location: nextLocation,
+      locationName: selected.title,
+      locationAddress: selected.address,
+      locationSearchKeyword: selected.title,
+      autoFillHint: '已通过地点搜索填入坐标',
+      locationSuggestions: []
+    });
+    this.syncLocationMarker(nextLocation);
+  },
+
+  syncLocationMarker(location: any) {
+    if (!location || !Number.isFinite(Number(location.lat)) || !Number.isFinite(Number(location.lon))) {
+      this.setData({ locationMarker: [] });
+      return;
+    }
+
+    this.setData({
+      locationMarker: [{
+        id: 1,
+        latitude: Number(location.lat),
+        longitude: Number(location.lon),
+        title: location.name || this.data.locationName || '选中位置',
+        width: 24,
+        height: 24
+      }]
     });
   },
 
@@ -469,7 +602,14 @@ Page({
           lat: exif.latitude,
           lon: exif.longitude
         },
-        locationName: this.data.locationName || '图片识别定位'
+        locationName: this.data.locationName || '图片识别定位',
+        locationSearchKeyword: this.data.locationName || '图片识别定位'
+      });
+      this.syncLocationMarker({
+        name: this.data.locationName || '图片识别定位',
+        address: this.data.locationAddress || '',
+        lat: exif.latitude,
+        lon: exif.longitude
       });
     } else {
       hint = '图片无定位信息，已保留手动填写';

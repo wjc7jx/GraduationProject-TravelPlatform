@@ -6,6 +6,13 @@ Component({
   data: {
     logs: [],
   },
+  methods: {
+    goToYearReview() {
+      wx.navigateTo({
+        url: '/pages/year-review/year-review'
+      })
+    }
+  },
   lifetimes: {
     attached() {
       this.setData({

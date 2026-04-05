@@ -2,11 +2,6 @@
 <navigation-bar title="{{timelineTitle}}" back="{{true}}" color="#1C1C1C" background="rgba(247,245,240,0.85)"></navigation-bar>
 
 <view class="page-container">
-  <view class="mode-switch">
-    <view class="mode-btn {{currentMode === 'project' ? 'active' : ''}}" data-mode="project" bindtap="onModeChange">当前项目</view>
-    <view class="mode-btn {{currentMode === 'all' ? 'active' : ''}}" data-mode="all" bindtap="onModeChange">所有项目</view>
-  </view>
-
   <!-- 沉浸式地图 (满屏底层) -->
   <map 
     id="storyMap" 
@@ -47,13 +42,13 @@
         <view class="timeline-track">
           
           <!-- 导语区 -->
-          <view class="timeline-header" wx:if="{{projectDetail || currentMode === 'all'}}">
+          <view class="timeline-header" wx:if="{{projectDetail}}">
             <view class="chapter-text">旅行记忆</view>
-            <view class="editorial-title" style="font-size: 44rpx;">{{currentMode === 'project' ? (projectDetail.title || '出发') : '全部旅行'}}.</view>
-            <view class="editorial-subtitle" style="margin-top: 10rpx;">{{currentMode === 'project' ? ('一段记录了 ' + markers.length + ' 个足迹的奇妙旅程。') : ('共汇聚 ' + markers.length + ' 个足迹点，按年份回顾你的项目。')}}</view>
+            <view class="editorial-title" style="font-size: 44rpx;">{{projectDetail.title || '出发'}}.</view>
+            <view class="editorial-subtitle" style="margin-top: 10rpx;">一段记录了 {{markers.length}} 个足迹的奇妙旅程。</view>
           </view>
 
-          <!-- 节点列表（当前项目按天，所有项目按年） -->
+          <!-- 节点列表 (按天分组) -->
           <block wx:for="{{timelineData}}" wx:key="date" wx:for-item="dayGroup" wx:for-index="gIndex">
             <view class="timeline-day-header">{{dayGroup.date}}</view>
             

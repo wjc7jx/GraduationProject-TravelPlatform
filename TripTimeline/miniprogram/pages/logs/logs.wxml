@@ -1,7 +1,19 @@
-<!--logs.wxml-->
-<navigation-bar title="查看启动日志" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar title="我的" back="{{false}}" color="#1C1C1C" background="#F7F5F0"></navigation-bar>
+
 <scroll-view class="scrollarea" scroll-y type="list">
-  <block wx:for="{{logs}}" wx:key="timeStamp" wx:for-item="log">
-    <view class="log-item">{{index + 1}}. {{log.date}}</view>
-  </block>
+  <view class="profile-hero">
+    <view class="hero-title">旅行回顾中心</view>
+    <view class="hero-subtitle">查看年度足迹与项目总结</view>
+    <view class="review-entry" bindtap="goToYearReview">
+      <view class="entry-title">年度回顾</view>
+      <view class="entry-desc">按年份汇总所有项目，并在地图中回顾足迹</view>
+    </view>
+  </view>
+
+  <view class="log-section">
+    <view class="section-title">启动日志</view>
+    <block wx:for="{{logs}}" wx:key="timeStamp" wx:for-item="log">
+      <view class="log-item">{{index + 1}}. {{log.date}}</view>
+    </block>
+  </view>
 </scroll-view>

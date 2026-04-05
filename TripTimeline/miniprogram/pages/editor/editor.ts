@@ -620,7 +620,15 @@ Page({
         },
         success(res) {
           try {
-            resolve(JSON.parse(res.data));
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+              reject(new Error(`上传失败: ${res.statusCode}`));
+              return;
+            }
+            const parsed = JSON.parse(res.data);
+            const payload = parsed && typeof parsed === 'object' && parsed.data !== undefined
+              ? parsed.data
+              : parsed;
+            resolve(payload);
           } catch (error) {
             reject(error);
           }

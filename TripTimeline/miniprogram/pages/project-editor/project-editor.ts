@@ -85,8 +85,15 @@ Page({
       success: (uploadRes) => {
         wx.hideLoading()
         if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
-          const data = JSON.parse(uploadRes.data)
-          this.setData({ coverImage: `${baseUrl}${data.url}` })
+          const parsed = JSON.parse(uploadRes.data)
+          const payload = parsed && typeof parsed === 'object' && parsed.data !== undefined
+            ? parsed.data
+            : parsed
+          if (!payload?.url) {
+            wx.showToast({ title: '图片地址解析失败', icon: 'none' })
+            return
+          }
+          this.setData({ coverImage: `${baseUrl}${payload.url}` })
         } else {
           wx.showToast({ title: '图片上传失败', icon: 'error' })
         }

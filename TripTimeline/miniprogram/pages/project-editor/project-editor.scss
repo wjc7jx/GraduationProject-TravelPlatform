@@ -91,6 +91,14 @@
     color: #333;
     box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.03);
   }
+
+  .privacy-hint,
+  .privacy-tip {
+    margin-top: 12rpx;
+    font-size: 22rpx;
+    color: #6f736b;
+    line-height: 1.6;
+  }
 }
 
 // 标签样式

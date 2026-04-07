@@ -367,3 +367,23 @@ export async function setContentPrivacy(projectId, contentId, userId, payload) {
     effective_rule: saved,
   };
 }
+
+export async function clearContentPrivacy(projectId, contentId, userId) {
+  await ensureContentOwner(projectId, contentId, userId);
+
+  await Permission.destroy({
+    where: {
+      target_type: 'content',
+      target_id: Number(contentId),
+    },
+  });
+
+  const projectRule = await getProjectRule(projectId);
+  return {
+    target_type: 'content',
+    target_id: Number(contentId),
+    inherited: true,
+    content_rule: null,
+    effective_rule: projectRule,
+  };
+}

@@ -56,6 +56,25 @@
         </view>
       </view>
     </view>
+
+    <view class="form-item">
+      <view class="label">默认可见性</view>
+      <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
+        <view class="date-picker">{{visibilityOptions[privacyVisibilityIndex]}}</view>
+      </picker>
+      <view class="privacy-hint">{{privacyHint}}</view>
+    </view>
+
+    <view class="form-item" wx:if="{{privacyVisibility === 2}}">
+      <view class="label">白名单用户ID</view>
+      <input
+        class="input-field"
+        placeholder="多个ID用英文逗号分隔，如 10001,10002"
+        value="{{privacyWhiteListInput}}"
+        bindinput="onPrivacyWhiteListInput"
+      />
+      <view class="privacy-tip">仅白名单用户可见该项目内容</view>
+    </view>
   </view>
 
   <!-- 底部操作栏 -->

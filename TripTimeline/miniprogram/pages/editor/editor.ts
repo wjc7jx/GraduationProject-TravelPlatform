@@ -3,6 +3,41 @@ import api from '../../utils/api';
 import config from '../../utils/config';
 import { searchTencentMapSuggestions, TencentMapSuggestion } from '../../utils/tencentMap';
 
+type VisibilityValue = 1 | 2 | 3;
+type PrivacyMode = 'inherit' | 'custom';
+
+function normalizeVisibility(value: any): VisibilityValue {
+  const visibility = Number(value);
+  if (visibility === 2 || visibility === 3) {
+    return visibility;
+  }
+  return 1;
+}
+
+function visibilityLabel(visibility: VisibilityValue) {
+  if (visibility === 2) return '好友可见';
+  if (visibility === 3) return '公开';
+  return '私密';
+}
+
+function parseWhiteList(raw: string) {
+  if (!raw) return [] as number[];
+  return Array.from(new Set(
+    raw
+      .split(/[\s,，]+/)
+      .map((item) => Number(item.trim()))
+      .filter((item) => Number.isInteger(item) && item > 0)
+  ));
+}
+
+function formatWhiteListInput(list: any) {
+  if (!Array.isArray(list)) return '';
+  return list
+    .map((item) => Number(item))
+    .filter((item) => Number.isInteger(item) && item > 0)
+    .join(',');
+}
+
 Page({
   recorderManager: null as any,
   recordTicker: 0 as any,
@@ -45,7 +80,15 @@ Page({
     trackCenterLatitude: 39.9042,
     trackCenterLongitude: 116.4074,
     title: '',
-    content: ''
+    content: '',
+
+    // 隐私配置
+    privacyMode: 'inherit' as PrivacyMode,
+    visibilityOptions: ['私密（仅自己可见）', '好友可见（白名单）', '公开（登录用户可见）'],
+    privacyVisibility: 1 as VisibilityValue,
+    privacyVisibilityIndex: 0,
+    privacyWhiteListInput: '',
+    privacySummary: '当前继承项目策略：私密'
   },
 
   onLoad(options: any) {
@@ -72,6 +115,68 @@ Page({
 
     if (this.data.isEditMode && this.data.projectId && this.data.contentId) {
       this.loadExistingContent(this.data.projectId, this.data.contentId);
+      this.loadContentPrivacy(this.data.projectId, this.data.contentId);
+    } else if (this.data.projectId) {
+      this.loadProjectPrivacy(this.data.projectId);
+    }
+  },
+
+  buildPrivacySummary(mode: PrivacyMode, visibility: VisibilityValue, inheritedLabel?: string) {
+    if (mode === 'inherit') {
+      const label = inheritedLabel || visibilityLabel(visibility);
+      return `当前继承项目策略：${label}`;
+    }
+    return `当前单独设置：${visibilityLabel(visibility)}`;
+  },
+
+  async loadProjectPrivacy(projectId: string) {
+    try {
+      const rule = await request<any>({
+        url: api.project.privacy(projectId),
+        method: 'GET',
+        showLoading: false
+      });
+      const visibility = normalizeVisibility(rule?.visibility);
+      this.setData({
+        privacyMode: 'inherit',
+        privacyVisibility: visibility,
+        privacyVisibilityIndex: visibility - 1,
+        privacyWhiteListInput: '',
+        privacySummary: this.buildPrivacySummary('inherit', visibility)
+      });
+    } catch (error) {
+      // 默认按私密继承展示
+      this.setData({ privacySummary: this.buildPrivacySummary('inherit', 1) });
+    }
+  },
+
+  async loadContentPrivacy(projectId: string, contentId: string) {
+    try {
+      const privacy = await request<any>({
+        url: api.content.privacy(projectId, contentId),
+        method: 'GET',
+        showLoading: false
+      });
+
+      const inherited = Boolean(privacy?.inherited);
+      const effectiveRule = privacy?.effective_rule || {};
+      const projectRule = privacy?.project_rule || {};
+      const visibility = normalizeVisibility(effectiveRule.visibility);
+      const inheritedVisibility = normalizeVisibility(projectRule.visibility || visibility);
+
+      this.setData({
+        privacyMode: inherited ? 'inherit' : 'custom',
+        privacyVisibility: visibility,
+        privacyVisibilityIndex: visibility - 1,
+        privacyWhiteListInput: inherited ? '' : formatWhiteListInput(effectiveRule.white_list),
+        privacySummary: this.buildPrivacySummary(
+          inherited ? 'inherit' : 'custom',
+          inherited ? inheritedVisibility : visibility,
+          visibilityLabel(inheritedVisibility)
+        )
+      });
+    } catch (error) {
+      this.loadProjectPrivacy(projectId);
     }
   },
 
@@ -202,6 +307,31 @@ Page({
     const type = e.currentTarget.dataset.type;
     if (!type) return;
     this.setData({ contentType: type });
+  },
+
+  onPrivacyModeChange(e: WechatMiniprogram.BaseEvent) {
+    const mode = e.currentTarget.dataset.mode as PrivacyMode;
+    if (mode !== 'inherit' && mode !== 'custom') return;
+    this.setData({
+      privacyMode: mode,
+      privacySummary: this.buildPrivacySummary(mode, this.data.privacyVisibility),
+      privacyWhiteListInput: mode === 'custom' ? this.data.privacyWhiteListInput : ''
+    });
+  },
+
+  onPrivacyVisibilityChange(e: any) {
+    const index = Number(e.detail.value);
+    const visibility = normalizeVisibility(index + 1);
+    this.setData({
+      privacyVisibility: visibility,
+      privacyVisibilityIndex: visibility - 1,
+      privacyWhiteListInput: visibility === 2 ? this.data.privacyWhiteListInput : '',
+      privacySummary: this.buildPrivacySummary(this.data.privacyMode, visibility)
+    });
+  },
+
+  onPrivacyWhiteListInput(e: WechatMiniprogram.Input) {
+    this.setData({ privacyWhiteListInput: e.detail.value });
   },
 
   chooseLocation() {
@@ -757,13 +887,44 @@ Page({
         requestData.location_id = this.data.existingLocationId;
       }
 
-      await request({
+      const saved = await request<any>({
         url: this.data.isEditMode
           ? api.content.update(this.data.projectId, this.data.contentId)
           : api.content.create(this.data.projectId),
         method: this.data.isEditMode ? 'PUT' : 'POST',
         data: requestData
       });
+
+      const targetContentId = this.data.isEditMode
+        ? this.data.contentId
+        : `${saved?.content_id || ''}`;
+
+      if (!targetContentId) {
+        throw new Error('内容ID缺失，无法保存隐私配置');
+      }
+
+      if (this.data.privacyMode === 'custom') {
+        const whiteList = parseWhiteList(this.data.privacyWhiteListInput);
+        if (this.data.privacyVisibility === 2 && whiteList.length === 0) {
+          throw new Error('好友可见时白名单不能为空');
+        }
+
+        await request({
+          url: api.content.privacy(this.data.projectId, targetContentId),
+          method: 'PUT',
+          data: {
+            visibility: this.data.privacyVisibility,
+            white_list: this.data.privacyVisibility === 2 ? whiteList : []
+          },
+          showLoading: false
+        });
+      } else if (this.data.isEditMode) {
+        await request({
+          url: api.content.privacy(this.data.projectId, targetContentId),
+          method: 'DELETE',
+          showLoading: false
+        });
+      }
 
       wx.hideLoading();
       wx.showToast({ title: this.data.isEditMode ? '修改成功' : '保存成功', icon: 'success' });
@@ -773,7 +934,8 @@ Page({
 
     } catch (e) {
       wx.hideLoading();
-      wx.showToast({ title: '保存失败', icon: 'none' });
+      const message = (e as Error)?.message || '保存失败';
+      wx.showToast({ title: message, icon: 'none' });
     }
   }
 });

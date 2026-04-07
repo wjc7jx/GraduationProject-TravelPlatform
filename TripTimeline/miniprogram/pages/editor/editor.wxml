@@ -156,6 +156,39 @@
           坐标：{{location.lat}}, {{location.lon}}
         </view>
       </view>
+
+      <view class="privacy-block">
+        <view class="privacy-title">隐私设置</view>
+        <view class="privacy-mode-row">
+          <view
+            class="privacy-chip {{privacyMode === 'inherit' ? 'active' : ''}}"
+            data-mode="inherit"
+            bindtap="onPrivacyModeChange"
+          >继承项目</view>
+          <view
+            class="privacy-chip {{privacyMode === 'custom' ? 'active' : ''}}"
+            data-mode="custom"
+            bindtap="onPrivacyModeChange"
+          >单独设置</view>
+        </view>
+        <view class="privacy-summary">{{privacySummary}}</view>
+
+        <block wx:if="{{privacyMode === 'custom'}}">
+          <view class="privacy-picker-wrap">
+            <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
+              <view class="privacy-picker">{{visibilityOptions[privacyVisibilityIndex]}}</view>
+            </picker>
+          </view>
+          <view wx:if="{{privacyVisibility === 2}}" class="privacy-whitelist-wrap">
+            <input
+              class="form-input"
+              placeholder="输入白名单用户ID，多个用英文逗号分隔"
+              value="{{privacyWhiteListInput}}"
+              bindinput="onPrivacyWhiteListInput"
+            />
+          </view>
+        </block>
+      </view>
     </view>
 
     <view class="action-section">

@@ -12,6 +12,7 @@ export default {
     create: '/projects',
     timelineMap: '/projects/timeline-map',
     detail: (id: string) => `/projects/${id}`,
+    privacy: (id: string) => `/projects/${id}/privacy`,
     exportHtml: (id: string) => `/projects/${id}/exports/html`,
     exportPdf: (id: string) => `/projects/${id}/exports/pdf`,
     update: (id: string) => `/projects/${id}`,
@@ -21,6 +22,7 @@ export default {
   content: {
     list: (projectId: string) => `/projects/${projectId}/contents`,
     create: (projectId: string) => `/projects/${projectId}/contents`,
+    privacy: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}/privacy`,
     update: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`,
     delete: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`
   }

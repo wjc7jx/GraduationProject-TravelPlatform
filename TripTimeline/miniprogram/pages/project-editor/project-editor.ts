@@ -1,6 +1,42 @@
 import { request, baseUrl } from '../../utils/request'
 import api from '../../utils/api'
 
+type VisibilityValue = 1 | 2 | 3
+
+const VISIBILITY_OPTIONS = ['私密（仅自己可见）', '好友可见（白名单）', '公开（登录用户可见）']
+
+function normalizeVisibility(value: any): VisibilityValue {
+  const visibility = Number(value)
+  if (visibility === 2 || visibility === 3) {
+    return visibility
+  }
+  return 1
+}
+
+function visibilityLabel(visibility: VisibilityValue) {
+  if (visibility === 2) return '好友可见（白名单）'
+  if (visibility === 3) return '公开（登录用户可见）'
+  return '私密（仅自己可见）'
+}
+
+function parseWhiteList(raw: string) {
+  if (!raw) return [] as number[]
+  return Array.from(new Set(
+    raw
+      .split(/[\s,，]+/)
+      .map((item) => Number(item.trim()))
+      .filter((item) => Number.isInteger(item) && item > 0)
+  ))
+}
+
+function formatWhiteListInput(list: any) {
+  if (!Array.isArray(list)) return ''
+  return list
+    .map((item) => Number(item))
+    .filter((item) => Number.isInteger(item) && item > 0)
+    .join(',')
+}
+
 Page({
   data: {
     isEdit: false,
@@ -12,6 +48,13 @@ Page({
     startDate: '',
     endDate: '',
     tags: [] as string[],
+
+    // 项目默认隐私
+    visibilityOptions: VISIBILITY_OPTIONS,
+    privacyVisibility: 1 as VisibilityValue,
+    privacyVisibilityIndex: 0,
+    privacyWhiteListInput: '',
+    privacyHint: '当前为私密：仅你自己可见',
     
     // 输入框状态
     tagInput: ''
@@ -37,10 +80,17 @@ Page({
 
   async loadProjectDetail(id: string) {
     try {
-      const res = await request<any>({
-        url: api.project.detail(id),
-        method: 'GET'
-      })
+      const [res, privacyRule] = await Promise.all([
+        request<any>({
+          url: api.project.detail(id),
+          method: 'GET'
+        }),
+        request<any>({
+          url: api.project.privacy(id),
+          method: 'GET',
+          showLoading: false
+        }).catch(() => null)
+      ])
       
       this.setData({
         title: res.title || '',
@@ -53,6 +103,17 @@ Page({
         endDate: res.end_date || '',
         tags: res.tags ? res.tags.split(',') : []
       })
+
+      if (privacyRule) {
+        const visibility = normalizeVisibility(privacyRule.visibility)
+        const whiteListInput = formatWhiteListInput(privacyRule.white_list)
+        this.setData({
+          privacyVisibility: visibility,
+          privacyVisibilityIndex: visibility - 1,
+          privacyWhiteListInput: whiteListInput,
+          privacyHint: `当前为${visibilityLabel(visibility)}`
+        })
+      }
     } catch(e) {
       // Request util has shown error
     }
@@ -119,6 +180,21 @@ Page({
     this.setData({ endDate: e.detail.value })
   },
 
+  onPrivacyVisibilityChange(e: any) {
+    const index = Number(e.detail.value)
+    const visibility = normalizeVisibility(index + 1)
+    this.setData({
+      privacyVisibility: visibility,
+      privacyVisibilityIndex: visibility - 1,
+      privacyWhiteListInput: visibility === 2 ? this.data.privacyWhiteListInput : '',
+      privacyHint: `当前为${visibilityLabel(visibility)}`
+    })
+  },
+
+  onPrivacyWhiteListInput(e: any) {
+    this.setData({ privacyWhiteListInput: e.detail.value })
+  },
+
   // 标签处理
   onTagInput(e: any) {
     this.setData({ tagInput: e.detail.value })
@@ -141,9 +217,28 @@ Page({
 
   // 提交保存
   async onSubmit() {
-    const { title, subtitle, coverImage, startDate, endDate, tags, isEdit, projectId } = this.data
+    const {
+      title,
+      subtitle,
+      coverImage,
+      startDate,
+      endDate,
+      tags,
+      isEdit,
+      projectId,
+      privacyVisibility,
+      privacyWhiteListInput
+    } = this.data
+
+    const whiteList = parseWhiteList(privacyWhiteListInput)
+
     if (!title || !startDate) {
       wx.showToast({ title: '必填项(标题/时间)未完成', icon: 'error' })
+      return
+    }
+
+    if (privacyVisibility === 2 && whiteList.length === 0) {
+      wx.showToast({ title: '好友可见需至少填写一个白名单用户ID', icon: 'none' })
       return
     }
 
@@ -163,19 +258,37 @@ Page({
     }
 
     try {
+      let targetProjectId = projectId
+
       if (isEdit && projectId) {
-        await request({
+        const updated = await request<any>({
           url: api.project.update(projectId),
           method: 'PUT',
           data: payload
         })
+        targetProjectId = `${updated?.project_id || projectId}`
       } else {
-        await request({
+        const created = await request<any>({
           url: api.project.create,
           method: 'POST',
           data: payload
         })
+        targetProjectId = `${created?.project_id || ''}`
       }
+
+      if (!targetProjectId) {
+        throw new Error('项目ID缺失，无法保存隐私规则')
+      }
+
+      await request({
+        url: api.project.privacy(targetProjectId),
+        method: 'PUT',
+        data: {
+          visibility: privacyVisibility,
+          white_list: privacyVisibility === 2 ? whiteList : []
+        },
+        showLoading: false
+      })
       
       wx.showToast({ title: '保存成功', icon: 'success' })
       setTimeout(() => {

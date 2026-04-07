@@ -1,10 +1,17 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { Op } from 'sequelize';
-import { Content, Location, Permission } from '../models/index.js';
+import { Content, Location } from '../models/index.js';
 import { getProjectOrThrow } from './projectService.js';
 import { env } from '../config/env.js';
+import {
+  getContentRules,
+  getProjectRule,
+  getViewerLevel,
+  resolveContentRule,
+  sanitizeLocation,
+  shouldKeepByExportScope,
+} from './privacyService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,21 +69,6 @@ function fmtDateTime(value) {
     minute: '2-digit',
     hour12: false,
   });
-}
-
-function isWhiteListAllowed(whiteList, viewerUserId) {
-  if (!viewerUserId) return false;
-  if (!Array.isArray(whiteList)) return false;
-  return whiteList.map(Number).includes(Number(viewerUserId));
-}
-
-function shouldKeepByVisibility(visibility, whiteList, scope, viewerUserId) {
-  if (scope === 'all') return true;
-  if (scope === 'public') return visibility === 3;
-  if (scope === 'share') {
-    return visibility === 3 || (visibility === 2 && isWhiteListAllowed(whiteList, viewerUserId));
-  }
-  return true;
 }
 
 async function toDataUriIfLocalImage(imageRef) {
@@ -181,6 +173,23 @@ export async function buildExportData(projectId, userId, options = {}) {
   } = options;
 
   const project = await getProjectOrThrow(projectId, userId);
+  const scope = String(visibilityScope || 'all');
+  if (!['all', 'public', 'share'].includes(scope)) {
+    const err = new Error('visibility_scope 仅支持 all/public/share');
+    err.status = 400;
+    throw err;
+  }
+  if (scope === 'all' && Number(project.user_id) !== Number(userId)) {
+    const err = new Error('all 范围仅允许项目所有者导出');
+    err.status = 403;
+    throw err;
+  }
+  if (scope === 'share' && !Number.isFinite(Number(viewerUserId))) {
+    const err = new Error('share 范围必须提供 viewer_user_id');
+    err.status = 400;
+    throw err;
+  }
+
   const projectJson = project.toJSON();
   const renderCoverImage = await toDataUriIfLocalImage(projectJson.cover_image || '');
   const contents = await Content.findAll({
@@ -206,50 +215,29 @@ export async function buildExportData(projectId, userId, options = {}) {
   const excludeSet = new Set(normalizeArrayNumber(excludeContentIds));
 
   const contentIds = contents.map((item) => item.content_id);
-  const permissions = await Permission.findAll({
-    where: {
-      [Op.or]: [
-        {
-          target_type: 'project',
-          target_id: project.project_id,
-        },
-        {
-          target_type: 'content',
-          target_id: {
-            [Op.in]: contentIds.length ? contentIds : [0],
-          },
-        },
-      ],
-    },
-  });
-
-  const permissionMap = new Map();
-  permissions.forEach((item) => {
-    permissionMap.set(`${item.target_type}:${item.target_id}`, item.toJSON());
-  });
-
-  const projectPermission = permissionMap.get(`project:${project.project_id}`) || {
-    visibility: 1,
-    white_list: null,
-  };
+  const projectRule = await getProjectRule(project.project_id);
+  const contentRulesMap = await getContentRules(contentIds);
 
   const filteredRaw = contents.filter((item) => {
     if (includeSet.size > 0 && !includeSet.has(Number(item.content_id))) return false;
     if (excludeSet.has(Number(item.content_id))) return false;
 
-    const contentPermission = permissionMap.get(`content:${item.content_id}`) || projectPermission;
-    return shouldKeepByVisibility(
-      Number(contentPermission.visibility || 1),
-      contentPermission.white_list,
-      visibilityScope,
+    const rule = resolveContentRule(item, { projectRule, contentRulesMap });
+    return shouldKeepByExportScope(rule, {
+      visibilityScope: scope,
+      requesterUserId: userId,
+      ownerUserId: project.user_id,
       viewerUserId,
-    );
+    });
   });
 
   const normalizedContents = [];
   for (const item of filteredRaw) {
     // 顺序 await 避免大量并发读取本地图片导致导出卡顿
-    const normalized = await normalizeContentItem(item);
+    const rule = resolveContentRule(item, { projectRule, contentRulesMap });
+    const privacyViewerId = scope === 'all' ? userId : viewerUserId;
+    const viewerLevel = getViewerLevel(rule, project.user_id, privacyViewerId);
+    const normalized = await normalizeContentItem(sanitizeLocation(item, viewerLevel));
     normalizedContents.push(normalized);
   }
 
@@ -276,7 +264,7 @@ export async function buildExportData(projectId, userId, options = {}) {
     },
     sections,
     totalCount: normalizedContents.length,
-    visibilityScope,
+    visibilityScope: scope,
   };
 }
 

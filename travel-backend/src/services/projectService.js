@@ -1,4 +1,12 @@
 import { Content, Location, Project } from '../models/index.js';
+import {
+  canView,
+  getContentRules,
+  getProjectRules,
+  getViewerLevel,
+  resolveContentRule,
+  sanitizeLocation,
+} from './privacyService.js';
 
 export async function listProjects(userId) {
   return Project.findAll({ 
@@ -118,6 +126,22 @@ export async function getTimelineMapOverview(userId) {
     ],
   });
 
+  const projectRulesMap = await getProjectRules(projects.map((project) => project.project_id));
+  const contentRulesMap = await getContentRules(contents.map((item) => item.content_id));
+  const visibleContents = contents
+    .map((item) => {
+      const rule = resolveContentRule(item, {
+        projectRule: projectRulesMap.get(Number(item.project_id)),
+        contentRulesMap,
+      });
+      const ownerUserId = item.project?.user_id || userId;
+
+      if (!canView(rule, ownerUserId, userId)) return null;
+      const viewerLevel = getViewerLevel(rule, ownerUserId, userId);
+      return sanitizeLocation(item, viewerLevel);
+    })
+    .filter(Boolean);
+
   const projectStats = new Map();
   projects.forEach((project) => {
     projectStats.set(String(project.project_id), {
@@ -128,7 +152,7 @@ export async function getTimelineMapOverview(userId) {
     });
   });
 
-  const points = contents
+  const points = visibleContents
     .filter((item) => item.location)
     .map((item) => {
       const location = item.location;
@@ -159,7 +183,7 @@ export async function getTimelineMapOverview(userId) {
       };
     });
 
-  contents
+  visibleContents
     .filter((item) => !item.location)
     .forEach((item) => {
       const stats = projectStats.get(String(item.project_id));

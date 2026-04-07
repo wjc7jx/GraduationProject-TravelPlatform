@@ -8,6 +8,7 @@ import {
 	removeProject,
 } from '../controllers/projectController.js';
 import { exportProjectHtml, exportProjectPdf } from '../controllers/exportController.js';
+import { getProjectPrivacyRule, updateProjectPrivacyRule } from '../controllers/privacyController.js';
 import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
@@ -17,6 +18,8 @@ router.get('/', getProjects);
 router.get('/timeline-map', getTimelineMapData);
 router.get('/:id/exports/html', exportProjectHtml);
 router.get('/:id/exports/pdf', exportProjectPdf);
+router.get('/:id/privacy', getProjectPrivacyRule);
+router.put('/:id/privacy', updateProjectPrivacyRule);
 router.get('/:id', getProjectDetail);
 router.post('/', addProject);
 router.put('/:id', editProject);

@@ -1,9 +1,10 @@
 import { Content, Location } from '../models/index.js';
 import { getProjectOrThrow } from './projectService.js';
+import { filterViewableContents } from './privacyService.js';
 
 export async function listContents(projectId, userId) {
-  await getProjectOrThrow(projectId, userId);
-  return Content.findAll({
+  const project = await getProjectOrThrow(projectId, userId);
+  const contents = await Content.findAll({
     where: { 
       project_id: projectId,
       is_deleted: 0
@@ -17,6 +18,11 @@ export async function listContents(projectId, userId) {
       ['record_time', 'ASC'],
       ['sort_order', 'ASC'],
     ],
+  });
+
+  return filterViewableContents(contents, userId, {
+    projectId: project.project_id,
+    ownerUserId: project.user_id,
   });
 }
 

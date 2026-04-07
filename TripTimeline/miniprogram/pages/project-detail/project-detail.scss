@@ -123,6 +123,14 @@
       .arrow { color: #2A4B3C; font-size: 48rpx; font-weight: 300; }
     }
 
+    &.tertiary {
+      background: #f0ece2;
+      color: #2e2a25;
+      border: 1px solid rgba(42, 75, 60, 0.12);
+      .sub { color: #6f665b; }
+      .arrow { color: #2A4B3C; font-size: 40rpx; }
+    }
+
     .icon {
       font-size: 56rpx;
       margin-right: 32rpx;

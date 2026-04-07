@@ -1,6 +1,8 @@
 import { request, baseUrl } from '../../utils/request';
 import api from '../../utils/api';
 
+type ExportScope = 'all' | 'public';
+
 Page({
   data: {
     projectId: null as string | null,
@@ -120,6 +122,145 @@ Page({
     wx.navigateTo({
       url: `/pages/project-editor/project-editor?id=${this.data.projectId}`,
     })
+  },
+
+  onExportTap() {
+    const scopeText = ['导出 PDF（全部内容）', '导出 PDF（仅公开）', '导出 HTML（全部内容）', '导出 HTML（仅公开）'];
+    wx.showActionSheet({
+      itemList: scopeText,
+      success: async (res) => {
+        const index = res.tapIndex;
+        if (index === 0) {
+          await this.exportPdf('all');
+          return;
+        }
+        if (index === 1) {
+          await this.exportPdf('public');
+          return;
+        }
+        if (index === 2) {
+          await this.exportHtml('all');
+          return;
+        }
+        if (index === 3) {
+          await this.exportHtml('public');
+        }
+      }
+    });
+  },
+
+  buildExportUrl(format: 'pdf' | 'html', scope: ExportScope) {
+    const projectId = this.data.projectId as string;
+    const path = format === 'pdf' ? api.project.exportPdf(projectId) : api.project.exportHtml(projectId);
+    return `${baseUrl}${path}?visibility_scope=${scope}`;
+  },
+
+  getAuthHeader() {
+    const token = wx.getStorageSync('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  },
+
+  async exportPdf(scope: ExportScope) {
+    const url = this.buildExportUrl('pdf', scope);
+    wx.showLoading({ title: '正在导出PDF...', mask: true });
+
+    try {
+      const downloadRes = await new Promise<WechatMiniprogram.DownloadFileSuccessCallbackResult>((resolve, reject) => {
+        wx.downloadFile({
+          url,
+          header: this.getAuthHeader(),
+          success: resolve,
+          fail: reject
+        });
+      });
+
+      if (downloadRes.statusCode < 200 || downloadRes.statusCode >= 300) {
+        throw new Error(`导出失败(${downloadRes.statusCode})`);
+      }
+
+      const saveRes = await new Promise<any>((resolve, reject) => {
+        wx.getFileSystemManager().saveFile({
+          tempFilePath: downloadRes.tempFilePath,
+          success: resolve,
+          fail: reject
+        });
+      });
+
+      wx.hideLoading();
+      wx.showModal({
+        title: 'PDF导出成功',
+        content: '文件已保存，是否立即打开预览？',
+        confirmText: '打开',
+        cancelText: '稍后',
+        success: (modalRes) => {
+          if (!modalRes.confirm) return;
+          wx.openDocument({
+            filePath: saveRes.savedFilePath,
+            fileType: 'pdf',
+            showMenu: true,
+            fail: () => {
+              wx.showToast({ title: '打开失败，可在文件列表中查看', icon: 'none' });
+            }
+          });
+        }
+      });
+    } catch (err) {
+      wx.hideLoading();
+      wx.showToast({ title: 'PDF导出失败', icon: 'none' });
+      console.error('PDF export failed:', err);
+    }
+  },
+
+  async exportHtml(scope: ExportScope) {
+    const projectId = this.data.projectId as string;
+    wx.showLoading({ title: '正在生成HTML...', mask: true });
+    try {
+      const payload = await request<any>({
+        url: api.project.exportHtml(projectId),
+        method: 'GET',
+        data: {
+          visibility_scope: scope,
+          download: '0'
+        },
+        showLoading: false
+      });
+
+      const filename = payload?.filename || `memorial-${Date.now()}.html`;
+      const html = payload?.html || '';
+      if (!html) {
+        throw new Error('导出结果为空');
+      }
+
+      const filePath = `${wx.env.USER_DATA_PATH}/${filename}`;
+      await new Promise<void>((resolve, reject) => {
+        wx.getFileSystemManager().writeFile({
+          filePath,
+          data: html,
+          encoding: 'utf8',
+          success: () => resolve(),
+          fail: reject
+        });
+      });
+
+      wx.hideLoading();
+      wx.showModal({
+        title: 'HTML导出成功',
+        content: '文件已写入本地。你可以复制文件路径，在开发者工具中查看。',
+        confirmText: '复制路径',
+        cancelText: '知道了',
+        success: (res) => {
+          if (!res.confirm) return;
+          wx.setClipboardData({
+            data: filePath,
+            success: () => wx.showToast({ title: '路径已复制', icon: 'success' })
+          });
+        }
+      });
+    } catch (err) {
+      wx.hideLoading();
+      wx.showToast({ title: 'HTML导出失败', icon: 'none' });
+      console.error('HTML export failed:', err);
+    }
   }
 
 })

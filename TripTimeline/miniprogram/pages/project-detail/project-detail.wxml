@@ -40,6 +40,16 @@
       </view>
       <view class="arrow">+</view>
     </view>
+
+    <!-- 导出与分享 -->
+    <view class="action-card tertiary" bindtap="onExportTap">
+      <view class="icon">📤</view>
+      <view class="text-group">
+        <text class="main">导出与分享</text>
+        <text class="sub">导出 PDF / HTML 纪念册</text>
+      </view>
+      <view class="arrow">↗</view>
+    </view>
   </view>
 
   <!-- 这里可以未来添加该项目下最新的几条日记预览 / 统计信息 -->

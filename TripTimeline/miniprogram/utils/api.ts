@@ -12,6 +12,8 @@ export default {
     create: '/projects',
     timelineMap: '/projects/timeline-map',
     detail: (id: string) => `/projects/${id}`,
+    exportHtml: (id: string) => `/projects/${id}/exports/html`,
+    exportPdf: (id: string) => `/projects/${id}/exports/pdf`,
     update: (id: string) => `/projects/${id}`,
     delete: (id: string) => `/projects/${id}`
   },

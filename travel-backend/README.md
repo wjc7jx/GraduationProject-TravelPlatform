@@ -93,6 +93,17 @@ GET /api/projects/2001/exports/html?visibility_scope=public
 GET /api/projects/2001/exports/pdf?visibility_scope=share&viewer_user_id=1002
 ```
 
+前端下载调用示例（小程序/前端通用思路）：
+```ts
+// HTML 文件导出
+const htmlUrl = `${baseUrl}/api/projects/${projectId}/exports/html?visibility_scope=all`;
+
+// PDF 文件导出
+const pdfUrl = `${baseUrl}/api/projects/${projectId}/exports/pdf?visibility_scope=all`;
+
+// 请求时带上 Authorization: Bearer <token>
+```
+
 PDF 渲染依赖：
 - 使用 `puppeteer` 将 HTML 打印为 A4 PDF，可保持网页排版效果。
 - 若 Chrome 路径无法自动识别，可在 `.env` 中设置：`PUPPETEER_EXECUTABLE_PATH`。

@@ -360,6 +360,7 @@ export function renderMemorialHtml(payload) {
         --muted: #6a6259;
         --brand: #0f766e;
         --line: #d8cfc4;
+        --paper: #fffdf8;
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
@@ -373,6 +374,9 @@ export function renderMemorialHtml(payload) {
         width: min(1040px, 92vw);
         margin: 24px auto 80px;
       }
+      .print-head {
+        display: none;
+      }
       .cover {
         background: linear-gradient(160deg, rgba(15,118,110,0.92), rgba(12,84,109,0.92));
         color: #fff;
@@ -382,6 +386,17 @@ export function renderMemorialHtml(payload) {
       }
       .cover-inner {
         padding: 40px 38px;
+        position: relative;
+      }
+      .cover-inner::after {
+        content: "";
+        position: absolute;
+        right: -120px;
+        top: -120px;
+        width: 280px;
+        height: 280px;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(255,255,255,0.35), rgba(255,255,255,0));
       }
       .cover h1 {
         margin: 0 0 8px;
@@ -399,7 +414,7 @@ export function renderMemorialHtml(payload) {
       }
       .panel {
         margin-top: 20px;
-        background: color-mix(in srgb, var(--panel) 88%, white 12%);
+        background: var(--panel);
         border: 1px solid var(--line);
         border-radius: 14px;
         padding: 22px 24px;
@@ -418,10 +433,13 @@ export function renderMemorialHtml(payload) {
       .day-section {
         margin-top: 34px;
         page-break-inside: avoid;
+        page-break-before: auto;
       }
       .day-section h2 {
         margin: 0 0 14px;
         font-size: 26px;
+        border-left: 4px solid var(--brand);
+        padding-left: 10px;
       }
       .cards {
         display: grid;
@@ -429,11 +447,12 @@ export function renderMemorialHtml(payload) {
         gap: 14px;
       }
       .card {
-        background: white;
+        background: var(--paper);
         border-radius: 12px;
         border: 1px solid #e6ddd2;
         padding: 14px;
         box-shadow: 0 6px 18px rgba(31, 27, 23, 0.08);
+        break-inside: avoid;
       }
       .meta {
         color: var(--muted);
@@ -464,6 +483,18 @@ export function renderMemorialHtml(payload) {
         margin: 16mm;
       }
       @media print {
+        .print-head {
+          display: block;
+          margin-bottom: 10px;
+          color: #5d564e;
+          font-size: 12px;
+          border-bottom: 1px solid #d9d1c5;
+          padding-bottom: 5px;
+        }
+        .print-head .sep {
+          padding: 0 8px;
+          color: #a09588;
+        }
         body {
           background: white;
         }
@@ -473,12 +504,24 @@ export function renderMemorialHtml(payload) {
         }
         .cover {
           box-shadow: none;
+          border-radius: 10px;
+        }
+        .day-section {
+          page-break-inside: avoid;
+        }
+        .day-section + .day-section {
+          page-break-before: always;
         }
       }
     </style>
   </head>
   <body>
     <main class="wrap">
+      <div class="print-head">
+        <span>${escapeHtml(project.title || '旅行纪念册')}</span>
+        <span class="sep">|</span>
+        <span>${escapeHtml(fmtDate(project.start_date))} - ${escapeHtml(fmtDate(project.end_date) || '进行中')}</span>
+      </div>
       <section class="cover">
         <div class="cover-inner">
           <h1>${escapeHtml(project.title || '我的旅行项目')}</h1>

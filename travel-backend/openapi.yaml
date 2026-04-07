@@ -13,6 +13,8 @@ tags:
     description: Project management for the current user.
   - name: contents
     description: Content entries under a project.
+  - name: exports
+    description: HTML/PDF memorial export for a project.
 
 paths:
   /api/auth/login:
@@ -161,6 +163,166 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/projects/{id}/exports/html:
+    get:
+      tags:
+        - exports
+      summary: Export project memorial as single-file HTML
+      operationId: exportProjectHtml
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: integer
+            format: int64
+        - name: visibility_scope
+          in: query
+          required: false
+          description: Export visibility scope. all=all content, public=visibility 3 only, share=visibility 3 plus whitelist for viewer_user_id.
+          schema:
+            type: string
+            enum:
+              - all
+              - public
+              - share
+            default: all
+        - name: viewer_user_id
+          in: query
+          required: false
+          description: Required when visibility_scope=share to evaluate whitelist visibility.
+          schema:
+            type: integer
+            format: int64
+        - name: include_content_ids
+          in: query
+          required: false
+          description: Comma-separated content IDs to include.
+          schema:
+            type: string
+            example: 1,2,3
+        - name: exclude_content_ids
+          in: query
+          required: false
+          description: Comma-separated content IDs to exclude.
+          schema:
+            type: string
+            example: 4,5
+        - name: download
+          in: query
+          required: false
+          description: 1 to return downloadable HTML file; other values return JSON payload with html string.
+          schema:
+            type: string
+            default: '1'
+      responses:
+        '200':
+          description: Exported HTML file or JSON payload
+          content:
+            text/html:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiSuccessResponse'
+        '401':
+          description: Unauthorized or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found or not owned by current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/projects/{id}/exports/pdf:
+    get:
+      tags:
+        - exports
+      summary: Export project memorial as A4 PDF
+      operationId: exportProjectPdf
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: integer
+            format: int64
+        - name: visibility_scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - all
+              - public
+              - share
+            default: all
+        - name: viewer_user_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: include_content_ids
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 1,2,3
+        - name: exclude_content_ids
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 4,5
+      responses:
+        '200':
+          description: Exported PDF file
+          headers:
+            X-Export-Count:
+              schema:
+                type: string
+              description: Number of content records included in export.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found or not owned by current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
       tags:
         - contents
@@ -225,13 +387,34 @@ components:
         Development mode may support an auth bypass in middleware when enabled, but production requests must send Authorization: Bearer <token>.
 
   schemas:
+    ApiSuccessResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          nullable: true
+      required:
+        - code
+        - message
+
     ErrorResponse:
       type: object
       additionalProperties: false
       properties:
+        code:
+          type: integer
+          format: int32
         message:
           type: string
+        data:
+          nullable: true
       required:
+        - code
         - message
 
     LoginRequest:

@@ -155,6 +155,13 @@ Page({
     return `${baseUrl}${path}?visibility_scope=${scope}`;
   },
 
+  buildHtmlShareUrl(scope: ExportScope) {
+    const token = wx.getStorageSync('token');
+    const base = `${this.buildExportUrl('html', scope)}&mode=inline`;
+    if (!token) return base;
+    return `${base}&access_token=${encodeURIComponent(token)}`;
+  },
+
   getAuthHeader() {
     const token = wx.getStorageSync('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -215,29 +222,43 @@ Page({
     const projectId = this.data.projectId as string;
     wx.showLoading({ title: '正在生成HTML...', mask: true });
     try {
+      const token = wx.getStorageSync('token');
       const payload = await request<any>({
         url: api.project.exportHtml(projectId),
         method: 'GET',
         data: {
           visibility_scope: scope,
-          download: '0'
+          mode: 'url',
+          access_token: token || ''
         },
         showLoading: false
       });
 
       const filename = payload?.filename || `memorial-${Date.now()}.html`;
-      const html = payload?.html || '';
-      if (!html) {
-        throw new Error('导出结果为空');
+      const downloadUrl = payload?.download_url || payload?.url;
+      const previewUrl = payload?.preview_url || this.buildHtmlShareUrl(scope);
+
+      if (!downloadUrl) {
+        throw new Error('未获取到下载地址');
       }
 
-      const filePath = `${wx.env.USER_DATA_PATH}/${filename}`;
-      await new Promise<void>((resolve, reject) => {
-        wx.getFileSystemManager().writeFile({
-          filePath,
-          data: html,
-          encoding: 'utf8',
-          success: () => resolve(),
+      const downloadRes = await new Promise<WechatMiniprogram.DownloadFileSuccessCallbackResult>((resolve, reject) => {
+        wx.downloadFile({
+          url: downloadUrl,
+          header: this.getAuthHeader(),
+          success: resolve,
+          fail: reject
+        });
+      });
+
+      if (downloadRes.statusCode < 200 || downloadRes.statusCode >= 300) {
+        throw new Error(`下载失败(${downloadRes.statusCode})`);
+      }
+
+      const saveRes = await new Promise<any>((resolve, reject) => {
+        wx.getFileSystemManager().saveFile({
+          tempFilePath: downloadRes.tempFilePath,
+          success: resolve,
           fail: reject
         });
       });
@@ -245,14 +266,24 @@ Page({
       wx.hideLoading();
       wx.showModal({
         title: 'HTML导出成功',
-        content: '文件已写入本地。你可以复制文件路径，在开发者工具中查看。',
-        confirmText: '复制路径',
-        cancelText: '知道了',
+        content: `HTML文件已保存：${filename}。可复制在线预览链接在浏览器打开。`,
+        confirmText: '复制预览链接',
+        cancelText: '打开文件',
         success: (res) => {
-          if (!res.confirm) return;
-          wx.setClipboardData({
-            data: filePath,
-            success: () => wx.showToast({ title: '路径已复制', icon: 'success' })
+          if (res.confirm) {
+            wx.setClipboardData({
+              data: previewUrl,
+              success: () => wx.showToast({ title: '链接已复制', icon: 'success' })
+            });
+            return;
+          }
+
+          wx.openDocument({
+            filePath: saveRes.savedFilePath,
+            showMenu: true,
+            fail: () => {
+              wx.showToast({ title: '打开失败，可在文件列表查看', icon: 'none' });
+            }
           });
         }
       });

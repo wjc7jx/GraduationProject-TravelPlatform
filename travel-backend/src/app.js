@@ -14,6 +14,9 @@ const UPLOAD_DIR = path.resolve(__dirname, '../../uploads');
 
 const app = express();
 
+// 导出接口需要每次返回完整内容，关闭 ETag 以避免 304 导致前端拿不到 body
+app.set('etag', false);
+
 app.use(cors({ origin: env.cors.origin, credentials: true }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));

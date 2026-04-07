@@ -4,10 +4,17 @@ import { sendError } from '../utils/response.js';
 
 export function authMiddleware(req, res, next) {
   const header = req.headers['authorization'];
-  if (!header || !header.startsWith('Bearer ')) {
-    return sendError(res, 'Unauthorized', 401);
+  let token = '';
+
+  if (header && header.startsWith('Bearer ')) {
+    token = header.slice('Bearer '.length).trim();
   }
-  const token = header.slice('Bearer '.length).trim();
+
+  // 兼容导出链接在浏览器中直接打开（无法自定义请求头）的场景
+  if (!token && typeof req.query.access_token === 'string') {
+    token = req.query.access_token.trim();
+  }
+
   if (!token) {
     return sendError(res, 'Unauthorized', 401);
   }

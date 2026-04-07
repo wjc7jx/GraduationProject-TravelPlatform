@@ -59,6 +59,8 @@ npm run dev
 - `POST /api/projects`    创建项目。
 - `GET /api/projects/:id/contents` 获取项目内容列表。
 - `POST /api/projects/:id/contents` 创建内容节点。
+- `GET /api/projects/:id/exports/html` 导出网页纪念册（单页 HTML，内联 CSS）。
+- `GET /api/projects/:id/exports/pdf`  导出 A4 PDF（基于 HTML 样式渲染）。
 
 > 以上接口均为示例，可直接跑通链路；根据论文/业务需求继续扩展。
 
@@ -74,3 +76,23 @@ npm run dev
 - 增加内容排序、分页、标签过滤
 - 增加 GPX/KML 解析与地图联动接口
 - 增加导出（PDF/HTML）能力
+
+## 导出模块说明（v1）
+- 默认导出当前用户项目下全部内容。
+- 支持可见性过滤：
+   - `visibility_scope=all`：全部（默认）
+   - `visibility_scope=public`：仅公开（visibility=3）
+   - `visibility_scope=share`：公开 + 好友可见（需传 `viewer_user_id` 且在白名单中）
+- 支持内容选择：
+   - `include_content_ids=1,2,3`
+   - `exclude_content_ids=4,5`
+
+示例：
+```powershell
+GET /api/projects/2001/exports/html?visibility_scope=public
+GET /api/projects/2001/exports/pdf?visibility_scope=share&viewer_user_id=1002
+```
+
+PDF 渲染依赖：
+- 使用 `puppeteer` 将 HTML 打印为 A4 PDF，可保持网页排版效果。
+- 若 Chrome 路径无法自动识别，可在 `.env` 中设置：`PUPPETEER_EXECUTABLE_PATH`。

@@ -23,15 +23,24 @@ export async function exportProjectHtml(req, res, next) {
     const { id } = req.params;
     const options = parseExportOptions(req);
     const { html, filename, payload } = await generateProjectHtmlExport(id, req.user.user_id, options);
+    const mode = String(req.query.mode || '').toLowerCase();
 
-    if (String(req.query.download || '1') === '1') {
+    // 兼容旧逻辑: download=0 返回 JSON
+    if (mode === 'json' || String(req.query.download || '1') === '0') {
+      sendSuccess(res, { filename, html, stats: { total_count: payload.totalCount } }, '生成网页纪念册成功');
+      return;
+    }
+
+    if (mode === 'inline') {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
       res.send(html);
       return;
     }
 
-    sendSuccess(res, { filename, html, stats: { total_count: payload.totalCount } }, '生成网页纪念册成功');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.send(html);
   } catch (error) {
     next(error);
   }

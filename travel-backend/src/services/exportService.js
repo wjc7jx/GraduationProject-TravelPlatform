@@ -9,6 +9,7 @@ import { env } from '../config/env.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '../../');
+const WORKSPACE_ROOT = path.resolve(PROJECT_ROOT, '..');
 
 function slugify(input) {
   return String(input || 'travel-project')
@@ -83,18 +84,25 @@ async function toDataUriIfLocalImage(imageRef) {
   if (imageRef.startsWith('data:')) return imageRef;
   if (/^https?:\/\//i.test(imageRef)) return imageRef;
 
-  let localPath = '';
+  let localCandidates = [];
   if (imageRef.startsWith('/uploads/')) {
-    localPath = path.join(PROJECT_ROOT, imageRef.replace(/^\//, ''));
+    const relative = imageRef.replace(/^\//, '');
+    localCandidates = [
+      path.join(PROJECT_ROOT, relative),
+      path.join(WORKSPACE_ROOT, relative),
+    ];
   } else if (imageRef.startsWith('uploads/')) {
-    localPath = path.join(PROJECT_ROOT, imageRef);
+    localCandidates = [
+      path.join(PROJECT_ROOT, imageRef),
+      path.join(WORKSPACE_ROOT, imageRef),
+    ];
   } else if (path.isAbsolute(imageRef)) {
-    localPath = imageRef;
+    localCandidates = [imageRef];
   }
 
-  if (!localPath) return imageRef;
+  if (!localCandidates.length) return imageRef;
 
-  try {
+  for (const localPath of localCandidates) {
     const ext = path.extname(localPath).toLowerCase();
     const mimeMap = {
       '.jpg': 'image/jpeg',
@@ -104,13 +112,17 @@ async function toDataUriIfLocalImage(imageRef) {
       '.gif': 'image/gif',
     };
     const mime = mimeMap[ext];
-    if (!mime) return imageRef;
+    if (!mime) continue;
 
-    const fileBuffer = await fs.readFile(localPath);
-    return `data:${mime};base64,${fileBuffer.toString('base64')}`;
-  } catch {
-    return imageRef;
+    try {
+      const fileBuffer = await fs.readFile(localPath);
+      return `data:${mime};base64,${fileBuffer.toString('base64')}`;
+    } catch {
+      // 尝试下一个候选路径
+    }
   }
+
+  return imageRef;
 }
 
 function pickPhotoSource(contentData) {
@@ -571,11 +583,19 @@ export async function generateProjectPdfExport(projectId, userId, options = {}) 
     launchOptions.executablePath = env.export.puppeteerExecutablePath;
   }
 
-  const browser = await puppeteer.launch(launchOptions);
+  let browser;
+  try {
+    browser = await puppeteer.launch(launchOptions);
+  } catch {
+    const err = new Error('PDF 渲染引擎启动失败，请检查 Chromium 安装或配置 PUPPETEER_EXECUTABLE_PATH');
+    err.status = 500;
+    throw err;
+  }
+
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({
+    const pdfBytes = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: {
@@ -587,7 +607,7 @@ export async function generateProjectPdfExport(projectId, userId, options = {}) 
     });
 
     return {
-      buffer: pdfBuffer,
+      buffer: Buffer.from(pdfBytes),
       filename: `${slugify(payload.project.title)}-memorial.pdf`,
       payload,
     };

@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import { Content, Permission, Project } from '../models/index.js';
+import { areFriends } from './friendService.js';
 
 const VISIBILITY_PRIVATE = 1;
 const VISIBILITY_FRIENDS = 2;
@@ -185,7 +186,7 @@ export function resolveContentRule(content, options = {}) {
   return normalizeRule(options.projectRule);
 }
 
-export function canView(rule, ownerUserId, viewerUserId) {
+export async function canView(rule, ownerUserId, viewerUserId) {
   if (isOwner(ownerUserId, viewerUserId)) return true;
 
   const normalizedRule = normalizeRule(rule);
@@ -193,19 +194,21 @@ export function canView(rule, ownerUserId, viewerUserId) {
     return Number.isFinite(Number(viewerUserId));
   }
   if (normalizedRule.visibility === VISIBILITY_FRIENDS) {
-    return inWhiteList(normalizedRule, viewerUserId);
+    if (inWhiteList(normalizedRule, viewerUserId)) return true;
+    return areFriends(ownerUserId, viewerUserId);
   }
 
   return false;
 }
 
-export function getViewerLevel(rule, ownerUserId, viewerUserId) {
+export async function getViewerLevel(rule, ownerUserId, viewerUserId) {
   if (isOwner(ownerUserId, viewerUserId)) return 'owner';
 
   const normalizedRule = normalizeRule(rule);
   if (normalizedRule.visibility === VISIBILITY_PUBLIC) return 'public';
-  if (normalizedRule.visibility === VISIBILITY_FRIENDS && inWhiteList(normalizedRule, viewerUserId)) {
-    return 'friend';
+  if (normalizedRule.visibility === VISIBILITY_FRIENDS) {
+    if (inWhiteList(normalizedRule, viewerUserId)) return 'friend';
+    if (await areFriends(ownerUserId, viewerUserId)) return 'friend';
   }
   return 'private_hidden';
 }
@@ -263,18 +266,19 @@ export async function filterViewableContents(contents, viewerUserId, options = {
   const projectRule = options.projectRule || await getProjectRule(projectId);
   const contentRulesMap = options.contentRulesMap || await getContentRules(items.map((item) => Number(item.content_id)));
 
-  return items
-    .map((item) => {
-      const rule = resolveContentRule(item, { projectRule, contentRulesMap });
-      if (!canView(rule, ownerUserId, viewerUserId)) return null;
+  const result = [];
+  for (const item of items) {
+    const rule = resolveContentRule(item, { projectRule, contentRulesMap });
+    if (!(await canView(rule, ownerUserId, viewerUserId))) continue;
 
-      const viewerLevel = getViewerLevel(rule, ownerUserId, viewerUserId);
-      return sanitizeLocation(item, viewerLevel);
-    })
-    .filter(Boolean);
+    const viewerLevel = await getViewerLevel(rule, ownerUserId, viewerUserId);
+    result.push(sanitizeLocation(item, viewerLevel));
+  }
+
+  return result;
 }
 
-export function shouldKeepByExportScope(rule, options = {}) {
+export async function shouldKeepByExportScope(rule, options = {}) {
   const scope = String(options.visibilityScope || 'all');
   const requesterUserId = Number(options.requesterUserId);
   const ownerUserId = Number(options.ownerUserId);
@@ -305,11 +309,6 @@ export function normalizePrivacyPayload(payload = {}) {
   }
 
   const whiteList = normalizeWhiteList(payload.white_list);
-  if (visibility === VISIBILITY_FRIENDS && whiteList.length === 0) {
-    const err = new Error('visibility=2 时 white_list 不能为空');
-    err.status = 400;
-    throw err;
-  }
 
   return {
     visibility,

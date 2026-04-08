@@ -25,5 +25,10 @@ export default {
     privacy: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}/privacy`,
     update: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`,
     delete: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`
+  },
+  // 好友模块
+  friend: {
+    list: '/friends',
+    acceptInvite: '/friends/invite/accept'
   }
 };

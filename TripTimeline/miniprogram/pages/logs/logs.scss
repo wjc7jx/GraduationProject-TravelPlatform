@@ -31,6 +31,21 @@ page {
   color: #6b736d;
 }
 
+.invite-btn {
+  margin-top: 20rpx;
+  background: #2a4b3c;
+  color: #fff;
+  font-size: 26rpx;
+  border-radius: 999rpx;
+  border: none;
+  line-height: 1;
+  padding: 22rpx 26rpx;
+}
+
+.invite-btn::after {
+  border: none;
+}
+
 .review-entry {
   margin-top: 24rpx;
   background: linear-gradient(135deg, #2a4b3c, #3b6a54);
@@ -49,6 +64,59 @@ page {
   color: rgba(255, 255, 255, 0.9);
   font-size: 24rpx;
   line-height: 1.5;
+}
+
+.friend-section {
+  margin-top: 24rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 12rpx 36rpx rgba(42, 75, 60, 0.05);
+}
+
+.friend-loading,
+.friend-empty {
+  color: #6b736d;
+  font-size: 24rpx;
+  margin-top: 12rpx;
+}
+
+.friend-item {
+  margin-top: 16rpx;
+  display: flex;
+  align-items: center;
+}
+
+.friend-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #e2e8e3;
+}
+
+.friend-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2a4b3c;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.friend-info {
+  margin-left: 16rpx;
+}
+
+.friend-name {
+  color: #1f2b24;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.friend-id {
+  margin-top: 4rpx;
+  color: #728078;
+  font-size: 22rpx;
 }
 
 .log-section {

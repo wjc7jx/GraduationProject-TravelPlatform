@@ -3,7 +3,7 @@ import api from '../../utils/api'
 
 type VisibilityValue = 1 | 2 | 3
 
-const VISIBILITY_OPTIONS = ['私密（仅自己可见）', '好友可见（白名单）', '公开（登录用户可见）']
+const VISIBILITY_OPTIONS = ['私密（仅自己可见）', '好友可见（自动基于好友关系）', '公开（登录用户可见）']
 
 function normalizeVisibility(value: any): VisibilityValue {
   const visibility = Number(value)
@@ -14,27 +14,9 @@ function normalizeVisibility(value: any): VisibilityValue {
 }
 
 function visibilityLabel(visibility: VisibilityValue) {
-  if (visibility === 2) return '好友可见（白名单）'
+  if (visibility === 2) return '好友可见（自动基于好友关系）'
   if (visibility === 3) return '公开（登录用户可见）'
   return '私密（仅自己可见）'
-}
-
-function parseWhiteList(raw: string) {
-  if (!raw) return [] as number[]
-  return Array.from(new Set(
-    raw
-      .split(/[\s,，]+/)
-      .map((item) => Number(item.trim()))
-      .filter((item) => Number.isInteger(item) && item > 0)
-  ))
-}
-
-function formatWhiteListInput(list: any) {
-  if (!Array.isArray(list)) return ''
-  return list
-    .map((item) => Number(item))
-    .filter((item) => Number.isInteger(item) && item > 0)
-    .join(',')
 }
 
 Page({
@@ -53,7 +35,6 @@ Page({
     visibilityOptions: VISIBILITY_OPTIONS,
     privacyVisibility: 1 as VisibilityValue,
     privacyVisibilityIndex: 0,
-    privacyWhiteListInput: '',
     privacyHint: '当前为私密：仅你自己可见',
     
     // 输入框状态
@@ -106,11 +87,9 @@ Page({
 
       if (privacyRule) {
         const visibility = normalizeVisibility(privacyRule.visibility)
-        const whiteListInput = formatWhiteListInput(privacyRule.white_list)
         this.setData({
           privacyVisibility: visibility,
           privacyVisibilityIndex: visibility - 1,
-          privacyWhiteListInput: whiteListInput,
           privacyHint: `当前为${visibilityLabel(visibility)}`
         })
       }
@@ -186,13 +165,8 @@ Page({
     this.setData({
       privacyVisibility: visibility,
       privacyVisibilityIndex: visibility - 1,
-      privacyWhiteListInput: visibility === 2 ? this.data.privacyWhiteListInput : '',
       privacyHint: `当前为${visibilityLabel(visibility)}`
     })
-  },
-
-  onPrivacyWhiteListInput(e: any) {
-    this.setData({ privacyWhiteListInput: e.detail.value })
   },
 
   // 标签处理
@@ -226,19 +200,11 @@ Page({
       tags,
       isEdit,
       projectId,
-      privacyVisibility,
-      privacyWhiteListInput
+      privacyVisibility
     } = this.data
-
-    const whiteList = parseWhiteList(privacyWhiteListInput)
 
     if (!title || !startDate) {
       wx.showToast({ title: '必填项(标题/时间)未完成', icon: 'error' })
-      return
-    }
-
-    if (privacyVisibility === 2 && whiteList.length === 0) {
-      wx.showToast({ title: '好友可见需至少填写一个白名单用户ID', icon: 'none' })
       return
     }
 
@@ -285,7 +251,7 @@ Page({
         method: 'PUT',
         data: {
           visibility: privacyVisibility,
-          white_list: privacyVisibility === 2 ? whiteList : []
+          white_list: []
         },
         showLoading: false
       })

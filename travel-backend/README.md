@@ -61,6 +61,8 @@ npm run dev
 - `POST /api/projects/:id/contents` 创建内容节点。
 - `GET /api/projects/:id/exports/html` 导出网页纪念册（单页 HTML，内联 CSS）。
 - `GET /api/projects/:id/exports/pdf`  导出 A4 PDF（基于 HTML 样式渲染）。
+- `GET /api/friends` 获取好友列表。
+- `POST /api/friends/invite/accept` 接受分享邀请并建立双向好友关系。
 
 > 以上接口均为示例，可直接跑通链路；根据论文/业务需求继续扩展。
 

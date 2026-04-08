@@ -128,19 +128,18 @@ export async function getTimelineMapOverview(userId) {
 
   const projectRulesMap = await getProjectRules(projects.map((project) => project.project_id));
   const contentRulesMap = await getContentRules(contents.map((item) => item.content_id));
-  const visibleContents = contents
-    .map((item) => {
-      const rule = resolveContentRule(item, {
-        projectRule: projectRulesMap.get(Number(item.project_id)),
-        contentRulesMap,
-      });
-      const ownerUserId = item.project?.user_id || userId;
+  const visibleContents = [];
+  for (const item of contents) {
+    const rule = resolveContentRule(item, {
+      projectRule: projectRulesMap.get(Number(item.project_id)),
+      contentRulesMap,
+    });
+    const ownerUserId = item.project?.user_id || userId;
 
-      if (!canView(rule, ownerUserId, userId)) return null;
-      const viewerLevel = getViewerLevel(rule, ownerUserId, userId);
-      return sanitizeLocation(item, viewerLevel);
-    })
-    .filter(Boolean);
+    if (!(await canView(rule, ownerUserId, userId))) continue;
+    const viewerLevel = await getViewerLevel(rule, ownerUserId, userId);
+    visibleContents.push(sanitizeLocation(item, viewerLevel));
+  }
 
   const projectStats = new Map();
   projects.forEach((project) => {

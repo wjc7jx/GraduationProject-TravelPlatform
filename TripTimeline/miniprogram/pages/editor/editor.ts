@@ -20,24 +20,6 @@ function visibilityLabel(visibility: VisibilityValue) {
   return '私密';
 }
 
-function parseWhiteList(raw: string) {
-  if (!raw) return [] as number[];
-  return Array.from(new Set(
-    raw
-      .split(/[\s,，]+/)
-      .map((item) => Number(item.trim()))
-      .filter((item) => Number.isInteger(item) && item > 0)
-  ));
-}
-
-function formatWhiteListInput(list: any) {
-  if (!Array.isArray(list)) return '';
-  return list
-    .map((item) => Number(item))
-    .filter((item) => Number.isInteger(item) && item > 0)
-    .join(',');
-}
-
 Page({
   recorderManager: null as any,
   recordTicker: 0 as any,
@@ -84,10 +66,9 @@ Page({
 
     // 隐私配置
     privacyMode: 'inherit' as PrivacyMode,
-    visibilityOptions: ['私密（仅自己可见）', '好友可见（白名单）', '公开（登录用户可见）'],
+    visibilityOptions: ['私密（仅自己可见）', '好友可见（自动基于好友关系）', '公开（登录用户可见）'],
     privacyVisibility: 1 as VisibilityValue,
     privacyVisibilityIndex: 0,
-    privacyWhiteListInput: '',
     privacySummary: '当前继承项目策略：私密'
   },
 
@@ -141,7 +122,6 @@ Page({
         privacyMode: 'inherit',
         privacyVisibility: visibility,
         privacyVisibilityIndex: visibility - 1,
-        privacyWhiteListInput: '',
         privacySummary: this.buildPrivacySummary('inherit', visibility)
       });
     } catch (error) {
@@ -168,7 +148,6 @@ Page({
         privacyMode: inherited ? 'inherit' : 'custom',
         privacyVisibility: visibility,
         privacyVisibilityIndex: visibility - 1,
-        privacyWhiteListInput: inherited ? '' : formatWhiteListInput(effectiveRule.white_list),
         privacySummary: this.buildPrivacySummary(
           inherited ? 'inherit' : 'custom',
           inherited ? inheritedVisibility : visibility,
@@ -314,8 +293,7 @@ Page({
     if (mode !== 'inherit' && mode !== 'custom') return;
     this.setData({
       privacyMode: mode,
-      privacySummary: this.buildPrivacySummary(mode, this.data.privacyVisibility),
-      privacyWhiteListInput: mode === 'custom' ? this.data.privacyWhiteListInput : ''
+      privacySummary: this.buildPrivacySummary(mode, this.data.privacyVisibility)
     });
   },
 
@@ -325,13 +303,8 @@ Page({
     this.setData({
       privacyVisibility: visibility,
       privacyVisibilityIndex: visibility - 1,
-      privacyWhiteListInput: visibility === 2 ? this.data.privacyWhiteListInput : '',
       privacySummary: this.buildPrivacySummary(this.data.privacyMode, visibility)
     });
-  },
-
-  onPrivacyWhiteListInput(e: WechatMiniprogram.Input) {
-    this.setData({ privacyWhiteListInput: e.detail.value });
   },
 
   chooseLocation() {
@@ -904,17 +877,12 @@ Page({
       }
 
       if (this.data.privacyMode === 'custom') {
-        const whiteList = parseWhiteList(this.data.privacyWhiteListInput);
-        if (this.data.privacyVisibility === 2 && whiteList.length === 0) {
-          throw new Error('好友可见时白名单不能为空');
-        }
-
         await request({
           url: api.content.privacy(this.data.projectId, targetContentId),
           method: 'PUT',
           data: {
             visibility: this.data.privacyVisibility,
-            white_list: this.data.privacyVisibility === 2 ? whiteList : []
+            white_list: []
           },
           showLoading: false
         });

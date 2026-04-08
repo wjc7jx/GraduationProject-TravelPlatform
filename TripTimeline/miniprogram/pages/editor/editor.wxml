@@ -180,12 +180,7 @@
             </picker>
           </view>
           <view wx:if="{{privacyVisibility === 2}}" class="privacy-whitelist-wrap">
-            <input
-              class="form-input"
-              placeholder="输入白名单用户ID，多个用英文逗号分隔"
-              value="{{privacyWhiteListInput}}"
-              bindinput="onPrivacyWhiteListInput"
-            />
+            好友可见将根据双方好友关系自动判断，无需输入ID
           </view>
         </block>
       </view>

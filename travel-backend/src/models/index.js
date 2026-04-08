@@ -4,12 +4,14 @@ import { initProject, Project } from './project.js';
 import { initContent, Content } from './content.js';
 import { initLocation, Location } from './location.js';
 import { initPermission, Permission } from './permission.js';
+import { initFriendship, Friendship } from './friendship.js';
 
 initUser(sequelize);
 initProject(sequelize);
 initContent(sequelize);
 initLocation(sequelize);
 initPermission(sequelize);
+initFriendship(sequelize);
 
 // Associations
 User.hasMany(Project, { foreignKey: 'user_id', as: 'projects' });
@@ -21,4 +23,9 @@ Content.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
 Location.hasMany(Content, { foreignKey: 'location_id', as: 'contents' });
 Content.belongsTo(Location, { foreignKey: 'location_id', as: 'location' });
 
-export { sequelize, testConnection, User, Project, Content, Location, Permission };
+User.hasMany(Friendship, { foreignKey: 'user_id', as: 'friendships' });
+User.hasMany(Friendship, { foreignKey: 'friend_id', as: 'friendedBy' });
+Friendship.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Friendship.belongsTo(User, { foreignKey: 'friend_id', as: 'friend' });
+
+export { sequelize, testConnection, User, Project, Content, Location, Permission, Friendship };

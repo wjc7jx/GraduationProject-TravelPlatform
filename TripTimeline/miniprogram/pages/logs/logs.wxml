@@ -4,11 +4,36 @@
   <view class="profile-hero">
     <view class="hero-title">旅行回顾中心</view>
     <view class="hero-subtitle">查看年度足迹与项目总结</view>
+    <button class="invite-btn" open-type="share" bindtap="onInviteTap">微信卡片邀请好友</button>
     <view class="review-entry" bindtap="goToYearReview">
       <view class="entry-title">年度回顾</view>
       <view class="entry-desc">按年份汇总所有项目，并在地图中回顾足迹</view>
     </view>
   </view>
+
+<view class="friend-section">
+  <view class="section-title">我的好友</view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{isLoadingFriends}}" class="friend-loading">加载中...</view>
+
+  <!-- 无好友 -->
+  <view wx:elif="{{!isLoadingFriends && friends.length === 0}}" class="friend-empty">还没有好友，先邀请一个吧</view>
+
+  <!-- 有好友：单独一个 block 或 view 包裹列表 -->
+  <block wx:else>
+    <block wx:for="{{friends}}" wx:key="user_id">
+      <view class="friend-item">
+        <image wx:if="{{item.avatar_url}}" class="friend-avatar" src="{{item.avatar_url}}" mode="aspectFill"></image>
+        <view wx:else class="friend-avatar friend-avatar-fallback">友</view>
+        <view class="friend-info">
+          <view class="friend-name">{{item.nickname || ('用户' + item.user_id)}}</view>
+          <view class="friend-id">ID: {{item.user_id}}</view>
+        </view>
+      </view>
+    </block>
+  </block>
+</view>
 
   <view class="log-section">
     <view class="section-title">启动日志</view>

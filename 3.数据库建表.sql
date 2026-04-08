@@ -16,6 +16,7 @@ USE `travel_db`;
 
 -- 2) 如需重复执行脚本，先按依赖顺序删表
 DROP TABLE IF EXISTS `permissions`;
+DROP TABLE IF EXISTS `friendships`;
 DROP TABLE IF EXISTS `contents`;
 DROP TABLE IF EXISTS `locations`;
 DROP TABLE IF EXISTS `projects`;
@@ -117,6 +118,21 @@ CREATE TABLE `permissions` (
   CONSTRAINT `chk_permissions_visibility` CHECK (`visibility` IN (1,2,3)),
   CONSTRAINT `chk_permissions_white_list_json` CHECK (`white_list` IS NULL OR JSON_VALID(`white_list`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='权限规则表';
+
+-- 8) 好友关系表（双向各存一条记录：A->B 与 B->A）
+CREATE TABLE `friendships` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '关系ID',
+  `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
+  `friend_id` BIGINT UNSIGNED NOT NULL COMMENT '好友用户ID',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_friendships_pair` (`user_id`, `friend_id`),
+  KEY `idx_friendships_user_id` (`user_id`),
+  KEY `idx_friendships_friend_id` (`friend_id`),
+  CONSTRAINT `fk_friendships_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `fk_friendships_friend_id` FOREIGN KEY (`friend_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `chk_friendships_self` CHECK (`user_id` <> `friend_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='好友关系表';
 
 SET FOREIGN_KEY_CHECKS = 1;
 

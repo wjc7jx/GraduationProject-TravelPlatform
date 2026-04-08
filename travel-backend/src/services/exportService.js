@@ -218,25 +218,29 @@ export async function buildExportData(projectId, userId, options = {}) {
   const projectRule = await getProjectRule(project.project_id);
   const contentRulesMap = await getContentRules(contentIds);
 
-  const filteredRaw = contents.filter((item) => {
-    if (includeSet.size > 0 && !includeSet.has(Number(item.content_id))) return false;
-    if (excludeSet.has(Number(item.content_id))) return false;
+  const filteredRaw = [];
+  for (const item of contents) {
+    if (includeSet.size > 0 && !includeSet.has(Number(item.content_id))) continue;
+    if (excludeSet.has(Number(item.content_id))) continue;
 
     const rule = resolveContentRule(item, { projectRule, contentRulesMap });
-    return shouldKeepByExportScope(rule, {
+    const shouldKeep = await shouldKeepByExportScope(rule, {
       visibilityScope: scope,
       requesterUserId: userId,
       ownerUserId: project.user_id,
       viewerUserId,
     });
-  });
+    if (shouldKeep) {
+      filteredRaw.push(item);
+    }
+  }
 
   const normalizedContents = [];
   for (const item of filteredRaw) {
     // 顺序 await 避免大量并发读取本地图片导致导出卡顿
     const rule = resolveContentRule(item, { projectRule, contentRulesMap });
     const privacyViewerId = scope === 'all' ? userId : viewerUserId;
-    const viewerLevel = getViewerLevel(rule, project.user_id, privacyViewerId);
+    const viewerLevel = await getViewerLevel(rule, project.user_id, privacyViewerId);
     const normalized = await normalizeContentItem(sanitizeLocation(item, viewerLevel));
     normalizedContents.push(normalized);
   }

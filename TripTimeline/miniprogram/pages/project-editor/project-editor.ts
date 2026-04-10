@@ -22,11 +22,13 @@ function visibilityLabel(visibility: VisibilityValue) {
 Page({
   data: {
     isEdit: false,
+    submitting: false,
     projectId: null as string | null,
     // 表单数据
     title: '',
     subtitle: '',
-    coverImage: '',
+    coverImages: [] as string[],
+    selectedCoverIndex: 0,
     startDate: '',
     endDate: '',
     tags: [] as string[],
@@ -77,9 +79,10 @@ Page({
         title: res.title || '',
         // 我们的数据库直接拼接到了 tags，为了简便暂不区分，如果是复杂业务 subtitle 也可以存在 tags 里或新建字段
         subtitle: '',
-        coverImage: res.cover_image 
-          ? (res.cover_image.startsWith('http') ? res.cover_image : `${baseUrl}${res.cover_image}`)
-          : '',
+        coverImages: res.cover_image
+          ? [res.cover_image.startsWith('http') ? res.cover_image : `${baseUrl}${res.cover_image}`]
+          : [],
+        selectedCoverIndex: 0,
         startDate: res.start_date || '',
         endDate: res.end_date || '',
         tags: res.tags ? res.tags.split(',') : []
@@ -100,48 +103,92 @@ Page({
 
   // 选择封面图并上传
   chooseCover() {
+    const leftCount = 3 - this.data.coverImages.length
+    if (leftCount <= 0) {
+      wx.showToast({ title: '最多上传3张封面图', icon: 'none' })
+      return
+    }
+
     wx.chooseMedia({
-      count: 1,
+      count: leftCount,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath
-        this.uploadImage(tempFilePath)
+      success: async (res) => {
+        const tempFilePaths = res.tempFiles.map((item) => item.tempFilePath)
+        await this.uploadImages(tempFilePaths)
       }
     })
   },
 
-  // 调用封装后的原生 wx.uploadFile 接口
-  uploadImage(filePath: string) {
+  async uploadImages(filePaths: string[]) {
+    if (!filePaths.length) return
+
     wx.showLoading({ title: '上传中...' })
+    try {
+      const uploaded = await Promise.all(filePaths.map((path) => this.uploadSingleImage(path)))
+      const nextImages = [...this.data.coverImages, ...uploaded].slice(0, 3)
+      this.setData({
+        coverImages: nextImages,
+        selectedCoverIndex: Math.min(this.data.selectedCoverIndex, Math.max(nextImages.length - 1, 0))
+      })
+    } catch (error) {
+      wx.showToast({ title: '图片上传失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  // 调用封装后的原生 wx.uploadFile 接口
+  uploadSingleImage(filePath: string): Promise<string> {
     const token = wx.getStorageSync('token')
-    wx.uploadFile({
-      url: `${baseUrl}${api.upload}`,
-      filePath: filePath,
-      name: 'file',
-      header: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
-      success: (uploadRes) => {
-        wx.hideLoading()
-        if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
-          const parsed = JSON.parse(uploadRes.data)
-          const payload = parsed && typeof parsed === 'object' && parsed.data !== undefined
-            ? parsed.data
-            : parsed
-          if (!payload?.url) {
-            wx.showToast({ title: '图片地址解析失败', icon: 'none' })
+    return new Promise((resolve, reject) => {
+      wx.uploadFile({
+        url: `${baseUrl}${api.upload}`,
+        filePath,
+        name: 'file',
+        header: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        success: (uploadRes) => {
+          if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
+            const parsed = JSON.parse(uploadRes.data)
+            const payload = parsed && typeof parsed === 'object' && parsed.data !== undefined
+              ? parsed.data
+              : parsed
+            if (!payload?.url) {
+              reject(new Error('图片地址解析失败'))
+              return
+            }
+            resolve(`${baseUrl}${payload.url}`)
             return
           }
-          this.setData({ coverImage: `${baseUrl}${payload.url}` })
-        } else {
-          wx.showToast({ title: '图片上传失败', icon: 'error' })
-        }
-      },
-      fail: () => {
-        wx.hideLoading()
-        wx.showToast({ title: '上传出现网络错误', icon: 'none' })
-      }
+          reject(new Error(`图片上传失败(${uploadRes.statusCode})`))
+        },
+        fail: () => reject(new Error('上传出现网络错误'))
+      })
+    })
+  },
+
+  onSelectCover(e: any) {
+    const index = Number(e.currentTarget.dataset.index)
+    if (Number.isNaN(index)) return
+    this.setData({ selectedCoverIndex: index })
+  },
+
+  removeCover(e: any) {
+    const index = Number(e.currentTarget.dataset.index)
+    if (Number.isNaN(index)) return
+
+    const nextImages = [...this.data.coverImages]
+    nextImages.splice(index, 1)
+
+    let nextSelected = this.data.selectedCoverIndex
+    if (nextSelected > index) nextSelected -= 1
+    if (nextSelected >= nextImages.length) nextSelected = Math.max(nextImages.length - 1, 0)
+
+    this.setData({
+      coverImages: nextImages,
+      selectedCoverIndex: nextSelected
     })
   },
 
@@ -193,25 +240,35 @@ Page({
   async onSubmit() {
     const {
       title,
-      subtitle,
-      coverImage,
+      coverImages,
+      selectedCoverIndex,
       startDate,
       endDate,
       tags,
       isEdit,
+      submitting,
       projectId,
       privacyVisibility
     } = this.data
+
+    if (submitting) return
 
     if (!title || !startDate) {
       wx.showToast({ title: '必填项(标题/时间)未完成', icon: 'error' })
       return
     }
 
+    if (!isEdit && !coverImages.length) {
+      wx.showToast({ title: '请至少上传1张封面图', icon: 'none' })
+      return
+    }
+
+    const pickedCover = coverImages[selectedCoverIndex] || coverImages[0] || ''
+
     // 将绝对路径的图片再替换为相对路径以存入后端
-    let finalCover = coverImage
-    if (coverImage.startsWith(baseUrl)) {
-      finalCover = coverImage.replace(baseUrl, '')
+    let finalCover = pickedCover
+    if (pickedCover && pickedCover.startsWith(baseUrl)) {
+      finalCover = pickedCover.replace(baseUrl, '')
     }
 
     const payload = {
@@ -224,6 +281,7 @@ Page({
     }
 
     try {
+      this.setData({ submitting: true })
       let targetProjectId = projectId
 
       if (isEdit && projectId) {
@@ -262,6 +320,8 @@ Page({
       }, 1500)
     } catch(e) {
       // 错误由 request 工具统一拦截提示
+    } finally {
+      this.setData({ submitting: false })
     }
   }
 })

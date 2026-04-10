@@ -2,15 +2,6 @@
 <navigation-bar title="{{isEdit ? '编辑旅行' : '新建旅行'}}" back="{{true}}" color="#1C1C1C" background="#F7F5F0"></navigation-bar>
 
 <view class="container">
-  
-  <!-- 封面图设置 -->
-  <view class="cover-section" bindtap="chooseCover">
-    <image wx:if="{{coverImage}}" class="cover-image" src="{{coverImage}}" mode="aspectFill"></image>
-    <view class="cover-placeholder" wx:else>
-      <view class="icon-camera">📷</view>
-      <text>点击设置旅行封面</text>
-    </view>
-  </view>
 
   <view class="form-section">
     <!-- 主标题 -->
@@ -58,6 +49,23 @@
     </view>
 
     <view class="form-item">
+      <view class="label">专辑封面 <text class="required">*</text></view>
+      <view class="cover-grid-row">
+        <block wx:for="{{coverImages}}" wx:key="index">
+          <view class="cover-card {{selectedCoverIndex === index ? 'active' : ''}}" bindtap="onSelectCover" data-index="{{index}}">
+            <image class="cover-thumb" src="{{item}}" mode="aspectFill"></image>
+            <view class="cover-remove" catchtap="removeCover" data-index="{{index}}">×</view>
+          </view>
+        </block>
+
+        <view wx:if="{{coverImages.length < 3}}" class="cover-card add-card" bindtap="chooseCover">
+          <text class="plus">+</text>
+        </view>
+      </view>
+      <view class="cover-hint">可上传1~3张，点击图片可设为首图（带深色边框）</view>
+    </view>
+
+    <view class="form-item">
       <view class="label">默认可见性</view>
       <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
         <view class="date-picker">{{visibilityOptions[privacyVisibilityIndex]}}</view>
@@ -67,9 +75,10 @@
     </view>
   </view>
 
-  <!-- 底部操作栏 -->
-  <view class="bottom-bar">
-    <button class="btn-submit" bindtap="onSubmit">{{isEdit ? '保存修改' : '创建项目'}}</button>
+  <view class="bottom-action-row">
+    <view class="btn-complete {{submitting ? 'disabled' : ''}}" bindtap="onSubmit">
+      {{submitting ? '提交中' : (isEdit ? '保存修改' : '完成')}}
+    </view>
   </view>
 
 </view>

@@ -1,6 +1,13 @@
 import config from './config';
 
 export const baseUrl = config.baseUrl; // 兼容老代码的导出
+export const assetBaseUrl = config.baseUrl.replace(/\/api\/?$/, '') || config.baseUrl;
+
+export function asAbsoluteAssetUrl(url: string) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${assetBaseUrl}${url.startsWith('/') ? url : `/${url}`}`;
+}
 
 export interface RequestOptions extends Omit<WechatMiniprogram.RequestOption, 'url'> {
   url: string;

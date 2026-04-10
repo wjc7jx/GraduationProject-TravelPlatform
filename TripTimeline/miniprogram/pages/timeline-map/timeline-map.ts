@@ -1,4 +1,4 @@
-import { request, baseUrl } from '../../utils/request';
+import { request, baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 Page({
@@ -62,10 +62,7 @@ Page({
     try {
       const res = await request<any[]>({
         url: api.content.list(projectId),
-        method: 'GET'
-      });
-      if (res && res.length > 0) {
-        let globalIndex = 0;
+            const cover = asAbsoluteAssetUrl(project.cover_image || '');
         const mappedData = res.map((item: any) => {
           const payload = item.content_data || {};
           const d = new Date(item.record_time || item.created_at);
@@ -90,9 +87,7 @@ Page({
         });
         
         mappedData.forEach((d: any) => {
-          if (d.image && !d.image.startsWith('http')) {
-            d.image = `${baseUrl}${d.image}`;
-          }
+          d.image = asAbsoluteAssetUrl(d.image);
         });
 
         // Group by date

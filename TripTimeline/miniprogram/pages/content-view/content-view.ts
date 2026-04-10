@@ -1,4 +1,4 @@
-import { request, baseUrl } from '../../utils/request';
+import { request, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 Page({
@@ -115,9 +115,7 @@ Page({
   },
 
   asAbsoluteUrl(url: string) {
-    if (!url) return '';
-    if (/^https?:\/\//i.test(url)) return url;
-    return `${baseUrl}${url}`;
+    return asAbsoluteAssetUrl(url);
   },
 
   updateTrackPreview(geojson: any) {

@@ -1,4 +1,4 @@
-import { request, baseUrl } from '../../utils/request';
+import { request, baseUrl, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 import config from '../../utils/config';
 import { searchTencentMapSuggestions, TencentMapSuggestion } from '../../utils/tencentMap';
@@ -652,9 +652,7 @@ Page({
   },
 
   asAbsoluteUrl(url: string) {
-    if (!url) return '';
-    if (/^https?:\/\//i.test(url)) return url;
-    return `${baseUrl}${url}`;
+    return asAbsoluteAssetUrl(url);
   },
 
   onLocationNameInput(e: any) {
@@ -815,6 +813,11 @@ Page({
 
       const logTime = `${this.data.date} ${this.data.time}:00`;
 
+      const stripAssetUrl = (u: string) => {
+        if (!u) return '';
+        return u.startsWith(assetBaseUrl) ? u.replace(assetBaseUrl, '') : u;
+      };
+
       const contentData: any = {
         title: this.data.title,
         content: this.data.content,
@@ -825,20 +828,20 @@ Page({
       };
 
       if (this.data.contentType === 'photo') {
-        contentData.images = imageUrl ? [imageUrl] : [];
+        contentData.images = imageUrl ? [stripAssetUrl(imageUrl)] : [];
       }
 
       if (this.data.contentType === 'audio') {
         contentData.audio = {
           name: this.data.audioFileName,
-          url: audioUrl
+          url: stripAssetUrl(audioUrl)
         };
       }
 
       if (this.data.contentType === 'track') {
         contentData.track = {
           file_name: this.data.trackFileName,
-          url: trackUrl,
+          url: stripAssetUrl(trackUrl),
           geojson: this.data.trackGeojson
         };
       }

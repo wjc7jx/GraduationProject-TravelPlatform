@@ -1,4 +1,4 @@
-import { request, baseUrl } from '../../utils/request';
+import { request, baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 type ExportScope = 'all' | 'public';
@@ -67,9 +67,9 @@ Page({
         dateStr = res.start_date.split('T')[0].replace(/-/g, '.');
       }
 
-      const cover = res.cover_image 
-        ? (res.cover_image.startsWith('http') ? res.cover_image : `${baseUrl}${res.cover_image}`)
-        : 'https://images.unsplash.com/photo-1493976040375-3affeacfcdce';
+        const cover = res.cover_image 
+          ? asAbsoluteAssetUrl(res.cover_image)
+          : 'https://images.unsplash.com/photo-1493976040375-3affeacfcdce';
 
       let days = 0;
       if (res.start_date) {

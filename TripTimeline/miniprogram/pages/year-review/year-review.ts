@@ -1,4 +1,4 @@
-import { request, baseUrl } from '../../utils/request';
+import { request, baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 Page({
@@ -65,10 +65,7 @@ Page({
           endDate ? `${endDate.getFullYear()}.${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}` : '进行中',
         ].join(' - ');
 
-        let cover = project.cover_image || '';
-        if (cover && !cover.startsWith('http')) {
-          cover = `${baseUrl}${cover}`;
-        }
+        const cover = asAbsoluteAssetUrl(project.cover_image || '');
 
         const item = {
           id: `project-${project.project_id}`,
@@ -78,7 +75,7 @@ Page({
           category: '项目',
           title: project.title || '未命名项目',
           desc: `共 ${project.content_count || 0} 条记录，${project.point_count || projectPoints.length} 个定位点`,
-          image: cover,
+            image: cover,
           lon: projectPoints[0]?.longitude || 0,
           lat: projectPoints[0]?.latitude || 0,
           hasLoc: projectPoints.length > 0,

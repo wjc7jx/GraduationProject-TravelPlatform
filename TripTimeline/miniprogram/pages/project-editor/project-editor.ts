@@ -1,4 +1,4 @@
-import { request, baseUrl } from '../../utils/request'
+import { request, baseUrl, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/request'
 import api from '../../utils/api'
 
 type VisibilityValue = 1 | 2 | 3
@@ -80,7 +80,7 @@ Page({
         // 我们的数据库直接拼接到了 tags，为了简便暂不区分，如果是复杂业务 subtitle 也可以存在 tags 里或新建字段
         subtitle: '',
         coverImages: res.cover_image
-          ? [res.cover_image.startsWith('http') ? res.cover_image : `${baseUrl}${res.cover_image}`]
+          ? [asAbsoluteAssetUrl(res.cover_image)]
           : [],
         selectedCoverIndex: 0,
         startDate: res.start_date || '',
@@ -159,7 +159,7 @@ Page({
               reject(new Error('图片地址解析失败'))
               return
             }
-            resolve(`${baseUrl}${payload.url}`)
+            resolve(asAbsoluteAssetUrl(payload.url))
             return
           }
           reject(new Error(`图片上传失败(${uploadRes.statusCode})`))
@@ -267,8 +267,8 @@ Page({
 
     // 将绝对路径的图片再替换为相对路径以存入后端
     let finalCover = pickedCover
-    if (pickedCover && pickedCover.startsWith(baseUrl)) {
-      finalCover = pickedCover.replace(baseUrl, '')
+    if (pickedCover && pickedCover.startsWith(assetBaseUrl)) {
+      finalCover = pickedCover.replace(assetBaseUrl, '')
     }
 
     const payload = {

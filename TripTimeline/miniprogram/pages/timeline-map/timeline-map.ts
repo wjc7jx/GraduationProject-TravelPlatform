@@ -1,4 +1,4 @@
-import { request, baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
+import { request, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 Page({
@@ -62,7 +62,10 @@ Page({
     try {
       const res = await request<any[]>({
         url: api.content.list(projectId),
-            const cover = asAbsoluteAssetUrl(project.cover_image || '');
+        method: 'GET'
+      });
+      if (res) {
+        let globalIndex = 0;
         const mappedData = res.map((item: any) => {
           const payload = item.content_data || {};
           const d = new Date(item.record_time || item.created_at);

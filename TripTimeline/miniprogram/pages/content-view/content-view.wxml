@@ -30,19 +30,6 @@
         <audio src="{{audioUrl}}" controls></audio>
       </view>
 
-      <view wx:if="{{trackPointCount > 0}}" class="track-block">
-        <view class="section-title">轨迹预览（{{trackPointCount}} 点）</view>
-        <map
-          class="track-map"
-          latitude="{{trackCenterLatitude}}"
-          longitude="{{trackCenterLongitude}}"
-          scale="10"
-          polyline="{{trackPolyline}}"
-          markers="{{trackMarkers}}"
-          show-location="{{true}}"
-        ></map>
-      </view>
-
       <view class="edit-btn" bindtap="goToEdit">编辑当前记录</view>
     </block>
   </view>

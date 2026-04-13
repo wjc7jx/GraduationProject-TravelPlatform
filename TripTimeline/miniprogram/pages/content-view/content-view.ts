@@ -16,13 +16,7 @@ Page({
     locationName: '',
     locationAddress: '',
     images: [] as string[],
-    audioUrl: '',
-    trackGeojson: null as any,
-    trackPointCount: 0,
-    trackPolyline: [] as any[],
-    trackMarkers: [] as any[],
-    trackCenterLatitude: 39.9042,
-    trackCenterLongitude: 116.4074
+    audioUrl: ''
   },
 
   onLoad(options: any) {
@@ -70,11 +64,8 @@ Page({
       const typeLabelMap: Record<string, string> = {
         note: '文字',
         photo: '图片',
-        audio: '音频',
-        track: '轨迹'
+        audio: '音频'
       };
-
-      const trackGeojson = payload.track?.geojson || null;
 
       this.setData({
         loading: false,
@@ -86,11 +77,8 @@ Page({
         locationName: locationText.name || location.name || '',
         locationAddress: locationText.address || location.address || '',
         images,
-        audioUrl: payload.audio?.url ? this.asAbsoluteUrl(payload.audio.url) : '',
-        trackGeojson
+        audioUrl: payload.audio?.url ? this.asAbsoluteUrl(payload.audio.url) : ''
       });
-
-      this.updateTrackPreview(trackGeojson);
     } catch (e) {
       this.setData({ loading: false });
       wx.showToast({ title: '加载失败', icon: 'none' });
@@ -116,87 +104,6 @@ Page({
 
   asAbsoluteUrl(url: string) {
     return asAbsoluteAssetUrl(url);
-  },
-
-  updateTrackPreview(geojson: any) {
-    const points = this.extractTrackPoints(geojson);
-    if (!points.length) {
-      this.setData({
-        trackPointCount: 0,
-        trackPolyline: [],
-        trackMarkers: []
-      });
-      return;
-    }
-
-    const first = points[0];
-    const last = points[points.length - 1];
-
-    this.setData({
-      trackPointCount: points.length,
-      trackCenterLatitude: first.latitude,
-      trackCenterLongitude: first.longitude,
-      trackPolyline: [
-        {
-          points,
-          color: '#1f7a56',
-          width: 6
-        }
-      ],
-      trackMarkers: [
-        {
-          id: 1,
-          latitude: first.latitude,
-          longitude: first.longitude,
-          title: '起点',
-          width: 24,
-          height: 24
-        },
-        {
-          id: 2,
-          latitude: last.latitude,
-          longitude: last.longitude,
-          title: '终点',
-          width: 24,
-          height: 24
-        }
-      ]
-    });
-  },
-
-  extractTrackPoints(geojson: any) {
-    if (!geojson?.features?.length) return [];
-    const points: Array<{ latitude: number; longitude: number }> = [];
-
-    geojson.features.forEach((feature: any) => {
-      const geometry = feature?.geometry;
-      if (!geometry) return;
-
-      if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
-        geometry.coordinates.forEach((coord: any) => {
-          if (Array.isArray(coord) && coord.length >= 2) {
-            points.push({ latitude: Number(coord[1]), longitude: Number(coord[0]) });
-          }
-        });
-      }
-
-      if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
-        geometry.coordinates.forEach((line: any) => {
-          if (!Array.isArray(line)) return;
-          line.forEach((coord: any) => {
-            if (Array.isArray(coord) && coord.length >= 2) {
-              points.push({ latitude: Number(coord[1]), longitude: Number(coord[0]) });
-            }
-          });
-        });
-      }
-
-      if (geometry.type === 'Point' && Array.isArray(geometry.coordinates) && geometry.coordinates.length >= 2) {
-        points.push({ latitude: Number(geometry.coordinates[1]), longitude: Number(geometry.coordinates[0]) });
-      }
-    });
-
-    return points.filter((p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude)).slice(0, 800);
   },
 
   onRecordTap() {

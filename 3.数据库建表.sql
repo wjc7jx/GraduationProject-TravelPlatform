@@ -82,7 +82,7 @@ CREATE TABLE `locations` (
 CREATE TABLE `contents` (
   `content_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '内容明细ID',
   `project_id` BIGINT UNSIGNED NOT NULL COMMENT '所属项目ID',
-  `content_type` ENUM('photo','note','audio','track') NOT NULL COMMENT '内容类型',
+  `content_type` ENUM('photo','note','audio') NOT NULL COMMENT '内容类型',
   `content_data` JSON NOT NULL COMMENT '内容JSON数据（URL、文本、EXIF、时长、轨迹点等）',
   `record_time` DATETIME NOT NULL COMMENT '记录时间（时间轴核心）',
   `location_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '位置ID',

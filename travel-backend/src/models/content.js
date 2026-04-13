@@ -15,7 +15,7 @@ export function initContent(sequelize) {
         allowNull: false,
       },
       content_type: {
-        type: DataTypes.ENUM('photo', 'note', 'audio', 'track'),
+        type: DataTypes.ENUM('photo', 'note', 'audio'),
         allowNull: false,
       },
       content_data: {

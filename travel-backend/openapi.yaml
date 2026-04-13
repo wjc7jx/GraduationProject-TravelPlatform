@@ -568,7 +568,6 @@ components:
             - photo
             - note
             - audio
-            - track
           description: Content type enum from the model.
         content_data:
           type: object
@@ -609,7 +608,6 @@ components:
             - photo
             - note
             - audio
-            - track
         content_data:
           type: object
           additionalProperties: true

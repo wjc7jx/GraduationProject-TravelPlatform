@@ -414,8 +414,37 @@
   padding: 30rpx 0;
   border-radius: 16rpx;
   box-shadow: 0 16rpx 36rpx rgba(36, 82, 57, 0.28);
+  transition: all 0.2s;
 }
 
 .save-btn:active {
-  opacity: 0.9;
+  transform: scale(0.98);
+  opacity: 0.95;
+}
+
+.save-btn--loading {
+  background: #8a9a90;
+  box-shadow: none;
+}
+
+.save-btn--success {
+  background: linear-gradient(120deg, #2a4b3c 0%, #35614c 100%);
+  box-shadow: 0 14rpx 30rpx rgba(42, 75, 60, 0.3);
+}
+
+.save-btn--error {
+  background: #c85a3d;
+  box-shadow: 0 14rpx 30rpx rgba(200, 90, 61, 0.3);
+}
+
+.save-btn.shake {
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
 }

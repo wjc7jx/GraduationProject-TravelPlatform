@@ -155,12 +155,6 @@ async function normalizeContentItem(item) {
     normalized.render_audio_duration = contentData.duration || '';
   }
 
-  if (json.content_type === 'track') {
-    normalized.render_track_title = contentData.title || '轨迹记录';
-    normalized.render_track_distance = contentData.distance || '';
-    normalized.render_track_url = contentData.url || contentData.file_url || '';
-  }
-
   return normalized;
 }
 
@@ -306,17 +300,6 @@ function renderContentCard(item) {
         <h3>${escapeHtml(item.render_audio_title || '语音片段')}</h3>
         <p>时长：${escapeHtml(item.render_audio_duration || '未知')}</p>
         ${item.render_audio_url ? `<p class="hint">音频地址：${escapeHtml(item.render_audio_url)}</p>` : ''}
-      </article>
-    `;
-  }
-
-  if (item.content_type === 'track') {
-    return `
-      <article class="card track-card">
-        <div class="meta">${escapeHtml(metaLine)}</div>
-        <h3>${escapeHtml(item.render_track_title || '轨迹记录')}</h3>
-        <p>里程：${escapeHtml(item.render_track_distance || '未知')}</p>
-        ${item.render_track_url ? `<p class="hint">轨迹文件：${escapeHtml(item.render_track_url)}</p>` : ''}
       </article>
     `;
   }

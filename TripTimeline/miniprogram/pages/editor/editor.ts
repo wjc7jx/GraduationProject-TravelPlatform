@@ -311,28 +311,6 @@ Page({
     });
   },
 
-  chooseLocation() {
-    wx.chooseLocation({
-      success: (res) => {
-        const nextLocation = {
-          name: res.name || res.address,
-          address: res.address || '',
-          lat: res.latitude,
-          lon: res.longitude
-        };
-        this.setData({
-          location: nextLocation,
-          locationName: res.name || res.address || this.data.locationName,
-          locationAddress: res.address || this.data.locationAddress,
-          locationSearchKeyword: res.name || res.address || this.data.locationSearchKeyword,
-          locationSuggestions: []
-        });
-        this.syncLocationMarker(nextLocation);
-      },
-      fail: () => {}
-    });
-  },
-
   onLocationSearchInput(e: WechatMiniprogram.Input) {
     this.setData({
       locationSearchKeyword: e.detail.value,
@@ -526,10 +504,6 @@ Page({
 
   asAbsoluteUrl(url: string) {
     return asAbsoluteAssetUrl(url);
-  },
-
-  onLocationNameInput(e: any) {
-    this.setData({ locationName: e.detail.value });
   },
 
   onLocationAddressInput(e: any) {

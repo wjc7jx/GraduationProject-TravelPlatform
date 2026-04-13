@@ -106,12 +106,6 @@
 
       <!-- 展开的地点详情面板 -->
       <view wx:if="{{locationExpanded}}" class="location-panel">
-        <input
-          class="form-input"
-          placeholder="你在哪里？"
-          value="{{locationName}}"
-          bindinput="onLocationNameInput"
-        />
         <view class="search-row">
           <input
             class="form-input search-input"
@@ -135,10 +129,7 @@
             <view class="suggestion-address">{{item.address}}</view>
           </view>
         </view>
-        <view class="loc-actions">
-          <view class="loc-btn" bindtap="chooseLocation">地图选点</view>
-          <view wx:if="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
-        </view>
+        <view wx:if="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
         <map
           wx:if="{{location && location.lat && location.lon}}"
           class="location-map"
@@ -146,7 +137,6 @@
           longitude="{{location.lon}}"
           scale="16"
           markers="{{locationMarker}}"
-          bindtap="chooseLocation"
           show-location="{{true}}"
         ></map>
         <view class="coord-text" wx:if="{{location && location.lat && location.lon}}">

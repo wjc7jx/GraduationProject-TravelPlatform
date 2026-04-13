@@ -149,6 +149,12 @@
   color: #8a4a2e;
 }
 
+.asset-action.danger {
+  background: #fff3ef;
+  border-color: #f2d7cf;
+  color: #9a4a31;
+}
+
 .asset-action.disabled {
   opacity: 0.45;
 }
@@ -301,6 +307,13 @@
   font-size: 22rpx;
 }
 
+.location-manual-fields {
+  margin-top: 12rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
 .loc-actions {
   width: 100%;
   display: flex;
@@ -439,6 +452,10 @@
 
 .save-btn.shake {
   animation: shake 0.4s ease;
+}
+
+.save-btn.disabled {
+  opacity: 0.92;
 }
 
 @keyframes shake {

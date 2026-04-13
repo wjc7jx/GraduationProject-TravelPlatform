@@ -25,6 +25,14 @@ Page({
   recordTicker: 0 as any,
   recordStartMs: 0,
 
+  hasValidLocation(location: any) {
+    return Boolean(
+      location
+      && Number.isFinite(Number(location.lat))
+      && Number.isFinite(Number(location.lon))
+    );
+  },
+
   data: {
     projectId: '',
     contentId: '',
@@ -73,6 +81,7 @@ Page({
     // 隐私配置
     privacyMode: 'inherit' as PrivacyMode,
     visibilityOptions: ['私密（仅自己可见）', '好友可见（自动基于好友关系）', '公开（登录用户可见）'],
+    projectPrivacyVisibility: 1 as VisibilityValue,
     privacyVisibility: 1 as VisibilityValue,
     privacyVisibilityIndex: 0,
     privacySummary: '当前继承项目策略：私密'
@@ -125,12 +134,16 @@ Page({
       const visibility = normalizeVisibility(rule?.visibility);
       this.setData({
         privacyMode: 'inherit',
+        projectPrivacyVisibility: visibility,
         privacyVisibility: visibility,
         privacyVisibilityIndex: visibility - 1,
         privacySummary: this.buildPrivacySummary('inherit', visibility)
       });
     } catch (error) {
-      this.setData({ privacySummary: this.buildPrivacySummary('inherit', 1) });
+      this.setData({
+        projectPrivacyVisibility: 1,
+        privacySummary: this.buildPrivacySummary('inherit', 1)
+      });
     }
   },
 
@@ -150,6 +163,7 @@ Page({
 
       this.setData({
         privacyMode: inherited ? 'inherit' : 'custom',
+        projectPrivacyVisibility: inheritedVisibility,
         privacyVisibility: visibility,
         privacyVisibilityIndex: visibility - 1,
         privacySummary: this.buildPrivacySummary(
@@ -295,9 +309,12 @@ Page({
   onPrivacyModeChange(e: WechatMiniprogram.BaseEvent) {
     const mode = e.currentTarget.dataset.mode as PrivacyMode;
     if (mode !== 'inherit' && mode !== 'custom') return;
+    const summaryVisibility = mode === 'inherit'
+      ? this.data.projectPrivacyVisibility
+      : this.data.privacyVisibility;
     this.setData({
       privacyMode: mode,
-      privacySummary: this.buildPrivacySummary(mode, this.data.privacyVisibility)
+      privacySummary: this.buildPrivacySummary(mode, summaryVisibility)
     });
   },
 
@@ -316,6 +333,27 @@ Page({
       locationSearchKeyword: e.detail.value,
       locationSuggestions: []
     });
+  },
+
+  onLocationNameInput(e: any) {
+    const name = e.detail.value;
+    const hasLocation = this.hasValidLocation(this.data.location);
+    const nextLocation = hasLocation
+      ? {
+        ...this.data.location,
+        name
+      }
+      : this.data.location;
+
+    this.setData({
+      locationName: name,
+      locationSearchKeyword: name,
+      location: nextLocation
+    });
+
+    if (hasLocation) {
+      this.syncLocationMarker(nextLocation);
+    }
   },
 
   inferSuggestionRegion() {
@@ -502,12 +540,38 @@ Page({
     this.recorderManager.stop();
   },
 
+  onStartRecordTap() {
+    if (this.data.isRecording) {
+      wx.showToast({ title: '正在录音中', icon: 'none' });
+      return;
+    }
+    this.startRecordAudio();
+  },
+
+  onStopRecordTap() {
+    if (!this.data.isRecording) {
+      wx.showToast({ title: '当前未在录音', icon: 'none' });
+      return;
+    }
+    this.stopRecordAudio();
+  },
+
   asAbsoluteUrl(url: string) {
     return asAbsoluteAssetUrl(url);
   },
 
   onLocationAddressInput(e: any) {
-    this.setData({ locationAddress: e.detail.value });
+    const address = e.detail.value;
+    const hasLocation = this.hasValidLocation(this.data.location);
+    this.setData({
+      locationAddress: address,
+      location: hasLocation
+        ? {
+          ...this.data.location,
+          address
+        }
+        : this.data.location
+    });
   },
 
   applyExifAutofill(exif: any) {
@@ -590,7 +654,29 @@ Page({
   },
 
   removeImage() {
-    this.setData({ imagePath: '', imageUrl: '', autoFillHint: '' });
+    const nextType = this.data.contentType === 'photo'
+      ? (this.data.audioPath || this.data.audioUrl ? 'audio' : 'note')
+      : this.data.contentType;
+    this.setData({ imagePath: '', imageUrl: '', autoFillHint: '', contentType: nextType });
+  },
+
+  removeAudio() {
+    if (this.data.isRecording) {
+      this.stopRecordAudio();
+    }
+
+    const nextType = this.data.contentType === 'audio'
+      ? (this.data.imagePath || this.data.imageUrl ? 'photo' : 'note')
+      : this.data.contentType;
+
+    this.setData({
+      audioFileName: '',
+      audioPath: '',
+      audioUrl: '',
+      audioPreviewSrc: '',
+      recordingSeconds: 0,
+      contentType: nextType
+    });
   },
 
   onTitleInput(e: any) {
@@ -677,7 +763,7 @@ Page({
       };
 
       if (!this.data.isEditMode) {
-        requestData.location = this.data.location && this.data.location.lat && this.data.location.lon ? {
+        requestData.location = this.hasValidLocation(this.data.location) ? {
           latitude: this.data.location.lat,
           longitude: this.data.location.lon,
           name: this.data.locationName || this.data.location.name,

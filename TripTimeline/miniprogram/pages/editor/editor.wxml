@@ -63,11 +63,14 @@
     <!-- 音频附件区 -->
     <view wx:if="{{contentType === 'audio'}}" class="asset-section form-card">
       <view class="asset-actions-row">
-        <view class="asset-action half {{isRecording ? 'disabled' : ''}}" bindtap="startRecordAudio">开始录音</view>
-        <view class="asset-action half stop {{!isRecording ? 'disabled' : ''}}" bindtap="stopRecordAudio">结束录音</view>
+        <view class="asset-action half {{isRecording ? 'disabled' : ''}}" bindtap="onStartRecordTap">开始录音</view>
+        <view class="asset-action half stop {{!isRecording ? 'disabled' : ''}}" bindtap="onStopRecordTap">结束录音</view>
       </view>
       <view class="recording-tip" wx:if="{{isRecording}}">正在收录环境音... {{recordingSeconds}}″</view>
-      <view class="asset-action" bindtap="chooseAudio">或选择音频文件</view>
+      <view class="asset-actions-row">
+        <view class="asset-action half" bindtap="chooseAudio">选择音频文件</view>
+        <view class="asset-action half danger {{(!audioPath && !audioUrl && !audioFileName) ? 'disabled' : ''}}" bindtap="removeAudio">移除音频</view>
+      </view>
       <view wx:if="{{audioFileName}}" class="asset-result">已选择：{{audioFileName}}</view>
       <audio wx:if="{{audioPreviewSrc}}" class="audio-player" src="{{audioPreviewSrc}}" controls></audio>
     </view>
@@ -129,9 +132,23 @@
             <view class="suggestion-address">{{item.address}}</view>
           </view>
         </view>
+        <view class="location-manual-fields">
+          <input
+            class="form-input"
+            placeholder="地点名称（可手动调整）"
+            value="{{locationName}}"
+            bindinput="onLocationNameInput"
+          />
+          <input
+            class="form-input"
+            placeholder="详细地址（可选）"
+            value="{{locationAddress}}"
+            bindinput="onLocationAddressInput"
+          />
+        </view>
         <view wx:if="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
         <map
-          wx:if="{{location && location.lat && location.lon}}"
+          wx:if="{{locationMarker.length > 0}}"
           class="location-map"
           latitude="{{location.lat}}"
           longitude="{{location.lon}}"
@@ -139,7 +156,7 @@
           markers="{{locationMarker}}"
           show-location="{{true}}"
         ></map>
-        <view class="coord-text" wx:if="{{location && location.lat && location.lon}}">
+        <view class="coord-text" wx:if="{{locationMarker.length > 0}}">
           {{location.lat}}, {{location.lon}}
         </view>
       </view>
@@ -177,7 +194,7 @@
     <!-- 提交按钮（三态） -->
     <view class="action-section">
       <view
-        class="save-btn save-btn--{{submitStatus}} {{submitStatus === 'error' ? 'shake' : ''}}"
+        class="save-btn save-btn--{{submitStatus}} {{submitStatus === 'error' ? 'shake' : ''}} {{submitStatus === 'loading' ? 'disabled' : ''}}"
         bindtap="saveEntry"
       >
         <block wx:if="{{submitStatus === 'loading'}}">保存中...</block>

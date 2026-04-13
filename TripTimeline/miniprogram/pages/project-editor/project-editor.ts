@@ -23,6 +23,7 @@ Page({
   data: {
     isEdit: false,
     submitting: false,
+    submitStatus: 'idle' as 'idle' | 'loading' | 'success' | 'error',
     projectId: null as string | null,
     // 表单数据
     title: '',
@@ -40,7 +41,9 @@ Page({
     privacyHint: '当前为私密：仅你自己可见',
     
     // 输入框状态
-    tagInput: ''
+    tagInput: '',
+    presetTags: ['🏕️ 露营', '🏖️ 看海', '☕️ 城市漫游', '📸 扫街', '⛰️ 特种兵', '🚗 自驾'],
+    showTagSelector: false
   },
 
   onLoad(options: any) {
@@ -220,12 +223,33 @@ Page({
   onTagInput(e: any) {
     this.setData({ tagInput: e.detail.value })
   },
+  toggleTagSelector() {
+    this.setData({ showTagSelector: !this.data.showTagSelector })
+  },
+  togglePresetTag(e: any) {
+    const tag = e.currentTarget.dataset.tag
+    if (!tag) return
+    const tags = [...this.data.tags]
+    const idx = tags.indexOf(tag)
+    if (idx !== -1) {
+      tags.splice(idx, 1)
+      this.setData({ tags })
+    } else if (tags.length < 5) {
+      const nextTags = [...tags, tag]
+      this.setData({
+        tags: nextTags,
+        showTagSelector: nextTags.length >= 5 ? false : this.data.showTagSelector
+      })
+    }
+  },
   addTag() {
     const val = this.data.tagInput.trim()
     if (val && this.data.tags.length < 5) {
+      const nextTags = [...this.data.tags, val]
       this.setData({
-        tags: [...this.data.tags, val],
-        tagInput: ''
+        tags: nextTags,
+        tagInput: '',
+        showTagSelector: nextTags.length >= 5 ? false : this.data.showTagSelector
       })
     }
   },
@@ -254,12 +278,14 @@ Page({
     if (submitting) return
 
     if (!title || !startDate) {
-      wx.showToast({ title: '必填项(标题/时间)未完成', icon: 'error' })
+      wx.vibrateShort({ type: 'medium' })
+      wx.showToast({ title: '请填写标题和出发日哦', icon: 'none' })
       return
     }
 
     if (!isEdit && !coverImages.length) {
-      wx.showToast({ title: '请至少上传1张封面图', icon: 'none' })
+      wx.vibrateShort({ type: 'medium' })
+      wx.showToast({ title: '点亮旅程，请至少添1张封面', icon: 'none' })
       return
     }
 
@@ -281,7 +307,7 @@ Page({
     }
 
     try {
-      this.setData({ submitting: true })
+      this.setData({ submitting: true, submitStatus: 'loading' })
       let targetProjectId = projectId
 
       if (isEdit && projectId) {
@@ -314,12 +340,12 @@ Page({
         showLoading: false
       })
       
-      wx.showToast({ title: '保存成功', icon: 'success' })
-      setTimeout(() => {
-        wx.navigateBack() // 返回列表页
-      }, 1500)
+      this.setData({ submitStatus: 'success' })
+      wx.showToast({ title: isEdit ? '旅程已更新' : '旅程已开启', icon: 'success' })
+      setTimeout(() => wx.navigateBack(), 1500)
     } catch(e) {
-      // 错误由 request 工具统一拦截提示
+      this.setData({ submitStatus: 'error' })
+      setTimeout(() => this.setData({ submitStatus: 'idle' }), 2000)
     } finally {
       this.setData({ submitting: false })
     }

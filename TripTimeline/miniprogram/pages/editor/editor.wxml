@@ -4,69 +4,23 @@
 <scroll-view class="editor-scroll" scroll-y>
   <view class="editor-container fade-up">
     <view class="page-head">
-      <view class="page-title">记录你的旅行瞬间</view>
+      <view class="page-title">此刻，值得记录</view>
       <view class="page-subtitle">{{pageSubtitle}}</view>
     </view>
 
-    <view class="type-section">
-      <view class="type-chip {{contentType === 'note' ? 'active' : ''}}" data-type="note" bindtap="onTypeChange">文字</view>
-      <view class="type-chip {{contentType === 'photo' ? 'active' : ''}}" data-type="photo" bindtap="onTypeChange">图片</view>
-      <view class="type-chip {{contentType === 'audio' ? 'active' : ''}}" data-type="audio" bindtap="onTypeChange">音频</view>
-      <view class="type-chip {{contentType === 'track' ? 'active' : ''}}" data-type="track" bindtap="onTypeChange">轨迹</view>
-    </view>
-
-    <view wx:if="{{contentType === 'photo'}}" class="media-section" bindtap="chooseImage">
-      <block wx:if="{{imagePath}}">
-        <image class="uploaded-image" src="{{imagePath}}" mode="aspectFill"></image>
-        <view class="remove-btn" catchtap="removeImage">X</view>
-      </block>
-      <block wx:else>
-        <view class="empty-media">
-          <view class="plus-icon">+</view>
-          <view class="empty-text">选择图片并自动识别 EXIF</view>
-        </view>
-      </block>
-    </view>
-
-    <view wx:if="{{contentType === 'audio'}}" class="asset-section">
-      <view class="asset-actions-row">
-        <view class="asset-action half {{isRecording ? 'disabled' : ''}}" bindtap="startRecordAudio">开始录音</view>
-        <view class="asset-action half stop {{!isRecording ? 'disabled' : ''}}" bindtap="stopRecordAudio">结束录音</view>
-      </view>
-      <view class="recording-tip" wx:if="{{isRecording}}">录音中 {{recordingSeconds}}s / 60s</view>
-      <view class="asset-action" bindtap="chooseAudio">或选择音频文件</view>
-      <view wx:if="{{audioFileName}}" class="asset-result">已选择：{{audioFileName}}</view>
-      <audio wx:if="{{audioPreviewSrc}}" class="audio-player" src="{{audioPreviewSrc}}" controls></audio>
-    </view>
-
-    <view wx:if="{{contentType === 'track'}}" class="asset-section">
-      <view class="asset-action" bindtap="chooseTrack">导入 GPX/KML 轨迹</view>
-      <view wx:if="{{trackFileName}}" class="asset-result">已导入：{{trackFileName}}</view>
-      <view wx:if="{{trackPointCount > 0}}" class="asset-result">轨迹点数：{{trackPointCount}}</view>
-      <map
-        wx:if="{{trackPointCount > 0}}"
-        class="track-map"
-        latitude="{{trackCenterLatitude}}"
-        longitude="{{trackCenterLongitude}}"
-        scale="10"
-        polyline="{{trackPolyline}}"
-        markers="{{trackMarkers}}"
-        show-location="{{true}}"
-      ></map>
-      <view wx:if="{{trackFileName && trackPointCount === 0}}" class="asset-result">当前轨迹暂无可预览坐标</view>
-    </view>
-
-    <view class="text-section">
+    <!-- 文字区域（常驻，不受媒体类型控制） -->
+    <view class="text-section form-card">
       <input
         class="title-input"
-        placeholder="标题（可选）"
+        placeholder="给这个瞬间一个名字"
         placeholder-class="ph-title"
         value="{{title}}"
         bindinput="onTitleInput"
       />
+      <view class="text-divider"></view>
       <textarea
         class="body-textarea"
-        placeholder="输入你的旅行记录内容"
+        placeholder="写下当时的感受..."
         placeholder-class="ph-body"
         maxlength="-1"
         auto-height
@@ -75,47 +29,93 @@
       />
     </view>
 
-    <view class="form-section">
-      <view class="form-row">
-        <text class="form-label">日期</text>
-        <picker mode="date" value="{{date}}" bindchange="bindDateChange">
-          <view class="picker-value">{{date}}</view>
-        </picker>
+    <!-- 媒体附件选择区 -->
+    <view class="media-attach-section">
+      <view class="media-attach-label">添加附件（可选）</view>
+      <view class="type-chips-row">
+        <view
+          class="type-chip {{contentType === 'photo' ? 'active' : ''}}"
+          data-type="photo"
+          bindtap="onTypeToggle"
+        >📷 图片</view>
+        <view
+          class="type-chip {{contentType === 'audio' ? 'active' : ''}}"
+          data-type="audio"
+          bindtap="onTypeToggle"
+        >🎙 音频</view>
+      </view>
+    </view>
+
+    <!-- 图片附件区 -->
+    <view wx:if="{{contentType === 'photo'}}" class="media-section" bindtap="chooseImage">
+      <block wx:if="{{imagePath}}">
+        <image class="uploaded-image" src="{{imagePath}}" mode="aspectFill"></image>
+        <view class="remove-btn" catchtap="removeImage">✕</view>
+      </block>
+      <block wx:else>
+        <view class="empty-media">
+          <view class="plus-icon">+</view>
+          <view class="empty-text">添加照片，自动带入时间地点</view>
+        </view>
+      </block>
+    </view>
+
+    <!-- 音频附件区 -->
+    <view wx:if="{{contentType === 'audio'}}" class="asset-section form-card">
+      <view class="asset-actions-row">
+        <view class="asset-action half {{isRecording ? 'disabled' : ''}}" bindtap="startRecordAudio">开始录音</view>
+        <view class="asset-action half stop {{!isRecording ? 'disabled' : ''}}" bindtap="stopRecordAudio">结束录音</view>
+      </view>
+      <view class="recording-tip" wx:if="{{isRecording}}">正在收录环境音... {{recordingSeconds}}″</view>
+      <view class="asset-action" bindtap="chooseAudio">或选择音频文件</view>
+      <view wx:if="{{audioFileName}}" class="asset-result">已选择：{{audioFileName}}</view>
+      <audio wx:if="{{audioPreviewSrc}}" class="audio-player" src="{{audioPreviewSrc}}" controls></audio>
+    </view>
+
+    <!-- 时间 & 地点信息卡 -->
+    <view class="info-card form-card">
+
+      <!-- 日期时间（合并单行） -->
+      <view class="info-row datetime-row">
+        <text class="info-icon">🕐</text>
+        <view class="info-body">
+          <view class="info-label">时间</view>
+          <view class="datetime-pickers">
+            <picker mode="date" value="{{date}}" bindchange="bindDateChange">
+              <view class="picker-val">{{date}}</view>
+            </picker>
+            <text class="datetime-sep">·</text>
+            <picker mode="time" value="{{time}}" bindchange="bindTimeChange">
+              <view class="picker-val">{{time}}</view>
+            </picker>
+          </view>
+        </view>
       </view>
 
-      <view class="form-row">
-        <text class="form-label">时间</text>
-        <picker mode="time" value="{{time}}" bindchange="bindTimeChange">
-          <view class="picker-value">{{time}}</view>
-        </picker>
+      <view class="info-divider"></view>
+
+      <!-- 地点折叠入口 -->
+      <view class="info-row location-entry" bindtap="toggleLocation">
+        <text class="info-icon">📍</text>
+        <view class="info-body">
+          <view class="info-label">地点</view>
+          <view class="location-summary {{locationName ? '' : 'empty'}}">{{locationName || '添加地点'}}</view>
+        </view>
+        <text class="expand-arrow">{{locationExpanded ? '︿' : '﹀'}}</text>
       </view>
 
-      <view class="form-row column">
-        <text class="form-label">地点名称</text>
+      <!-- 展开的地点详情面板 -->
+      <view wx:if="{{locationExpanded}}" class="location-panel">
         <input
           class="form-input"
-          placeholder="手动输入地点名称"
+          placeholder="你在哪里？"
           value="{{locationName}}"
           bindinput="onLocationNameInput"
         />
-      </view>
-
-      <view class="form-row column">
-        <text class="form-label">详细地址</text>
-        <input
-          class="form-input"
-          placeholder="手动输入地址"
-          value="{{locationAddress}}"
-          bindinput="onLocationAddressInput"
-        />
-      </view>
-
-      <view class="form-row column">
-        <text class="form-label">搜索地点</text>
         <view class="search-row">
           <input
             class="form-input search-input"
-            placeholder="输入地点名后搜索，如：西湖、天安门"
+            placeholder="搜索地点，如：西湖、天安门"
             value="{{locationSearchKeyword}}"
             bindinput="onLocationSearchInput"
             confirm-type="search"
@@ -135,9 +135,6 @@
             <view class="suggestion-address">{{item.address}}</view>
           </view>
         </view>
-      </view>
-
-      <view class="form-row column">
         <view class="loc-actions">
           <view class="loc-btn" bindtap="chooseLocation">地图选点</view>
           <view wx:if="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
@@ -153,41 +150,51 @@
           show-location="{{true}}"
         ></map>
         <view class="coord-text" wx:if="{{location && location.lat && location.lon}}">
-          坐标：{{location.lat}}, {{location.lon}}
+          {{location.lat}}, {{location.lon}}
         </view>
-      </view>
-
-      <view class="privacy-block">
-        <view class="privacy-title">隐私设置</view>
-        <view class="privacy-mode-row">
-          <view
-            class="privacy-chip {{privacyMode === 'inherit' ? 'active' : ''}}"
-            data-mode="inherit"
-            bindtap="onPrivacyModeChange"
-          >继承项目</view>
-          <view
-            class="privacy-chip {{privacyMode === 'custom' ? 'active' : ''}}"
-            data-mode="custom"
-            bindtap="onPrivacyModeChange"
-          >单独设置</view>
-        </view>
-        <view class="privacy-summary">{{privacySummary}}</view>
-
-        <block wx:if="{{privacyMode === 'custom'}}">
-          <view class="privacy-picker-wrap">
-            <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
-              <view class="privacy-picker">{{visibilityOptions[privacyVisibilityIndex]}}</view>
-            </picker>
-          </view>
-          <view wx:if="{{privacyVisibility === 2}}" class="privacy-whitelist-wrap">
-            好友可见将根据双方好友关系自动判断，无需输入ID
-          </view>
-        </block>
       </view>
     </view>
 
+    <!-- 隐私设置 -->
+    <view class="form-card privacy-block">
+      <view class="privacy-title">隐私设置</view>
+      <view class="privacy-mode-row">
+        <view
+          class="privacy-chip {{privacyMode === 'inherit' ? 'active' : ''}}"
+          data-mode="inherit"
+          bindtap="onPrivacyModeChange"
+        >跟随日记本</view>
+        <view
+          class="privacy-chip {{privacyMode === 'custom' ? 'active' : ''}}"
+          data-mode="custom"
+          bindtap="onPrivacyModeChange"
+        >单独设置</view>
+      </view>
+      <view class="privacy-summary">{{privacySummary}}</view>
+
+      <block wx:if="{{privacyMode === 'custom'}}">
+        <view class="privacy-picker-wrap">
+          <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
+            <view class="privacy-picker">{{visibilityOptions[privacyVisibilityIndex]}}</view>
+          </picker>
+        </view>
+        <view wx:if="{{privacyVisibility === 2}}" class="privacy-whitelist-wrap">
+          好友可见将根据双方好友关系自动判断，无需输入ID
+        </view>
+      </block>
+    </view>
+
+    <!-- 提交按钮（三态） -->
     <view class="action-section">
-      <view class="save-btn" bindtap="saveEntry">{{saveBtnText}}</view>
+      <view
+        class="save-btn save-btn--{{submitStatus}} {{submitStatus === 'error' ? 'shake' : ''}}"
+        bindtap="saveEntry"
+      >
+        <block wx:if="{{submitStatus === 'loading'}}">保存中...</block>
+        <block wx:elif="{{submitStatus === 'success'}}">✓ 已记录</block>
+        <block wx:elif="{{submitStatus === 'error'}}">保存失败，重试</block>
+        <block wx:else>记下这一刻</block>
+      </view>
     </view>
   </view>
 </scroll-view>

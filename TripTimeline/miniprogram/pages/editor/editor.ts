@@ -32,10 +32,18 @@ Page({
     existingLocationId: null as number | null,
     pageTitle: '新建记录',
     pageSubtitle: '手动填写为主，系统仅在识别到信息时自动填入表单',
-    saveBtnText: '保存记录',
+
+    // 提交按钮状态
+    submitStatus: 'idle' as 'idle' | 'loading' | 'success' | 'error',
+
+    // 内容类型：note（纯文字）/ photo / audio
     contentType: 'note',
+
+    // 日期时间
     date: '',
     time: '',
+
+    // 地点
     location: null as any,
     locationName: '',
     locationAddress: '',
@@ -44,23 +52,21 @@ Page({
     isLocationSearching: false,
     locationMarker: [] as any[],
     autoFillHint: '',
+    locationExpanded: false,
+
+    // 图片
     imagePath: '',
     imageUrl: '',
+
+    // 音频
     audioFileName: '',
     audioPath: '',
     audioUrl: '',
     audioPreviewSrc: '',
     isRecording: false,
     recordingSeconds: 0,
-    trackFileName: '',
-    trackPath: '',
-    trackUrl: '',
-    trackGeojson: null as any,
-    trackPointCount: 0,
-    trackPolyline: [] as any[],
-    trackMarkers: [] as any[],
-    trackCenterLatitude: 39.9042,
-    trackCenterLongitude: 116.4074,
+
+    // 文字内容
     title: '',
     content: '',
 
@@ -81,8 +87,7 @@ Page({
         contentId: options.contentId,
         isEditMode: true,
         pageTitle: '编辑记录',
-        pageSubtitle: '修改当前记录后保存',
-        saveBtnText: '保存修改'
+        pageSubtitle: '修改当前记录后保存'
       });
     }
     const now = new Date();
@@ -125,7 +130,6 @@ Page({
         privacySummary: this.buildPrivacySummary('inherit', visibility)
       });
     } catch (error) {
-      // 默认按私密继承展示
       this.setData({ privacySummary: this.buildPrivacySummary('inherit', 1) });
     }
   },
@@ -180,11 +184,13 @@ Page({
 
       const imageUrl = Array.isArray(payload.images) ? (payload.images[0] || '') : '';
       const audioUrl = payload.audio?.url || '';
-      const trackUrl = payload.track?.url || '';
-      const trackGeojson = payload.track?.geojson || null;
+
+      // 确定 contentType（忽略已废弃的 track 类型）
+      let contentType = target.content_type || 'note';
+      if (contentType === 'track') contentType = 'note';
 
       this.setData({
-        contentType: target.content_type || 'note',
+        contentType,
         title: payload.title || '',
         content: payload.content || '',
         date: Number.isNaN(recordTime.getTime()) ? this.data.date : `${recordTime.getFullYear()}-${pad(recordTime.getMonth() + 1)}-${pad(recordTime.getDate())}`,
@@ -204,16 +210,9 @@ Page({
         audioUrl,
         audioPath: audioUrl ? this.asAbsoluteUrl(audioUrl) : '',
         audioFileName: payload.audio?.name || '',
-        audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : '',
-        trackUrl,
-        trackPath: trackUrl ? this.asAbsoluteUrl(trackUrl) : '',
-        trackFileName: payload.track?.file_name || '',
-        trackGeojson
+        audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : ''
       });
 
-      if (trackGeojson) {
-        this.updateTrackPreview(trackGeojson);
-      }
       this.syncLocationMarker(this.data.location);
       wx.hideLoading();
     } catch (error) {
@@ -282,10 +281,15 @@ Page({
     this.setData({ time: e.detail.value });
   },
 
-  onTypeChange(e: any) {
+  // 媒体类型 toggle：再次点击已选中项则取消（回到 note）
+  onTypeToggle(e: any) {
     const type = e.currentTarget.dataset.type;
     if (!type) return;
-    this.setData({ contentType: type });
+    this.setData({ contentType: this.data.contentType === type ? 'note' : type });
+  },
+
+  toggleLocation() {
+    this.setData({ locationExpanded: !this.data.locationExpanded });
   },
 
   onPrivacyModeChange(e: WechatMiniprogram.BaseEvent) {
@@ -325,9 +329,7 @@ Page({
         });
         this.syncLocationMarker(nextLocation);
       },
-      fail: () => {
-        // 用户取消或未授权
-      }
+      fail: () => {}
     });
   },
 
@@ -341,12 +343,8 @@ Page({
   inferSuggestionRegion() {
     const text = `${this.data.locationAddress || ''} ${this.data.locationName || ''}`.trim();
     if (!text) return '全国';
-
     const cityMatch = text.match(/([^\s]+?(?:市|自治州|地区|盟))/);
-    if (cityMatch?.[1]) {
-      return cityMatch[1];
-    }
-
+    if (cityMatch?.[1]) return cityMatch[1];
     const provinceMatch = text.match(/([^\s]+?(?:省|自治区))/);
     return provinceMatch?.[1] || '全国';
   },
@@ -390,9 +388,7 @@ Page({
 
   selectSuggestion(e: WechatMiniprogram.BaseEvent) {
     const index = Number(e.currentTarget.dataset.index);
-    if (!Number.isFinite(index) || index < 0 || index >= this.data.locationSuggestions.length) {
-      return;
-    }
+    if (!Number.isFinite(index) || index < 0 || index >= this.data.locationSuggestions.length) return;
 
     const selected = this.data.locationSuggestions[index];
     const nextLocation = {
@@ -439,10 +435,7 @@ Page({
       sourceType: ['album', 'camera'],
       success: async (res) => {
         const path = res.tempFiles[0].tempFilePath;
-        this.setData({
-          imagePath: path,
-          contentType: 'photo'
-        });
+        this.setData({ imagePath: path, contentType: 'photo' });
 
         try {
           const parsed = await this.uploadPhotoAndParse(path);
@@ -500,31 +493,21 @@ Page({
         content: '请在设置中允许录音权限后重试',
         showCancel: true,
         success: (res) => {
-          if (res.confirm) {
-            wx.openSetting({});
-          }
+          if (res.confirm) wx.openSetting({});
         }
       });
       return;
     }
 
-    this.setData({
-      contentType: 'audio',
-      isRecording: true,
-      recordingSeconds: 0
-    });
+    this.setData({ contentType: 'audio', isRecording: true, recordingSeconds: 0 });
     this.recordStartMs = Date.now();
 
-    if (this.recordTicker) {
-      clearInterval(this.recordTicker);
-    }
+    if (this.recordTicker) clearInterval(this.recordTicker);
 
     this.recordTicker = setInterval(() => {
       const passed = Math.floor((Date.now() - this.recordStartMs) / 1000);
       this.setData({ recordingSeconds: passed });
-      if (passed >= 60) {
-        this.stopRecordAudio();
-      }
+      if (passed >= 60) this.stopRecordAudio();
     }, 500);
 
     this.recorderManager.start({
@@ -539,116 +522,6 @@ Page({
   stopRecordAudio() {
     if (!this.data.isRecording || !this.recorderManager) return;
     this.recorderManager.stop();
-  },
-
-  chooseTrack() {
-    (wx as any).chooseMessageFile({
-      count: 1,
-      type: 'file',
-      extension: ['gpx', 'kml'],
-      success: async (res: any) => {
-        const file = res.tempFiles?.[0];
-        if (!file) return;
-
-        this.setData({
-          contentType: 'track',
-          trackPath: file.path,
-          trackFileName: file.name || 'track'
-        });
-
-        try {
-          const uploaded = await this.uploadFile(file.path, `${api.upload}/trajectory`);
-          this.setData({
-            trackUrl: uploaded?.url || '',
-            trackGeojson: uploaded?.geojson || null
-          });
-          this.updateTrackPreview(uploaded?.geojson || null);
-        } catch (error) {
-          wx.showToast({ title: '轨迹上传失败', icon: 'none' });
-        }
-      }
-    });
-  },
-
-  updateTrackPreview(geojson: any) {
-    const points = this.extractTrackPoints(geojson);
-    if (!points.length) {
-      this.setData({
-        trackPointCount: 0,
-        trackPolyline: [],
-        trackMarkers: []
-      });
-      return;
-    }
-
-    const first = points[0];
-    const last = points[points.length - 1];
-
-    this.setData({
-      trackPointCount: points.length,
-      trackCenterLatitude: first.latitude,
-      trackCenterLongitude: first.longitude,
-      trackPolyline: [
-        {
-          points,
-          color: '#1f7a56',
-          width: 6
-        }
-      ],
-      trackMarkers: [
-        {
-          id: 1,
-          latitude: first.latitude,
-          longitude: first.longitude,
-          title: '起点',
-          width: 24,
-          height: 24
-        },
-        {
-          id: 2,
-          latitude: last.latitude,
-          longitude: last.longitude,
-          title: '终点',
-          width: 24,
-          height: 24
-        }
-      ]
-    });
-  },
-
-  extractTrackPoints(geojson: any) {
-    if (!geojson?.features?.length) return [];
-    const points: Array<{ latitude: number; longitude: number }> = [];
-
-    geojson.features.forEach((feature: any) => {
-      const geometry = feature?.geometry;
-      if (!geometry) return;
-
-      if (geometry.type === 'LineString' && Array.isArray(geometry.coordinates)) {
-        geometry.coordinates.forEach((coord: any) => {
-          if (Array.isArray(coord) && coord.length >= 2) {
-            points.push({ latitude: Number(coord[1]), longitude: Number(coord[0]) });
-          }
-        });
-      }
-
-      if (geometry.type === 'MultiLineString' && Array.isArray(geometry.coordinates)) {
-        geometry.coordinates.forEach((line: any) => {
-          if (!Array.isArray(line)) return;
-          line.forEach((coord: any) => {
-            if (Array.isArray(coord) && coord.length >= 2) {
-              points.push({ latitude: Number(coord[1]), longitude: Number(coord[0]) });
-            }
-          });
-        });
-      }
-
-      if (geometry.type === 'Point' && Array.isArray(geometry.coordinates) && geometry.coordinates.length >= 2) {
-        points.push({ latitude: Number(geometry.coordinates[1]), longitude: Number(geometry.coordinates[0]) });
-      }
-    });
-
-    return points.filter((p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude)).slice(0, 800);
   },
 
   asAbsoluteUrl(url: string) {
@@ -683,7 +556,8 @@ Page({
           lon: exif.longitude
         },
         locationName: this.data.locationName || '图片识别定位',
-        locationSearchKeyword: this.data.locationName || '图片识别定位'
+        locationSearchKeyword: this.data.locationName || '图片识别定位',
+        locationExpanded: true
       });
       this.syncLocationMarker({
         name: this.data.locationName || '图片识别定位',
@@ -700,9 +574,7 @@ Page({
 
   toDateAndTime(input: string) {
     const dateObj = new Date(input);
-    if (Number.isNaN(dateObj.getTime())) {
-      return null;
-    }
+    if (Number.isNaN(dateObj.getTime())) return null;
     const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
     return {
       date: `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}`,
@@ -716,9 +588,7 @@ Page({
         url: `${baseUrl}${path}`,
         filePath,
         name: 'file',
-        header: {
-          Authorization: `Bearer ${wx.getStorageSync('token')}`
-        },
+        header: { Authorization: `Bearer ${wx.getStorageSync('token')}` },
         success(res) {
           try {
             if (res.statusCode < 200 || res.statusCode >= 300) {
@@ -734,9 +604,7 @@ Page({
             reject(error);
           }
         },
-        fail(err) {
-          reject(err);
-        }
+        fail(err) { reject(err); }
       });
     });
   },
@@ -760,8 +628,11 @@ Page({
   },
 
   async saveEntry() {
+    if (this.data.submitStatus === 'loading') return;
+
     if (!this.data.title && !this.data.content) {
-      wx.showToast({ title: '请至少填写标题或正文', icon: 'none' });
+      wx.vibrateShort({ type: 'medium' });
+      wx.showToast({ title: '请至少写下一点感受', icon: 'none' });
       return;
     }
 
@@ -780,17 +651,11 @@ Page({
       return;
     }
 
-    if (this.data.contentType === 'track' && !this.data.trackPath) {
-      wx.showToast({ title: '请先导入轨迹', icon: 'none' });
-      return;
-    }
-
-    wx.showLoading({ title: '保存中...', mask: true });
+    this.setData({ submitStatus: 'loading' });
 
     try {
       let imageUrl = this.data.imageUrl;
       let audioUrl = this.data.audioUrl;
-      let trackUrl = this.data.trackUrl;
 
       if (this.data.contentType === 'photo' && !imageUrl && this.data.imagePath) {
         const uploaded = await this.uploadPhotoAndParse(this.data.imagePath);
@@ -802,13 +667,6 @@ Page({
         const uploaded = await this.uploadFile(this.data.audioPath, api.upload);
         audioUrl = uploaded?.url || '';
         this.setData({ audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : this.data.audioPath });
-      }
-
-      if (this.data.contentType === 'track' && !trackUrl && this.data.trackPath) {
-        const uploaded = await this.uploadFile(this.data.trackPath, `${api.upload}/trajectory`);
-        trackUrl = uploaded?.url || '';
-        this.setData({ trackGeojson: uploaded?.geojson || null });
-        this.updateTrackPreview(uploaded?.geojson || null);
       }
 
       const logTime = `${this.data.date} ${this.data.time}:00`;
@@ -835,14 +693,6 @@ Page({
         contentData.audio = {
           name: this.data.audioFileName,
           url: stripAssetUrl(audioUrl)
-        };
-      }
-
-      if (this.data.contentType === 'track') {
-        contentData.track = {
-          file_name: this.data.trackFileName,
-          url: stripAssetUrl(trackUrl),
-          geojson: this.data.trackGeojson
         };
       }
 
@@ -875,18 +725,13 @@ Page({
         ? this.data.contentId
         : `${saved?.content_id || ''}`;
 
-      if (!targetContentId) {
-        throw new Error('内容ID缺失，无法保存隐私配置');
-      }
+      if (!targetContentId) throw new Error('内容ID缺失，无法保存隐私配置');
 
       if (this.data.privacyMode === 'custom') {
         await request({
           url: api.content.privacy(this.data.projectId, targetContentId),
           method: 'PUT',
-          data: {
-            visibility: this.data.privacyVisibility,
-            white_list: []
-          },
+          data: { visibility: this.data.privacyVisibility, white_list: [] },
           showLoading: false
         });
       } else if (this.data.isEditMode) {
@@ -897,16 +742,13 @@ Page({
         });
       }
 
-      wx.hideLoading();
-      wx.showToast({ title: this.data.isEditMode ? '修改成功' : '保存成功', icon: 'success' });
-      setTimeout(() => {
-        wx.navigateBack();
-      }, 1500);
+      this.setData({ submitStatus: 'success' });
+      setTimeout(() => wx.navigateBack(), 1500);
 
     } catch (e) {
-      wx.hideLoading();
-      const message = (e as Error)?.message || '保存失败';
-      wx.showToast({ title: message, icon: 'none' });
+      this.setData({ submitStatus: 'error' });
+      wx.vibrateShort({ type: 'medium' });
+      setTimeout(() => this.setData({ submitStatus: 'idle' }), 2000);
     }
   }
 });

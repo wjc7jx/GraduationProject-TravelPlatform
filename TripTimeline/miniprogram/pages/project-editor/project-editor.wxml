@@ -1,84 +1,119 @@
 <!--pages/project-editor/project-editor.wxml-->
-<navigation-bar title="{{isEdit ? '编辑旅行' : '新建旅行'}}" back="{{true}}" color="#1C1C1C" background="#F7F5F0"></navigation-bar>
+<navigation-bar title="{{isEdit ? '编辑旅程' : '记录新旅程'}}" back="{{true}}" color="#1C1C1C" background="#F7F5F0"></navigation-bar>
 
 <view class="container">
+  <!-- 1. 沉浸式封面区 -->
+  <view class="cover-section">
+    <view class="cover-count-badge" wx:if="{{coverImages.length > 0}}">{{coverImages.length}}/3</view>
+    <swiper class="cover-swiper" wx:if="{{coverImages.length > 0}}" indicator-dots="{{coverImages.length > 1}}" autoplay="{{false}}" current="{{selectedCoverIndex}}">
+      <block wx:for="{{coverImages}}" wx:key="index">
+        <swiper-item>
+          <image class="cover-img" src="{{item}}" mode="aspectFill" bindtap="chooseCover"></image>
+          <view class="cover-actions">
+            <view class="action-btn set-main {{selectedCoverIndex === index ? 'active' : ''}}" catchtap="onSelectCover" data-index="{{index}}">
+              {{selectedCoverIndex === index ? '⭐️ 首图' : '设为首图'}}
+            </view>
+            <view class="action-btn delete" catchtap="removeCover" data-index="{{index}}">删除</view>
+          </view>
+        </swiper-item>
+      </block>
+    </swiper>
+    
+    <view class="empty-cover" wx:else bindtap="chooseCover">
+      <view class="empty-icon">📷</view>
+      <view class="empty-text">添加旅行封面</view>
+      <view class="empty-hint">最多上传3张，点亮你的旅程</view>
+    </view>
+  </view>
 
-  <view class="form-section">
-    <!-- 主标题 -->
-    <view class="form-item">
-      <view class="label">项目标题 <text class="required">*</text></view>
-      <input class="input-field header-input" placeholder="给这次旅行起个名字 (如: 京都漫步)" value="{{title}}" bindinput="onTitleInput" />
+  <!-- 2. 内容悬浮卡片 -->
+  <view class="form-card">
+    <!-- 标题组 -->
+    <view class="title-group">
+      <input class="title-input" placeholder="这次旅程叫什么？" placeholder-class="title-placeholder" value="{{title}}" bindinput="onTitleInput" />
+      <input class="subtitle-input" placeholder="出发前，你想说一句话..." placeholder-class="subtitle-placeholder" value="{{subtitle}}" bindinput="onSubtitleInput" />
     </view>
 
-    <!-- 副标题 -->
-    <view class="form-item">
-      <view class="label">副标题</view>
-      <input class="input-field" placeholder="一句话描述 (如: 寻迹红色与枯山水)" value="{{subtitle}}" bindinput="onSubtitleInput" />
-    </view>
-
-    <!-- 时间选择 -->
+    <!-- 行程时间 -->
     <view class="form-row">
-      <view class="form-item half">
-        <view class="label">出发日期 <text class="required">*</text></view>
-        <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
-          <view class="date-picker">{{startDate || '选择日期'}}</view>
-        </picker>
-      </view>
-      <view class="form-item half">
-        <view class="label">结束日期 <text class="required">*</text></view>
-        <picker mode="date" value="{{endDate}}" start="{{startDate}}" bindchange="onEndDateChange">
-          <view class="date-picker">{{endDate || '选择日期'}}</view>
-        </picker>
+      <view class="row-icon">📅</view>
+      <view class="row-content time-row">
+        <view class="row-label">行程时间</view>
+        <view class="time-picker-group">
+          <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+            <view class="date-text {{!startDate ? 'placeholder' : ''}}">{{startDate || '何时出发'}}</view>
+          </picker>
+          <view class="time-divider">→</view>
+          <picker mode="date" value="{{endDate}}" start="{{startDate}}" bindchange="onEndDateChange">
+            <view class="date-text {{!endDate ? 'placeholder' : ''}}">{{endDate || '何时归来'}}</view>
+          </picker>
+        </view>
       </view>
     </view>
 
-    <!-- 旅行标签 -->
-    <view class="form-item">
-      <view class="label">旅行标签 (最多5个)</view>
-      <view class="tags-container">
+    <!-- 旅行印记 (标签) -->
+    <view class="form-row block-row">
+      <view class="row-header">
+        <view class="row-icon">🏷️</view>
+        <view class="row-label">这趟旅行是...</view>
+        <view class="row-tools">
+          <view class="tag-count">{{tags.length}}/5</view>
+          <view class="tag-toggle" wx:if="{{tags.length < 5}}" bindtap="toggleTagSelector">
+            {{showTagSelector ? '收起' : '添加'}}
+          </view>
+        </view>
+      </view>
+      
+      <!-- 已选标签 -->
+      <view class="tags-container" wx:if="{{tags.length > 0}}">
         <block wx:for="{{tags}}" wx:key="*this">
-          <view class="tag-item">
+          <view class="tag-item selected">
             <text>{{item}}</text>
             <view class="tag-close" bindtap="removeTag" data-index="{{index}}">×</view>
           </view>
         </block>
-        <view class="tag-input-wrap" wx:if="{{tags.length < 5}}">
-          <input class="tag-input" placeholder="输入后按回车" value="{{tagInput}}" bindinput="onTagInput" bindconfirm="addTag" confirm-type="done" />
-        </view>
       </view>
-    </view>
 
-    <view class="form-item">
-      <view class="label">专辑封面 <text class="required">*</text></view>
-      <view class="cover-grid-row">
-        <block wx:for="{{coverImages}}" wx:key="index">
-          <view class="cover-card {{selectedCoverIndex === index ? 'active' : ''}}" bindtap="onSelectCover" data-index="{{index}}">
-            <image class="cover-thumb" src="{{item}}" mode="aspectFill"></image>
-            <view class="cover-remove" catchtap="removeCover" data-index="{{index}}">×</view>
+      <!-- 预设灵感标签 -->
+      <view class="preset-tags" wx:if="{{showTagSelector}}">
+        <view class="preset-label">常见印记</view>
+        <block wx:for="{{presetTags}}" wx:key="*this">
+          <view class="tag-item preset {{tagUtils.includes(tags, item) ? 'active' : ''}}" bindtap="togglePresetTag" data-tag="{{item}}">
+            {{tagUtils.includes(tags, item) ? '✓ ' : '+ '}}{{item}}
           </view>
         </block>
-
-        <view wx:if="{{coverImages.length < 3}}" class="cover-card add-card" bindtap="chooseCover">
-          <text class="plus">+</text>
-        </view>
       </view>
-      <view class="cover-hint">可上传1~3张，点击图片可设为首图（带深色边框）</view>
+
+      <!-- 自定义标签输入（常驻显示） -->
+      <view class="tag-input-wrap" wx:if="{{showTagSelector && tags.length < 5}}">
+        <input class="tag-input" placeholder="+ 自定义印记，回车添加" placeholder-class="tag-placeholder" value="{{tagInput}}" bindinput="onTagInput" bindconfirm="addTag" confirm-type="done" />
+      </view>
     </view>
 
-    <view class="form-item">
-      <view class="label">默认可见性</view>
-      <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
-        <view class="date-picker">{{visibilityOptions[privacyVisibilityIndex]}}</view>
-      </picker>
-      <view class="privacy-hint">{{privacyHint}}</view>
-      <view class="privacy-tip" wx:if="{{privacyVisibility === 2}}">好友可见将基于双方是否建立好友关系自动判定</view>
+    <!-- 谁能看到 -->
+    <view class="form-row">
+      <view class="row-icon">👁️</view>
+      <view class="row-content">
+        <view class="row-label">谁可以看到这本日记</view>
+        <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
+          <view class="privacy-value">{{visibilityOptions[privacyVisibilityIndex]}} ▾</view>
+        </picker>
+      </view>
     </view>
   </view>
 
   <view class="bottom-action-row">
-    <view class="btn-complete {{submitting ? 'disabled' : ''}}" bindtap="onSubmit">
-      {{submitting ? '提交中' : (isEdit ? '保存修改' : '完成')}}
+    <view class="btn-complete {{submitting ? 'disabled' : ''}} {{submitStatus === 'success' ? 'success' : ''}} {{submitStatus === 'error' ? 'error' : ''}}" bindtap="onSubmit">
+      {{submitStatus === 'success' ? '✓ 已保存' : (submitting ? '保存中...' : (isEdit ? '保存' : '出发 →'))}}
     </view>
   </view>
-
 </view>
+
+<wxs module="tagUtils">
+module.exports = {
+  includes: function(arr, item) {
+    if (!arr) return false;
+    return arr.indexOf(item) !== -1;
+  }
+}
+</wxs>

@@ -107,7 +107,7 @@
   display: flex;
   position: relative;
   margin-bottom: 24rpx;
-  opacity: 0.5; /* 非激活状态偏淡 */
+  opacity: 0.78; /* 非激活状态仍需可读 */
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
@@ -280,10 +280,107 @@
   color: var(--color-text-sub);
 }
 
+/* 悬浮发布按钮 (FAB) */
+.fab-container {
+  position: fixed;
+  z-index: 999;
+  bottom: 64rpx;
+  right: 40rpx;
+}
 
-/* ���������˵� (FAB) */
-.fab-container { position: fixed; z-index: 999; bottom: 64rpx; right: 40rpx; } .fab-container .fab-backdrop { position: fixed; inset: 0; background: rgba(247, 245, 240, 0.85); backdrop-filter: blur(12px); opacity: 0; pointer-events: none; transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1); } .fab-container .fab-menu { position: absolute; bottom: 140rpx; right: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 32rpx; z-index: 20; } .fab-container .fab-menu .fab-item { display: flex; align-items: center; gap: 24rpx; opacity: 0; transform: translateY(40rpx) scale(0.9); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; } .fab-container .fab-menu .fab-item .fab-label { font-size: 28rpx; color: #2A4B3C; font-weight: 500; background: #fff; padding: 16rpx 36rpx; border-radius: 40rpx; box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.08); } .fab-container .fab-menu .fab-item .fab-icon-btn { width: 104rpx; height: 104rpx; background: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 44rpx; box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.12); } .fab-container .fab-trigger { width: 112rpx; height: 112rpx; background: #2A4B3C; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 12rpx 40rpx rgba(42, 75, 60, 0.3); position: relative; z-index: 100; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s; } .fab-container .fab-trigger .fab-cross { color: #fff; font-size: 64rpx; font-weight: 300; line-height: 1; margin-top: -8rpx; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.4s; } .fab-container.active .fab-backdrop { opacity: 1; pointer-events: auto; } .fab-container.active .fab-menu .fab-item { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; } .fab-container.active .fab-trigger { transform: scale(0.9); background: #fff; } .fab-container.active .fab-trigger .fab-cross { color: #2A4B3C; transform: rotate(135deg); }
+.fab-container .fab-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(247, 245, 240, 0.85);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
+.fab-container .fab-menu {
+  position: absolute;
+  bottom: 140rpx;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 32rpx;
+  z-index: 20;
+}
 
-/* ���������˵� (FAB) */
-.fab-container { position: fixed; z-index: 999; bottom: 64rpx; right: 40rpx; } .fab-container .fab-backdrop { position: fixed; inset: 0; background: rgba(247, 245, 240, 0.85); backdrop-filter: blur(12px); opacity: 0; pointer-events: none; transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1); } .fab-container .fab-menu { position: absolute; bottom: 140rpx; right: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 32rpx; z-index: 20; } .fab-container .fab-menu .fab-item { display: flex; align-items: center; gap: 24rpx; opacity: 0; transform: translateY(40rpx) scale(0.9); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none; } .fab-container .fab-menu .fab-item .fab-label { font-size: 28rpx; color: #2A4B3C; font-weight: 500; background: #fff; padding: 16rpx 36rpx; border-radius: 40rpx; box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.08); } .fab-container .fab-menu .fab-item .fab-icon-btn { width: 104rpx; height: 104rpx; background: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 44rpx; box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.12); } .fab-container .fab-trigger { width: 112rpx; height: 112rpx; background: #2A4B3C; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 12rpx 40rpx rgba(42, 75, 60, 0.3); position: relative; z-index: 100; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s; } .fab-container .fab-trigger .fab-cross { color: #fff; font-size: 64rpx; font-weight: 300; line-height: 1; margin-top: -8rpx; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.4s; } .fab-container.active .fab-backdrop { opacity: 1; pointer-events: auto; } .fab-container.active .fab-menu .fab-item { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; } .fab-container.active .fab-trigger { transform: scale(0.9); background: #fff; } .fab-container.active .fab-trigger .fab-cross { color: #2A4B3C; transform: rotate(135deg); }
+.fab-container .fab-menu .fab-item {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  opacity: 0;
+  transform: translateY(40rpx) scale(0.9);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.fab-container .fab-menu .fab-item .fab-label {
+  font-size: 28rpx;
+  color: var(--color-primary);
+  font-weight: 500;
+  background: #fff;
+  padding: 16rpx 36rpx;
+  border-radius: 40rpx;
+  box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.08);
+}
+
+.fab-container .fab-menu .fab-item .fab-icon-btn {
+  width: 104rpx;
+  height: 104rpx;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 44rpx;
+  box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.12);
+}
+
+.fab-container .fab-trigger {
+  width: 112rpx;
+  height: 112rpx;
+  background: var(--color-primary);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 12rpx 40rpx rgba(42, 75, 60, 0.3);
+  position: relative;
+  z-index: 100;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s;
+}
+
+.fab-container .fab-trigger .fab-cross {
+  color: #fff;
+  font-size: 64rpx;
+  font-weight: 300;
+  line-height: 1;
+  margin-top: -8rpx;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.4s;
+}
+
+.fab-container.active .fab-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fab-container.active .fab-menu .fab-item {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.fab-container.active .fab-trigger {
+  transform: scale(0.9);
+  background: #fff;
+}
+
+.fab-container.active .fab-trigger .fab-cross {
+  color: var(--color-primary);
+  transform: rotate(135deg);
+}

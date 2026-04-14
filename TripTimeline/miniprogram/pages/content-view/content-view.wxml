@@ -5,7 +5,7 @@
     <view wx:if="{{loading}}" class="loading-text">加载中...</view>
 
     <block wx:else>
-      <view class="tip-text">双击卡片进入编辑</view>
+      <view class="tip-text">点击卡片进入编辑</view>
 
       <view class="meta-row">
         <view class="chip">{{typeLabel}}</view>

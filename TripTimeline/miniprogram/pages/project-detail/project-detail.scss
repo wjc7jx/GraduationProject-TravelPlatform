@@ -2,7 +2,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  background-color: #F7F5F0; 
+  background-color: var(--bg-base);
   min-height: 100vh;
 }
 
@@ -82,7 +82,7 @@
     .title {
       font-size: 56rpx;
       font-weight: 600;
-      font-family: serif;
+      font-family: var(--font-serif);
       margin-bottom: 8rpx;
     }
     .subtitle {
@@ -109,7 +109,7 @@
     box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.03);
 
     &.primary {
-      background: #2A4B3C;
+      background: var(--color-primary);
       color: #fff;
       .sub { color: rgba(255,255,255,0.7); }
       .arrow { color: #fff; }
@@ -120,7 +120,7 @@
       color: #333;
       border: 1px solid rgba(0,0,0,0.05);
       .sub { color: #888; }
-      .arrow { color: #2A4B3C; font-size: 48rpx; font-weight: 300; }
+      .arrow { color: var(--color-primary); font-size: 48rpx; font-weight: 300; }
     }
 
     &.tertiary {
@@ -128,7 +128,7 @@
       color: #2e2a25;
       border: 1px solid rgba(42, 75, 60, 0.12);
       .sub { color: #6f665b; }
-      .arrow { color: #2A4B3C; font-size: 40rpx; }
+      .arrow { color: var(--color-primary); font-size: 40rpx; }
     }
 
     .icon {
@@ -186,7 +186,7 @@
       .num {
         font-size: 48rpx;
         font-weight: 600;
-        color: #2A4B3C;
+        color: var(--color-primary);
         margin-bottom: 8rpx;
       }
       .label {

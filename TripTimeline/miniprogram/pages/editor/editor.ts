@@ -1,7 +1,11 @@
 import { request, baseUrl, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 import config from '../../utils/config';
-import { searchTencentMapSuggestions, TencentMapSuggestion } from '../../utils/tencentMap';
+import {
+  searchTencentMapSuggestions,
+  reverseGeocodeTencentMap,
+  TencentMapSuggestion
+} from '../../utils/tencentMap';
 import { readAndParseExif } from '../../utils/exif';
 
 type VisibilityValue = 1 | 2 | 3;
@@ -27,10 +31,15 @@ Page({
   recordStartMs: 0,
 
   hasValidLocation(location: any) {
+    const lat = Number(location?.lat);
+    const lon = Number(location?.lon);
     return Boolean(
       location
-      && Number.isFinite(Number(location.lat))
-      && Number.isFinite(Number(location.lon))
+      && Number.isFinite(lat)
+      && Number.isFinite(lon)
+      && Math.abs(lat) <= 90
+      && Math.abs(lon) <= 180
+      && !(lat === 0 && lon === 0)
     );
   },
 
@@ -62,6 +71,7 @@ Page({
     locationMarker: [] as any[],
     autoFillHint: '',
     locationExpanded: false,
+    locationEditedByUser: false,
 
     // 图片
     imagePath: '',
@@ -332,7 +342,8 @@ Page({
   onLocationSearchInput(e: WechatMiniprogram.Input) {
     this.setData({
       locationSearchKeyword: e.detail.value,
-      locationSuggestions: []
+      locationSuggestions: [],
+      locationEditedByUser: true
     });
   },
 
@@ -349,7 +360,8 @@ Page({
     this.setData({
       locationName: name,
       locationSearchKeyword: name,
-      location: nextLocation
+      location: nextLocation,
+      locationEditedByUser: true
     });
 
     if (hasLocation) {
@@ -421,7 +433,8 @@ Page({
       locationAddress: selected.address,
       locationSearchKeyword: selected.title,
       autoFillHint: '已通过地点搜索填入坐标',
-      locationSuggestions: []
+      locationSuggestions: [],
+      locationEditedByUser: true
     });
     this.syncLocationMarker(nextLocation);
   },
@@ -456,7 +469,7 @@ Page({
 
         try {
           const exif = await readAndParseExif(path);
-          this.applyExifAutofill(exif);
+          await this.applyExifAutofill(exif);
         } catch (error) {
           this.setData({ autoFillHint: '未能识别图片元数据，可手动填写时间地点' });
         }
@@ -573,6 +586,7 @@ Page({
     const hasLocation = this.hasValidLocation(this.data.location);
     this.setData({
       locationAddress: address,
+      locationEditedByUser: true,
       location: hasLocation
         ? {
           ...this.data.location,
@@ -582,7 +596,7 @@ Page({
     });
   },
 
-  applyExifAutofill(exif: any) {
+  async applyExifAutofill(exif: any) {
     if (!exif) return;
     let hint = '已识别图片信息并填入，可手动修改';
 
@@ -593,26 +607,85 @@ Page({
       }
     }
 
-    if (exif.latitude && exif.longitude) {
+    if (this.hasValidLocation({ lat: exif.latitude, lon: exif.longitude })) {
+      const lat = Number(exif.latitude);
+      const lon = Number(exif.longitude);
+      const hasManualLocationText = Boolean(
+        this.data.locationEditedByUser
+        && ((this.data.locationName || '').trim() || (this.data.locationAddress || '').trim())
+      );
+
+      const currentLocation = this.hasValidLocation(this.data.location)
+        ? this.data.location
+        : {};
+      const fallbackName = this.data.locationName || '图片识别定位';
+
       this.setData({
         location: {
-          name: this.data.locationName || '图片识别定位',
+          ...currentLocation,
+          name: this.data.locationName || currentLocation.name || fallbackName,
           address: this.data.locationAddress || '',
-          lat: exif.latitude,
-          lon: exif.longitude
+          lat,
+          lon
         },
-        locationName: this.data.locationName || '图片识别定位',
-        locationSearchKeyword: this.data.locationName || '图片识别定位',
+        locationName: this.data.locationName || currentLocation.name || fallbackName,
+        locationSearchKeyword: this.data.locationName || currentLocation.name || fallbackName,
         locationExpanded: true
       });
       this.syncLocationMarker({
-        name: this.data.locationName || '图片识别定位',
+        name: this.data.locationName || currentLocation.name || fallbackName,
         address: this.data.locationAddress || '',
-        lat: exif.latitude,
-        lon: exif.longitude
+        lat,
+        lon
       });
+
+      if (hasManualLocationText) {
+        this.setData({ autoFillHint: '已识别图片坐标，保留你手动填写的地点名称/地址' });
+        return;
+      }
+
+      try {
+        const key = config.map?.tencentKey;
+        if (!key) {
+          this.setData({ autoFillHint: '已识别图片坐标，请先配置腾讯地图Key以自动反查地点' });
+          return;
+        }
+
+        const geocode = await reverseGeocodeTencentMap({
+          key,
+          latitude: lat,
+          longitude: lon
+        });
+
+        if (!geocode) {
+          this.setData({ autoFillHint: '已识别图片坐标，但未查到具体地点，可手动填写' });
+          return;
+        }
+
+        const locationName = geocode.title || this.data.locationName || fallbackName;
+        const locationAddress = geocode.address || this.data.locationAddress || '';
+        const nextLocation = {
+          name: locationName,
+          address: locationAddress,
+          lat: geocode.latitude,
+          lon: geocode.longitude
+        };
+
+        this.setData({
+          location: nextLocation,
+          locationName,
+          locationAddress,
+          locationSearchKeyword: locationName,
+          autoFillHint: '已根据图片定位自动匹配地点，可手动调整'
+        });
+        this.syncLocationMarker(nextLocation);
+      } catch (error) {
+        this.setData({ autoFillHint: '已识别图片坐标，地点解析失败，可手动填写' });
+      }
     } else {
       hint = '图片无定位信息，已保留手动填写';
+      this.setData({ autoFillHint: hint });
+      return;
     }
 
     this.setData({ autoFillHint: hint });

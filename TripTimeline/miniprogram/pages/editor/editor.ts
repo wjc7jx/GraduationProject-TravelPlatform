@@ -2,6 +2,7 @@ import { request, baseUrl, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/
 import api from '../../utils/api';
 import config from '../../utils/config';
 import { searchTencentMapSuggestions, TencentMapSuggestion } from '../../utils/tencentMap';
+import { readAndParseExif } from '../../utils/exif';
 
 type VisibilityValue = 1 | 2 | 3;
 type PrivacyMode = 'inherit' | 'custom';
@@ -454,10 +455,17 @@ Page({
         this.setData({ imagePath: path, contentType: 'photo' });
 
         try {
-          const parsed = await this.uploadPhotoAndParse(path);
-          this.applyExifAutofill(parsed?.exif || null);
+          const exif = await readAndParseExif(path);
+          this.applyExifAutofill(exif);
         } catch (error) {
-          wx.showToast({ title: '图片上传失败', icon: 'none' });
+          this.setData({ autoFillHint: '未能识别图片元数据，可手动填写时间地点' });
+        }
+
+        try {
+          const uploaded = await this.uploadPhoto(path);
+          this.setData({ imageUrl: uploaded?.url || '' });
+        } catch (error) {
+          wx.showToast({ title: '图片上传失败，保存时重试', icon: 'none' });
         }
       }
     });
@@ -611,7 +619,13 @@ Page({
   },
 
   toDateAndTime(input: string) {
-    const dateObj = new Date(input);
+    if (!input) return null;
+    const normalized = input
+      .replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3')
+      .replace('T', ' ')
+      .replace(/\.\d+Z?$/, '')
+      .trim();
+    const dateObj = new Date(normalized);
     if (Number.isNaN(dateObj.getTime())) return null;
     const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
     return {
@@ -647,10 +661,8 @@ Page({
     });
   },
 
-  async uploadPhotoAndParse(filePath: string) {
-    const data = await this.uploadFile(filePath, `${api.upload}/photo`);
-    this.setData({ imageUrl: data?.url || '' });
-    return data;
+  async uploadPhoto(filePath: string) {
+    return this.uploadFile(filePath, `${api.upload}/photo`);
   },
 
   removeImage() {
@@ -718,9 +730,8 @@ Page({
       let audioUrl = this.data.audioUrl;
 
       if (this.data.contentType === 'photo' && !imageUrl && this.data.imagePath) {
-        const uploaded = await this.uploadPhotoAndParse(this.data.imagePath);
+        const uploaded = await this.uploadPhoto(this.data.imagePath);
         imageUrl = uploaded?.url || '';
-        this.applyExifAutofill(uploaded?.exif || null);
       }
 
       if (this.data.contentType === 'audio' && !audioUrl && this.data.audioPath) {

@@ -70,6 +70,9 @@ Page({
           const payload = item.content_data || {};
           const d = new Date(item.record_time || item.created_at);
           const location = item.location || {};
+          const lon = Number(location.longitude);
+          const lat = Number(location.latitude);
+          const hasLoc = Number.isFinite(lon) && Number.isFinite(lat);
           const imageList = Array.isArray(payload.images)
             ? payload.images
             : (typeof payload.images === 'string' ? (() => {
@@ -83,9 +86,9 @@ Page({
             title: payload.title || '无标题',
             desc: payload.content || '',
             image: imageList[0] || '',
-            lon: Number(location.longitude) || 0,
-            lat: Number(location.latitude) || 0,
-            hasLoc: !!(location.longitude && location.latitude)
+            lon: hasLoc ? lon : 0,
+            lat: hasLoc ? lat : 0,
+            hasLoc
           };
         });
         

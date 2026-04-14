@@ -7,7 +7,7 @@ async function bootstrap() {
   await sequelize.sync();
 
   app.listen(env.port, () => {
-    console.log(`🚀 服务正在运行于 http://localhost:${env.port}`);      
+    console.log(`🚀 服务正在运行于 http://10.238.184.74:${env.port}`);      
   });
 }
 

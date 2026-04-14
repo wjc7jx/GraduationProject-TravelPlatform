@@ -17,7 +17,7 @@ export const env = {
     pdfResourceWaitTimeoutMs: Number(process.env.PDF_RESOURCE_WAIT_TIMEOUT_MS) || 12000,
   },
   db: {
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || '10.238.184.74',
     port: Number(process.env.DB_PORT) || 3306,
     name: process.env.DB_NAME || 'travel_db',
     user: process.env.DB_USER || 'root',

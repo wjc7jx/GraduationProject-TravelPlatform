@@ -130,7 +130,13 @@ function pickPhotoSource(contentData) {
 }
 
 async function normalizeContentItem(item) {
-  const json = item.toJSON();
+  const json = typeof item?.toJSON === 'function' ? item.toJSON() : item;
+  if (!json || typeof json !== 'object') {
+    return {
+      record_time_text: '',
+      day_key: '',
+    };
+  }
   const contentData = json.content_data || {};
   const normalized = {
     ...json,

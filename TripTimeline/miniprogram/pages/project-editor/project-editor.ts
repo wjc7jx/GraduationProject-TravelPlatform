@@ -80,8 +80,7 @@ Page({
       
       this.setData({
         title: res.title || '',
-        // 我们的数据库直接拼接到了 tags，为了简便暂不区分，如果是复杂业务 subtitle 也可以存在 tags 里或新建字段
-        subtitle: '',
+        subtitle: res.subtitle || '',
         coverImages: res.cover_image
           ? [asAbsoluteAssetUrl(res.cover_image)]
           : [],
@@ -264,6 +263,7 @@ Page({
   async onSubmit() {
     const {
       title,
+      subtitle,
       coverImages,
       selectedCoverIndex,
       startDate,
@@ -299,7 +299,7 @@ Page({
 
     const payload = {
       title,
-      // 后端暂无 subtitle 字段设计，你可以考虑将 subtitle 放进 tags，或加字段
+      subtitle: subtitle ? subtitle.trim() : null,
       cover_image: finalCover,
       start_date: startDate,
       end_date: endDate || null,

@@ -19,7 +19,7 @@ export async function listProjects(userId) {
 }
 
 export async function createProject(userId, payload) {
-  const { title, cover_image, start_date, end_date, tags } = payload;
+  const { title, subtitle, cover_image, start_date, end_date, tags } = payload;
   if (!title || !start_date) {
     const err = new Error('旅行名称和开始时间是必填项');
     err.status = 400;
@@ -28,6 +28,7 @@ export async function createProject(userId, payload) {
   return Project.create({
     user_id: userId,
     title,
+    subtitle,
     cover_image,
     start_date,
     end_date,
@@ -57,7 +58,7 @@ export async function getProjectOrThrow(projectId, userId) {
 
 export async function updateProject(projectId, userId, payload) {
   const project = await getProjectOrThrow(projectId, userId);
-  const { title, cover_image, start_date, end_date, tags, is_archived } = payload;
+  const { title, subtitle, cover_image, start_date, end_date, tags, is_archived } = payload;
   
   if (title !== undefined && !title) {
     const err = new Error('旅行名称不能为空');
@@ -72,6 +73,7 @@ export async function updateProject(projectId, userId, payload) {
 
   return project.update({
     title: title !== undefined ? title : project.title,
+    subtitle: subtitle !== undefined ? subtitle : project.subtitle,
     cover_image: cover_image !== undefined ? cover_image : project.cover_image,
     start_date: start_date !== undefined ? start_date : project.start_date,
     end_date: end_date !== undefined ? end_date : project.end_date,

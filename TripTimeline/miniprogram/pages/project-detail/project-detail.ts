@@ -82,7 +82,7 @@ Page({
         projectDetail: {
           id: res.project_id,
           title: res.title || '无标题',
-          subtitle: res.tags || '',
+          subtitle: res.subtitle || res.tags || '',
           cover: cover,
           date: dateStr
         },

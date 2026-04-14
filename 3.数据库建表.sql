@@ -43,6 +43,7 @@ CREATE TABLE `projects` (
   `project_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '项目唯一ID',
   `user_id` BIGINT UNSIGNED NOT NULL COMMENT '所属用户ID',
   `title` VARCHAR(100) NOT NULL COMMENT '旅行项目标题',
+  `subtitle` VARCHAR(255) DEFAULT NULL COMMENT '旅行副标题/一句话描述',
   `cover_image` VARCHAR(255) DEFAULT NULL COMMENT '封面图片URL',
   `start_date` DATE NOT NULL COMMENT '旅行开始日期',
   `end_date` DATE DEFAULT NULL COMMENT '旅行结束日期',

@@ -25,11 +25,11 @@ INSERT INTO `users` (
 
 -- 2) 旅行项目基础数据
 INSERT INTO `projects` (
-  `project_id`, `user_id`, `title`, `cover_image`, `start_date`, `end_date`, `tags`, `is_archived`, `is_deleted`, `deleted_at`, `created_at`, `updated_at`
+  `project_id`, `user_id`, `title`, `subtitle`, `cover_image`, `start_date`, `end_date`, `tags`, `is_archived`, `is_deleted`, `deleted_at`, `created_at`, `updated_at`
 ) VALUES
-  (2001, 1001, '云南七日游', 'https://example.com/covers/yunnan-7days.jpg', '2025-07-01', '2025-07-07', '自驾,徒步,摄影', 0, 0, NULL, '2025-03-02 10:00:00', '2025-03-02 10:00:00'),
-  (2002, 1001, '周末露营记', 'https://example.com/covers/camping-weekend.jpg', '2025-08-16', '2025-08-17', '露营,亲子,轻户外', 0, 0, NULL, '2025-03-02 10:05:00', '2025-03-02 10:05:00'),
-  (2003, 1002, '厦门海边慢旅行', 'https://example.com/covers/xiamen-coast.jpg', '2025-09-10', '2025-09-14', '海边,美食,慢旅行', 1, 0, NULL, '2025-03-02 10:10:00', '2025-03-02 10:10:00');
+  (2001, 1001, '云南七日游', '向雪山和古城出发', 'https://example.com/covers/yunnan-7days.jpg', '2025-07-01', '2025-07-07', '自驾,徒步,摄影', 0, 0, NULL, '2025-03-02 10:00:00', '2025-03-02 10:00:00'),
+  (2002, 1001, '周末露营记', '在山野里住两晚', 'https://example.com/covers/camping-weekend.jpg', '2025-08-16', '2025-08-17', '露营,亲子,轻户外', 0, 0, NULL, '2025-03-02 10:05:00', '2025-03-02 10:05:00'),
+  (2003, 1002, '厦门海边慢旅行', '把海风装进行李箱', 'https://example.com/covers/xiamen-coast.jpg', '2025-09-10', '2025-09-14', '海边,美食,慢旅行', 1, 0, NULL, '2025-03-02 10:10:00', '2025-03-02 10:10:00');
 
 -- 3) 位置信息基础数据
 INSERT INTO `locations` (

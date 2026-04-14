@@ -18,6 +18,10 @@ export function initProject(sequelize) {
         type: DataTypes.STRING(100),
         allowNull: false,
       },
+      subtitle: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
       cover_image: {
         type: DataTypes.STRING(255),
         allowNull: true,

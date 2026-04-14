@@ -479,6 +479,11 @@ components:
           type: string
           maxLength: 100
           description: Project title.
+        subtitle:
+          type: string
+          maxLength: 255
+          nullable: true
+          description: Optional project subtitle or one-line description.
         cover_image:
           type: string
           maxLength: 255
@@ -515,6 +520,10 @@ components:
         title:
           type: string
           maxLength: 100
+        subtitle:
+          type: string
+          maxLength: 255
+          nullable: true
         cover_image:
           type: string
           maxLength: 255

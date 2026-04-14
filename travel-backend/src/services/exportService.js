@@ -575,17 +575,70 @@ export async function generateProjectPdfExport(projectId, userId, options = {}) 
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBytes = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '12mm',
-        right: '12mm',
-        bottom: '14mm',
-        left: '12mm',
-      },
-    });
+    const navigationTimeoutMs = Math.max(3000, Number(env.export.pdfNavigationTimeoutMs) || 30000);
+    const resourceWaitTimeoutMs = Math.max(0, Number(env.export.pdfResourceWaitTimeoutMs) || 12000);
+
+    page.setDefaultNavigationTimeout(navigationTimeoutMs);
+    page.setDefaultTimeout(navigationTimeoutMs);
+
+    let pdfBytes;
+    try {
+      // `networkidle0` 容易被慢速外链图片拖住；改为 DOM 就绪后做有限等待。
+      await page.setContent(html, {
+        waitUntil: 'domcontentloaded',
+        timeout: navigationTimeoutMs,
+      });
+
+      if (resourceWaitTimeoutMs > 0) {
+        await page.evaluate(async (maxWaitMs) => {
+          const images = Array.from(document.images || []);
+          if (!images.length) return;
+
+          const settleImage = (img) => {
+            if (img.complete) return Promise.resolve();
+
+            return new Promise((resolve) => {
+              let done = false;
+              const finish = () => {
+                if (done) return;
+                done = true;
+                img.removeEventListener('load', finish);
+                img.removeEventListener('error', finish);
+                resolve();
+              };
+
+              img.addEventListener('load', finish, { once: true });
+              img.addEventListener('error', finish, { once: true });
+
+              setTimeout(finish, Math.max(2000, Math.floor(maxWaitMs * 0.5)));
+            });
+          };
+
+          await Promise.race([
+            Promise.all(images.map((img) => settleImage(img))),
+            new Promise((resolve) => setTimeout(resolve, maxWaitMs)),
+          ]);
+        }, resourceWaitTimeoutMs);
+      }
+
+      pdfBytes = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '12mm',
+          right: '12mm',
+          bottom: '14mm',
+          left: '12mm',
+        },
+      });
+    } catch (error) {
+      if (error?.name === 'TimeoutError') {
+        const err = new Error('PDF 渲染超时：请检查外链图片可访问性，或提高 PDF_NAVIGATION_TIMEOUT_MS / PDF_RESOURCE_WAIT_TIMEOUT_MS');
+        err.status = 504;
+        throw err;
+      }
+      throw error;
+    }
 
     return {
       buffer: Buffer.from(pdfBytes),

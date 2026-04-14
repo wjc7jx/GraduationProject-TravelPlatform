@@ -13,6 +13,8 @@ export const env = {
   publicBaseUrl: process.env.PUBLIC_BASE_URL || '',
   export: {
     puppeteerExecutablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '',
+    pdfNavigationTimeoutMs: Number(process.env.PDF_NAVIGATION_TIMEOUT_MS) || 30000,
+    pdfResourceWaitTimeoutMs: Number(process.env.PDF_RESOURCE_WAIT_TIMEOUT_MS) || 12000,
   },
   db: {
     host: process.env.DB_HOST || 'localhost',

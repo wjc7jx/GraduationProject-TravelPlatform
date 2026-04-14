@@ -3,6 +3,64 @@ import api from '../../utils/api';
 
 type ExportScope = 'all' | 'public';
 
+/** PDF 由服务端 Puppeteer 生成，耗时长；downloadFile 在开发者工具/localhost 下易出现 ENOENT，故用 request arraybuffer + writeFile */
+const EXPORT_BINARY_TIMEOUT_MS = 180000;
+
+function parseErrorMessageFromArrayBuffer(ab: ArrayBuffer): string | null {
+  try {
+    const bytes = new Uint8Array(ab);
+    let txt = '';
+    for (let i = 0; i < bytes.length; i++) {
+      txt += String.fromCharCode(bytes[i]);
+    }
+    const j = JSON.parse(txt) as { message?: string; msg?: string };
+    return j.message || j.msg || null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRemoteBinaryToUserData(
+  url: string,
+  headers: Record<string, string>,
+  ext: 'pdf' | 'html',
+  timeoutMs: number
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url,
+      method: 'GET',
+      header: headers,
+      responseType: 'arraybuffer',
+      timeout: timeoutMs,
+      success(res) {
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          const hint = res.data
+            ? parseErrorMessageFromArrayBuffer(res.data as ArrayBuffer)
+            : null;
+          reject(new Error(hint || `请求失败(${res.statusCode})`));
+          return;
+        }
+        const data = res.data as ArrayBuffer;
+        if (!data || data.byteLength === 0) {
+          reject(new Error('导出文件为空'));
+          return;
+        }
+        const fs = wx.getFileSystemManager();
+        const safeExt = ext === 'pdf' ? 'pdf' : 'html';
+        const filePath = `${wx.env.USER_DATA_PATH}/export_${Date.now()}.${safeExt}`;
+        fs.writeFile({
+          filePath,
+          data,
+          success: () => resolve(filePath),
+          fail: (e) => reject(e),
+        });
+      },
+      fail: (e) => reject(e),
+    });
+  });
+}
+
 Page({
   data: {
     projectId: null as string | null,
@@ -162,36 +220,23 @@ Page({
     return `${base}&access_token=${encodeURIComponent(token)}`;
   },
 
-  getAuthHeader() {
+  getAuthHeader(): Record<string, string> {
     const token = wx.getStorageSync('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
   },
 
   async exportPdf(scope: ExportScope) {
     const url = this.buildExportUrl('pdf', scope);
-    wx.showLoading({ title: '正在导出PDF...', mask: true });
+    wx.showLoading({ title: '正在生成 PDF，请稍候…', mask: true });
 
     try {
-      const downloadRes = await new Promise<WechatMiniprogram.DownloadFileSuccessCallbackResult>((resolve, reject) => {
-        wx.downloadFile({
-          url,
-          header: this.getAuthHeader(),
-          success: resolve,
-          fail: reject
-        });
-      });
-
-      if (downloadRes.statusCode < 200 || downloadRes.statusCode >= 300) {
-        throw new Error(`导出失败(${downloadRes.statusCode})`);
-      }
-
-      const saveRes = await new Promise<any>((resolve, reject) => {
-        wx.getFileSystemManager().saveFile({
-          tempFilePath: downloadRes.tempFilePath,
-          success: resolve,
-          fail: reject
-        });
-      });
+      const filePath = await saveRemoteBinaryToUserData(
+        url,
+        this.getAuthHeader(),
+        'pdf',
+        EXPORT_BINARY_TIMEOUT_MS
+      );
 
       wx.hideLoading();
       wx.showModal({
@@ -202,7 +247,7 @@ Page({
         success: (modalRes) => {
           if (!modalRes.confirm) return;
           wx.openDocument({
-            filePath: saveRes.savedFilePath,
+            filePath,
             fileType: 'pdf',
             showMenu: true,
             fail: () => {
@@ -213,7 +258,14 @@ Page({
       });
     } catch (err) {
       wx.hideLoading();
-      wx.showToast({ title: 'PDF导出失败', icon: 'none' });
+      const msg = err && typeof err === 'object' && 'message' in err
+        ? String((err as Error).message)
+        : '';
+      wx.showToast({
+        title: msg && msg.length < 20 ? msg : 'PDF导出失败',
+        icon: 'none',
+        duration: 2500
+      });
       console.error('PDF export failed:', err);
     }
   },
@@ -242,26 +294,12 @@ Page({
         throw new Error('未获取到下载地址');
       }
 
-      const downloadRes = await new Promise<WechatMiniprogram.DownloadFileSuccessCallbackResult>((resolve, reject) => {
-        wx.downloadFile({
-          url: downloadUrl,
-          header: this.getAuthHeader(),
-          success: resolve,
-          fail: reject
-        });
-      });
-
-      if (downloadRes.statusCode < 200 || downloadRes.statusCode >= 300) {
-        throw new Error(`下载失败(${downloadRes.statusCode})`);
-      }
-
-      const saveRes = await new Promise<any>((resolve, reject) => {
-        wx.getFileSystemManager().saveFile({
-          tempFilePath: downloadRes.tempFilePath,
-          success: resolve,
-          fail: reject
-        });
-      });
+      const filePath = await saveRemoteBinaryToUserData(
+        downloadUrl,
+        this.getAuthHeader(),
+        'html',
+        EXPORT_BINARY_TIMEOUT_MS
+      );
 
       wx.hideLoading();
       wx.showModal({
@@ -279,7 +317,7 @@ Page({
           }
 
           wx.openDocument({
-            filePath: saveRes.savedFilePath,
+            filePath,
             showMenu: true,
             fail: () => {
               wx.showToast({ title: '打开失败，可在文件列表查看', icon: 'none' });

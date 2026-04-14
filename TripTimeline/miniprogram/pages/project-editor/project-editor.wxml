@@ -31,7 +31,7 @@
     <!-- 标题组 -->
     <view class="title-group">
       <input class="title-input" placeholder="这次旅程叫什么？" placeholder-class="title-placeholder" value="{{title}}" bindinput="onTitleInput" />
-      <input class="subtitle-input" placeholder="出发前，你想说一句话..." placeholder-class="subtitle-placeholder" value="{{subtitle}}" bindinput="onSubtitleInput" />
+      <input class="subtitle-input" placeholder="副标题..." placeholder-class="subtitle-placeholder" value="{{subtitle}}" bindinput="onSubtitleInput" />
     </view>
 
     <!-- 行程时间 -->

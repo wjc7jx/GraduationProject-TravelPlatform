@@ -610,44 +610,33 @@ Page({
     if (this.hasValidLocation({ lat: exif.latitude, lon: exif.longitude })) {
       const lat = Number(exif.latitude);
       const lon = Number(exif.longitude);
-      const hasManualLocationText = Boolean(
-        this.data.locationEditedByUser
-        && ((this.data.locationName || '').trim() || (this.data.locationAddress || '').trim())
-      );
-
-      const currentLocation = this.hasValidLocation(this.data.location)
-        ? this.data.location
-        : {};
-      const fallbackName = this.data.locationName || '图片识别定位';
+      const fallbackName = '图片识别定位';
+      const fallbackAddress = `纬度 ${lat.toFixed(6)}，经度 ${lon.toFixed(6)}`;
 
       this.setData({
         location: {
-          ...currentLocation,
-          name: this.data.locationName || currentLocation.name || fallbackName,
-          address: this.data.locationAddress || '',
+          name: fallbackName,
+          address: fallbackAddress,
           lat,
           lon
         },
-        locationName: this.data.locationName || currentLocation.name || fallbackName,
-        locationSearchKeyword: this.data.locationName || currentLocation.name || fallbackName,
+        locationName: fallbackName,
+        locationAddress: fallbackAddress,
+        locationSearchKeyword: fallbackName,
+        locationEditedByUser: false,
         locationExpanded: true
       });
       this.syncLocationMarker({
-        name: this.data.locationName || currentLocation.name || fallbackName,
-        address: this.data.locationAddress || '',
+        name: fallbackName,
+        address: fallbackAddress,
         lat,
         lon
       });
 
-      if (hasManualLocationText) {
-        this.setData({ autoFillHint: '已识别图片坐标，保留你手动填写的地点名称/地址' });
-        return;
-      }
-
       try {
         const key = config.map?.tencentKey;
         if (!key) {
-          this.setData({ autoFillHint: '已识别图片坐标，请先配置腾讯地图Key以自动反查地点' });
+          this.setData({ autoFillHint: '已识别图片坐标，未配置腾讯地图Key，已使用坐标覆盖地点信息' });
           return;
         }
 
@@ -658,12 +647,12 @@ Page({
         });
 
         if (!geocode) {
-          this.setData({ autoFillHint: '已识别图片坐标，但未查到具体地点，可手动填写' });
+          this.setData({ autoFillHint: '已识别图片坐标，但未查到具体地点，已使用坐标覆盖地点信息' });
           return;
         }
 
-        const locationName = geocode.title || this.data.locationName || fallbackName;
-        const locationAddress = geocode.address || this.data.locationAddress || '';
+        const locationName = geocode.title || fallbackName;
+        const locationAddress = geocode.address || fallbackAddress;
         const nextLocation = {
           name: locationName,
           address: locationAddress,
@@ -679,8 +668,10 @@ Page({
           autoFillHint: '已根据图片定位自动匹配地点，可手动调整'
         });
         this.syncLocationMarker(nextLocation);
+        return;
       } catch (error) {
-        this.setData({ autoFillHint: '已识别图片坐标，地点解析失败，可手动填写' });
+        this.setData({ autoFillHint: '已识别图片坐标，地点解析失败，已使用坐标覆盖地点信息' });
+        return;
       }
     } else {
       hint = '图片无定位信息，已保留手动填写';

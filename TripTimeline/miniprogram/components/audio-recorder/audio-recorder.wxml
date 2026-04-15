@@ -1,0 +1,79 @@
+<!-- components/audio-recorder/audio-recorder.wxml -->
+<view class="ar-container">
+
+  <!-- ════ IDLE ════ -->
+  <view wx:if="{{phase === 'idle'}}" class="ar-idle">
+    <view class="ar-idle-actions">
+      <view class="ar-idle-btn ar-idle-btn--rec" bindtap="startRecord">
+        <text class="ar-idle-btn-icon">🎙</text>
+        <text class="ar-idle-btn-label">录音</text>
+      </view>
+      <view class="ar-idle-sep"></view>
+      <view class="ar-idle-btn ar-idle-btn--file" bindtap="chooseFile">
+        <text class="ar-idle-btn-icon">📂</text>
+        <text class="ar-idle-btn-label">选择文件</text>
+      </view>
+    </view>
+    <text class="ar-idle-hint">支持 MP3 / M4A / WAV · 最长 60 秒</text>
+  </view>
+
+  <!-- ════ RECORDING ════ -->
+  <view wx:if="{{phase === 'recording'}}" class="ar-recording">
+    <view class="ar-mic-wrap" bindtap="stopRecord">
+      <view class="ar-mic-ripple ar-mic-ripple--1"></view>
+      <view class="ar-mic-ripple ar-mic-ripple--2"></view>
+      <view class="ar-mic-core">
+        <text class="ar-mic-emoji">🎙</text>
+      </view>
+    </view>
+    <view class="ar-rec-status">
+      <view class="ar-rec-dot"></view>
+      <text class="ar-rec-label">REC</text>
+      <text class="ar-rec-timer">{{recordingTimeDisplay}}</text>
+    </view>
+    <view class="ar-rec-track">
+      <view class="ar-rec-fill" style="width: {{recordingProgress}}%"></view>
+    </view>
+    <text class="ar-rec-hint">轻触麦克风停止 · 最长 1:00</text>
+  </view>
+
+  <!-- ════ UPLOADING ════ -->
+  <view wx:if="{{phase === 'uploading'}}" class="ar-uploading">
+    <view class="ar-spin-ring"></view>
+    <text class="ar-upload-text">{{uploadingText}}</text>
+  </view>
+
+  <!-- ════ READY — Custom Player ════ -->
+  <view wx:if="{{phase === 'ready'}}" class="ar-ready">
+    <view class="ar-player">
+      <view class="ar-play-btn {{isPlaying ? 'ar-play-btn--playing' : ''}}" bindtap="togglePlay">
+        <text class="ar-play-icon">{{isPlaying ? '⏸' : '▶'}}</text>
+      </view>
+      <view class="ar-player-body">
+        <text class="ar-filename">{{displayName}}</text>
+        <slider
+          class="ar-slider"
+          min="0"
+          max="{{duration > 0 ? duration : 1}}"
+          value="{{currentTime}}"
+          activeColor="#1f3d31"
+          backgroundColor="rgba(42,75,60,0.18)"
+          block-size="12"
+          bindchanging="onSliderChanging"
+          bindchange="onSliderChange"
+        />
+        <view class="ar-time-row">
+          <text class="ar-time-label">{{currentTimeDisplay}}</text>
+          <text class="ar-time-label">{{durationDisplay}}</text>
+        </view>
+      </view>
+      <view class="ar-delete-btn" bindtap="removeAudio">
+        <text class="ar-delete-icon">✕</text>
+      </view>
+    </view>
+    <view class="ar-change-row">
+      <view class="ar-change-btn" bindtap="changeAudio">更换音频</view>
+    </view>
+  </view>
+
+</view>

@@ -27,9 +27,6 @@ function visibilityLabel(visibility: VisibilityValue) {
 }
 
 Page({
-  recorderManager: null as any,
-  recordTicker: 0 as any,
-  recordStartMs: 0,
 
   hasValidLocation(location: any) {
     const lat = Number(location?.lat);
@@ -87,11 +84,8 @@ Page({
 
     // 音频
     audioFileName: '',
-    audioPath: '',
     audioUrl: '',
-    audioPreviewSrc: '',
-    isRecording: false,
-    recordingSeconds: 0,
+    audioValue: { url: '', name: '' } as { url: string; name: string },
 
     // 文字内容
     title: '',
@@ -124,8 +118,6 @@ Page({
       date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
       time: `${pad(now.getHours())}:${pad(now.getMinutes())}`
     });
-
-    this.initRecorder();
 
     if (this.data.isEditMode && this.data.projectId && this.data.contentId) {
       this.loadExistingContent(this.data.projectId, this.data.contentId);
@@ -289,9 +281,10 @@ Page({
         } : null,
         existingLocationId: target.location_id || null,
         audioUrl,
-        audioPath: audioUrl ? this.asAbsoluteUrl(audioUrl) : '',
         audioFileName: payload.audio?.name || '',
-        audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : ''
+        audioValue: audioUrl
+          ? { url: audioUrl, name: payload.audio?.name || '音频文件' }
+          : { url: '', name: '' }
       });
 
       // 初始化如果编辑器已 ready
@@ -310,57 +303,7 @@ Page({
     }
   },
 
-  onUnload() {
-    if (this.recordTicker) {
-      clearInterval(this.recordTicker);
-      this.recordTicker = 0;
-    }
-    if (this.data.isRecording && this.recorderManager) {
-      this.recorderManager.stop();
-    }
-  },
-
-  initRecorder() {
-    this.recorderManager = wx.getRecorderManager();
-
-    this.recorderManager.onStop(async (res: any) => {
-      if (this.recordTicker) {
-        clearInterval(this.recordTicker);
-        this.recordTicker = 0;
-      }
-
-      const filename = `record-${Date.now()}.mp3`;
-      this.setData({
-        isRecording: false,
-        audioPath: res.tempFilePath,
-        audioFileName: filename,
-        audioPreviewSrc: res.tempFilePath
-      });
-
-      try {
-        wx.showLoading({ title: '上传音频中...', mask: true });
-        const uploaded = await this.uploadFile(res.tempFilePath, api.upload);
-        wx.hideLoading();
-        this.setData({
-          audioUrl: uploaded?.url || '',
-          audioPreviewSrc: uploaded?.url ? this.asAbsoluteUrl(uploaded.url) : res.tempFilePath
-        });
-        wx.showToast({ title: '录音已保存', icon: 'success' });
-      } catch (error) {
-        wx.hideLoading();
-        wx.showToast({ title: '上传失败，保存时重试', icon: 'none' });
-      }
-    });
-
-    this.recorderManager.onError(() => {
-      if (this.recordTicker) {
-        clearInterval(this.recordTicker);
-        this.recordTicker = 0;
-      }
-      this.setData({ isRecording: false });
-      wx.showToast({ title: '录音失败', icon: 'none' });
-    });
-  },
+  onUnload() {},
 
   bindDateChange(e: any) {
     this.setData({ date: e.detail.value });
@@ -560,102 +503,24 @@ Page({
   },
 
   toggleAudioPanel() {
+    this.setData({ showAudioPanel: !this.data.showAudioPanel });
+  },
+
+  onAudioChange(e: any) {
+    const { url, name } = e.detail as { url: string; name: string };
     this.setData({
-      showAudioPanel: !this.data.showAudioPanel
+      audioUrl: url,
+      audioFileName: name,
+      audioValue: { url, name }
     });
   },
 
-  chooseAudio() {
-    (wx as any).chooseMessageFile({
-      count: 1,
-      type: 'file',
-      extension: ['mp3', 'm4a', 'wav', 'aac'],
-      success: async (res: any) => {
-        const file = res.tempFiles?.[0];
-        if (!file) return;
-
-        this.setData({
-          contentType: 'audio',
-          audioPath: file.path,
-          audioFileName: file.name || 'audio',
-          audioPreviewSrc: file.path
-        });
-
-        try {
-          const uploaded = await this.uploadFile(file.path, api.upload);
-          this.setData({
-            audioUrl: uploaded?.url || '',
-            audioPreviewSrc: uploaded?.url ? this.asAbsoluteUrl(uploaded.url) : file.path
-          });
-        } catch (error) {
-          wx.showToast({ title: '音频上传失败', icon: 'none' });
-        }
-      }
+  onAudioRemove() {
+    this.setData({
+      audioUrl: '',
+      audioFileName: '',
+      audioValue: { url: '', name: '' }
     });
-  },
-
-  async startRecordAudio() {
-    if (this.data.isRecording) return;
-
-    try {
-      await new Promise<void>((resolve, reject) => {
-        wx.authorize({
-          scope: 'scope.record',
-          success: () => resolve(),
-          fail: () => reject(new Error('no auth'))
-        });
-      });
-    } catch (error) {
-      wx.showModal({
-        title: '需要麦克风权限',
-        content: '请在设置中允许录音权限后重试',
-        showCancel: true,
-        success: (res) => {
-          if (res.confirm) wx.openSetting({});
-        }
-      });
-      return;
-    }
-
-    this.setData({ contentType: 'audio', isRecording: true, recordingSeconds: 0 });
-    this.recordStartMs = Date.now();
-
-    if (this.recordTicker) clearInterval(this.recordTicker);
-
-    this.recordTicker = setInterval(() => {
-      const passed = Math.floor((Date.now() - this.recordStartMs) / 1000);
-      this.setData({ recordingSeconds: passed });
-      if (passed >= 60) this.stopRecordAudio();
-    }, 500);
-
-    this.recorderManager.start({
-      duration: 60000,
-      sampleRate: 44100,
-      numberOfChannels: 1,
-      encodeBitRate: 96000,
-      format: 'mp3'
-    });
-  },
-
-  stopRecordAudio() {
-    if (!this.data.isRecording || !this.recorderManager) return;
-    this.recorderManager.stop();
-  },
-
-  onStartRecordTap() {
-    if (this.data.isRecording) {
-      wx.showToast({ title: '正在录音中', icon: 'none' });
-      return;
-    }
-    this.startRecordAudio();
-  },
-
-  onStopRecordTap() {
-    if (!this.data.isRecording) {
-      wx.showToast({ title: '当前未在录音', icon: 'none' });
-      return;
-    }
-    this.stopRecordAudio();
   },
 
   asAbsoluteUrl(url: string) {
@@ -810,20 +675,6 @@ Page({
     return this.uploadFile(filePath, `${api.upload}/photo`);
   },
 
-  removeAudio() {
-    if (this.data.isRecording) {
-      this.stopRecordAudio();
-    }
-
-    this.setData({
-      audioFileName: '',
-      audioPath: '',
-      audioUrl: '',
-      audioPreviewSrc: '',
-      recordingSeconds: 0,
-    });
-  },
-
   onTitleInput(e: any) {
     this.setData({ title: e.detail.value });
   },
@@ -874,14 +725,7 @@ Page({
         return;
       }
 
-      let audioUrl = this.data.audioUrl;
-
-      // 如果选了音频还没上传的话，开始上传
-      if (this.data.showAudioPanel && !audioUrl && this.data.audioPath) {
-        const uploaded = await this.uploadFile(this.data.audioPath, api.upload);
-        audioUrl = uploaded?.url || '';
-        this.setData({ audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : this.data.audioPath });
-      }
+      const audioUrl = this.data.audioUrl;
 
       const logTime = `${this.data.date} ${this.data.time}:00`;
 

@@ -235,62 +235,23 @@
     }
 
     .asset-section {
-      padding: 22rpx;
+      padding: 20rpx 24rpx 24rpx;
       display: flex;
       flex-direction: column;
-      gap: 14rpx;
+      gap: 8rpx;
     }
 
-    .asset-actions-row {
+    .asset-section-header {
       display: flex;
-      gap: 12rpx;
+      align-items: center;
+      gap: 8rpx;
     }
 
-    .asset-action {
-      border-radius: 14rpx;
-      border: 2rpx solid #d6cec2;
-      background: #f4efe5;
-      color: #2a4b3c;
-      text-align: center;
-      padding: 18rpx 20rpx;
-      font-size: 25rpx;
-      font-weight: 700;
-    }
-
-    .asset-action.half {
-      flex: 1;
-    }
-
-    .asset-action.stop {
-      border-color: #e4cabf;
-      background: #fbeee8;
-      color: #964d34;
-    }
-
-    .asset-action.danger {
-      border-color: #e9c1b4;
-      background: #fde9e3;
-      color: #a1432a;
-    }
-
-    .asset-action.disabled {
-      opacity: 0.48;
-    }
-
-    .recording-tip {
+    .asset-section-title {
       font-size: 24rpx;
-      color: #a24f32;
+      font-weight: 700;
+      color: #2a4b3c;
       letter-spacing: 1rpx;
-    }
-
-    .asset-result {
-      font-size: 23rpx;
-      color: #5f5a53;
-      word-break: break-all;
-    }
-
-    .audio-player {
-      width: 100%;
     }
 
     .track-map {

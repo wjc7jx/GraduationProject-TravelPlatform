@@ -30,17 +30,14 @@
 
     <!-- 音频附件区 -->
     <view wx:if="{{showAudioPanel}}" class="asset-section form-card">
-      <view class="asset-actions-row">
-        <view class="asset-action half {{isRecording ? 'disabled' : ''}}" bindtap="onStartRecordTap">开始录音</view>
-        <view class="asset-action half stop {{!isRecording ? 'disabled' : ''}}" bindtap="onStopRecordTap">结束录音</view>
+      <view class="asset-section-header">
+        <text class="asset-section-title">🎙 音频</text>
       </view>
-      <view class="recording-tip" wx:if="{{isRecording}}">正在收录环境音... {{recordingSeconds}}″</view>
-      <view class="asset-actions-row">
-        <view class="asset-action half" bindtap="chooseAudio">选择音频文件</view>
-        <view class="asset-action half danger {{(!audioPath && !audioUrl && !audioFileName) ? 'disabled' : ''}}" bindtap="removeAudio">移除音频</view>
-      </view>
-      <view wx:if="{{audioFileName}}" class="asset-result">已选择：{{audioFileName}}</view>
-      <audio wx:if="{{audioPreviewSrc}}" class="audio-player" src="{{audioPreviewSrc}}" controls></audio>
+      <audio-recorder
+        value="{{audioValue}}"
+        bindaudiochange="onAudioChange"
+        bindaudioremove="onAudioRemove"
+      />
     </view>
 
     <!-- 时间 & 地点信息卡 -->

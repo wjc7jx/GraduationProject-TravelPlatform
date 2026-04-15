@@ -2,6 +2,7 @@
   "navigationBarTitleText": "新建记录",
   "navigationStyle": "custom",
   "usingComponents": {
-    "navigation-bar": "../../components/navigation-bar/navigation-bar"
+    "navigation-bar": "../../components/navigation-bar/navigation-bar",
+    "audio-recorder": "../../components/audio-recorder/audio-recorder"
   }
 }

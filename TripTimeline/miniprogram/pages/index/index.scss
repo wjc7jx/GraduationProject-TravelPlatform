@@ -87,7 +87,7 @@ page {
 
 .card-label {
   position: absolute;
-  top: 24rpx;
+  top: 74rpx;
   right: 24rpx;
   background: var(--bg-base);
   color: var(--color-primary);
@@ -98,6 +98,26 @@ page {
   letter-spacing: 2rpx;
   text-transform: uppercase;
   mix-blend-mode: hard-light;
+}
+
+.pin-btn {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.9);
+  background: rgba(28, 28, 28, 0.45);
+  color: #fff;
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+  z-index: 3;
+}
+
+.pin-btn.is-pinned {
+  background: rgba(255, 248, 225, 0.95);
+  color: #8d6e00;
+  border-color: rgba(141, 110, 0, 0.35);
 }
 
 .archived-badge {

@@ -14,7 +14,7 @@ export async function listProjects(userId) {
       user_id: userId,
       is_deleted: 0 
     }, 
-    order: [['created_at', 'DESC']] 
+    order: [['is_pinned', 'DESC'], ['pinned_at', 'DESC'], ['created_at', 'DESC']] 
   });
 }
 
@@ -102,6 +102,23 @@ export async function deleteProject(projectId, userId) {
   return project.update({ 
     is_deleted: 1,
     deleted_at: new Date()
+  });
+}
+
+export async function setProjectPinned(projectId, userId, payload) {
+  const project = await getProjectOrThrow(projectId, userId);
+  const { is_pinned } = payload || {};
+  const nextPinned = Number(is_pinned);
+
+  if (![0, 1].includes(nextPinned)) {
+    const err = new Error('置顶状态参数无效');
+    err.status = 400;
+    throw err;
+  }
+
+  return project.update({
+    is_pinned: nextPinned,
+    pinned_at: nextPinned === 1 ? new Date() : null,
   });
 }
 

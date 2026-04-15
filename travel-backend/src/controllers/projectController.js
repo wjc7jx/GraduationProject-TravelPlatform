@@ -4,6 +4,7 @@ import {
   updateProject,
   deleteProject,
   getProjectById,
+  setProjectPinned,
   getTimelineMapOverview,
 } from '../services/projectService.js';
 import { sendSuccess } from '../utils/response.js';
@@ -60,6 +61,16 @@ export async function removeProject(req, res, next) {
     const { id } = req.params;
     await deleteProject(id, req.user.user_id);
     sendSuccess(res, null, '删除项目成功');
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function pinProject(req, res, next) {
+  try {
+    const { id } = req.params;
+    const project = await setProjectPinned(id, req.user.user_id, req.body);
+    sendSuccess(res, project, Number(project.is_pinned) === 1 ? '项目置顶成功' : '已取消置顶');
   } catch (error) {
     next(error);
   }

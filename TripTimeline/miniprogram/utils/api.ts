@@ -16,6 +16,7 @@ export default {
     exportHtml: (id: string) => `/projects/${id}/exports/html`,
     exportPdf: (id: string) => `/projects/${id}/exports/pdf`,
     update: (id: string) => `/projects/${id}`,
+    pin: (id: string) => `/projects/${id}/pin`,
     delete: (id: string) => `/projects/${id}`
   },
   // 节点(内容)模块

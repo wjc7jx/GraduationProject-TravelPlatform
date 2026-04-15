@@ -38,6 +38,15 @@ export function initProject(sequelize) {
         type: DataTypes.STRING(100),
         allowNull: true,
       },
+      is_pinned: {
+        type: DataTypes.TINYINT,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      pinned_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
       is_archived: {
         type: DataTypes.TINYINT,
         allowNull: false,
@@ -64,6 +73,7 @@ export function initProject(sequelize) {
       indexes: [
         { fields: ['user_id'] },
         { fields: ['user_id', 'updated_at'] },
+        { fields: ['user_id', 'is_pinned', 'pinned_at'] },
         { fields: ['is_archived', 'is_deleted'] },
       ],
     }

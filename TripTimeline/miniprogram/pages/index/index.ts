@@ -25,6 +25,27 @@ Component({
     }
   },
   methods: {
+    applyCardStyles(projects: any[]) {
+      const styles = ['card-large', 'card-medium right', 'card-medium left']
+      return projects.map((project, index) => ({
+        ...project,
+        style: styles[index % styles.length]
+      }))
+    },
+
+    sortProjectsByPinned(projects: any[]) {
+      const pinned: any[] = []
+      const normal: any[] = []
+      projects.forEach((item) => {
+        if (item.isPinned) {
+          pinned.push(item)
+        } else {
+          normal.push(item)
+        }
+      })
+      return [...pinned, ...normal]
+    },
+
     async checkAuthAndLoad() {
       const token = wx.getStorageSync('token')
       if (token) {
@@ -64,14 +85,12 @@ Component({
           url: api.project.list,
           method: 'GET'
         })
-        
-        // 样式数组，循环赋给项目卡片呈现不对称排版
-        const styles = ["card-large", "card-medium right", "card-medium left"]
-        
-        const projects = res.map((p, i) => {
+
+        const baseProjects = res.map((p) => {
           return {
             id: p.project_id,
             isArchived: Number(p.is_archived) === 1,
+            isPinned: Number(p.is_pinned) === 1,
             title: p.title,
             subtitle: p.tags ? p.tags.split(',').join(' ') : '',
             date: `${p.start_date.replace(/-/g, '.')} - ${p.end_date ? p.end_date.replace(/-/g, '.') : '至今'}`,
@@ -80,10 +99,10 @@ Component({
                 ? asAbsoluteAssetUrl(p.cover_image) 
               : '',
             locationCount: 0,
-            style: styles[i % styles.length]
           }
         })
-        
+
+        const projects = this.applyCardStyles(this.sortProjectsByPinned(baseProjects))
         this.setData({ projects, isLoading: false })
       } catch (err) {
         console.error('加载项目列表失败', err)
@@ -105,6 +124,42 @@ Component({
         url: `/pages/project-detail/project-detail?id=${id}`,
       })
     },
+
+    async onPinTap(e: any) {
+      const id = String(e.currentTarget.dataset.id || '')
+      if (!id) return
+
+      const currentPinned = Number(e.currentTarget.dataset.pinned) === 1
+      const nextPinned = currentPinned ? 0 : 1
+      const previousProjects = this.data.projects
+
+      const updated = previousProjects.map((item: any) => {
+        if (String(item.id) !== id) return item
+        return {
+          ...item,
+          isPinned: nextPinned === 1
+        }
+      })
+
+      this.setData({
+        projects: this.applyCardStyles(this.sortProjectsByPinned(updated))
+      })
+
+      try {
+        await request({
+          url: api.project.pin(id),
+          method: 'PATCH',
+          data: { is_pinned: nextPinned }
+        })
+        wx.showToast({
+          title: nextPinned === 1 ? '已置顶' : '已取消置顶',
+          icon: 'success'
+        })
+      } catch (e) {
+        this.setData({ projects: previousProjects })
+      }
+    },
+
     // 长按项目卡片进行管理操作
     async onProjectLongPress(e: any) {
       const id = e.currentTarget.dataset.id

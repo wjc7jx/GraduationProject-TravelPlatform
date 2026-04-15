@@ -34,6 +34,7 @@
       <view class="project-card {{item.style}} {{item.isArchived ? 'is-archived' : ''}} fade-up" style="animation-delay: {{0.2 + index * 0.1}}s" bindtap="goToDetail" bindlongpress="onProjectLongPress" data-id="{{item.id}}">
         <view class="card-image-wrap">
           <image class="card-image" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
+          <view class="pin-btn {{item.isPinned ? 'is-pinned' : ''}}" catchtap="onPinTap" data-id="{{item.id}}" data-pinned="{{item.isPinned ? 1 : 0}}">{{item.isPinned ? '取消置顶' : '置顶'}}</view>
           <view class="card-label">{{item.label}}</view>
           <view wx:if="{{item.isArchived}}" class="archived-badge">已归档</view>
         </view>

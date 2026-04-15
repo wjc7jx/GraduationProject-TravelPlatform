@@ -142,7 +142,8 @@ Page({
           title: res.title || '无标题',
           subtitle: res.subtitle || res.tags || '',
           cover: cover,
-          date: dateStr
+          date: dateStr,
+          isArchived: Number(res.is_archived) === 1
         },
         'stats.days': days
       });
@@ -170,6 +171,10 @@ Page({
 
   // 新建日记/足迹 (即现有的 editor)
   goToEditor() {
+    if (this.data.projectDetail?.isArchived) {
+      wx.showToast({ title: '项目已归档，请先取消归档', icon: 'none' });
+      return;
+    }
     wx.navigateTo({
       url: `/pages/editor/editor?projectId=${this.data.projectId}`,
     })
@@ -177,9 +182,96 @@ Page({
 
   // 编辑当前项目
   goToProjectEditor() {
+    if (this.data.projectDetail?.isArchived) {
+      wx.showToast({ title: '项目已归档，请先取消归档', icon: 'none' });
+      return;
+    }
     wx.navigateTo({
       url: `/pages/project-editor/project-editor?id=${this.data.projectId}`,
     })
+  },
+
+  onManageProjectTap() {
+    const isArchived = !!this.data.projectDetail?.isArchived;
+    const itemList = isArchived
+      ? ['取消归档', '删除项目']
+      : ['编辑项目', '归档项目', '删除项目'];
+
+    wx.showActionSheet({
+      itemList,
+      itemColor: '#1C1C1C',
+      success: async (res) => {
+        if (!isArchived && res.tapIndex === 0) {
+          this.goToProjectEditor();
+          return;
+        }
+
+        if ((isArchived && res.tapIndex === 0) || (!isArchived && res.tapIndex === 1)) {
+          const nextArchived = isArchived ? 0 : 1;
+
+          // 仅归档时需要确认提示，取消归档直接执行
+          if (!isArchived) {
+            wx.showModal({
+              title: '确认归档',
+              content: '归档后项目将进入只读状态，可稍后再取消归档恢复编辑。',
+              confirmColor: '#2A4B3C',
+              success: async (mRes) => {
+                if (!mRes.confirm) return;
+                await this.updateArchiveStatus(nextArchived);
+              }
+            });
+            return;
+          }
+
+          await this.updateArchiveStatus(nextArchived);
+          return;
+        }
+
+        const deleteTapIndex = isArchived ? 1 : 2;
+        if (res.tapIndex === deleteTapIndex) {
+          wx.showModal({
+            title: '确认删除',
+            content: '删除后无法恢复，确定要删除吗？',
+            confirmColor: '#E53935',
+            success: async (mRes) => {
+              if (!mRes.confirm) return;
+              await this.deleteCurrentProject();
+            }
+          });
+        }
+      }
+    });
+  },
+
+  async updateArchiveStatus(nextArchived: number) {
+    const projectId = this.data.projectId as string;
+    try {
+      await request({
+        url: api.project.update(projectId),
+        method: 'PUT',
+        data: { is_archived: nextArchived }
+      });
+      wx.showToast({ title: nextArchived === 1 ? '已归档' : '已取消归档', icon: 'success' });
+      await this.fetchProjectDetail(projectId);
+    } catch (e) {
+      // utils/request 已自动弹出错误提示
+    }
+  },
+
+  async deleteCurrentProject() {
+    const projectId = this.data.projectId as string;
+    try {
+      await request({
+        url: api.project.delete(projectId),
+        method: 'DELETE'
+      });
+      wx.showToast({ title: '已删除', icon: 'success' });
+      setTimeout(() => {
+        wx.switchTab({ url: '/pages/index/index' });
+      }, 300);
+    } catch (e) {
+      // utils/request 已自动弹出错误提示
+    }
   },
 
   onExportTap() {

@@ -59,6 +59,21 @@ export async function getProjectOrThrow(projectId, userId) {
 export async function updateProject(projectId, userId, payload) {
   const project = await getProjectOrThrow(projectId, userId);
   const { title, subtitle, cover_image, start_date, end_date, tags, is_archived } = payload;
+  const nextArchived = is_archived !== undefined ? Number(is_archived) : undefined;
+  const hasEditableFieldChanges = [title, subtitle, cover_image, start_date, end_date, tags]
+    .some((value) => value !== undefined);
+
+  if (nextArchived !== undefined && ![0, 1].includes(nextArchived)) {
+    const err = new Error('归档状态参数无效');
+    err.status = 400;
+    throw err;
+  }
+
+  if (Number(project.is_archived) === 1 && hasEditableFieldChanges) {
+    const err = new Error('项目已归档，不能修改项目信息，请先取消归档');
+    err.status = 403;
+    throw err;
+  }
   
   if (title !== undefined && !title) {
     const err = new Error('旅行名称不能为空');
@@ -78,7 +93,7 @@ export async function updateProject(projectId, userId, payload) {
     start_date: start_date !== undefined ? start_date : project.start_date,
     end_date: end_date !== undefined ? end_date : project.end_date,
     tags: tags !== undefined ? tags : project.tags,
-    is_archived: is_archived !== undefined ? is_archived : project.is_archived,
+    is_archived: nextArchived !== undefined ? nextArchived : project.is_archived,
   });
 }
 

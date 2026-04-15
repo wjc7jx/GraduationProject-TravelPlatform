@@ -2,6 +2,14 @@ import { Content, Location } from '../models/index.js';
 import { getProjectOrThrow } from './projectService.js';
 import { filterViewableContents } from './privacyService.js';
 
+function ensureProjectEditable(project) {
+  if (Number(project.is_archived) === 1) {
+    const err = new Error('项目已归档，不能修改内容，请先取消归档');
+    err.status = 403;
+    throw err;
+  }
+}
+
 export async function listContents(projectId, userId) {
   const project = await getProjectOrThrow(projectId, userId);
   const contents = await Content.findAll({
@@ -28,6 +36,7 @@ export async function listContents(projectId, userId) {
 
 export async function createContent(projectId, userId, payload) {
   const project = await getProjectOrThrow(projectId, userId);
+  ensureProjectEditable(project);
   const { content_type, content_data, record_time, sort_order, location } = payload;
   let { location_id } = payload;
 
@@ -76,6 +85,8 @@ export async function getContentOrThrow(projectId, contentId, userId) {
 }
 
 export async function updateContent(projectId, contentId, userId, payload) {
+  const project = await getProjectOrThrow(projectId, userId);
+  ensureProjectEditable(project);
   const content = await getContentOrThrow(projectId, contentId, userId);
   const { content_type, content_data, record_time, location_id, sort_order } = payload;
   
@@ -89,6 +100,8 @@ export async function updateContent(projectId, contentId, userId, payload) {
 }
 
 export async function deleteContent(projectId, contentId, userId) {
+  const project = await getProjectOrThrow(projectId, userId);
+  ensureProjectEditable(project);
   const content = await getContentOrThrow(projectId, contentId, userId);
   return content.update({
     is_deleted: 1,

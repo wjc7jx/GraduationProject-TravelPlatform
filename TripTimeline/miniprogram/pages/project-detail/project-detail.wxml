@@ -6,14 +6,15 @@
     <view class="back-btn" bindtap="goBack">
       <view class="back-icon">←</view>
     </view>
-    <view class="edit-btn" bindtap="goToProjectEditor">
-      <view class="edit-icon">编辑</view>
+    <view class="edit-btn" bindtap="onManageProjectTap">
+      <view class="edit-icon">管理</view>
     </view>
     <image class="cover-image" src="{{projectDetail.cover}}" mode="aspectFill"></image>
     <view class="overlay">
       <view class="project-info">
         <text class="date">{{projectDetail.date}}</text>
         <text class="title">{{projectDetail.title}}</text>
+        <text wx:if="{{projectDetail.isArchived}}" class="archive-tag">已归档</text>
         <text class="subtitle">{{projectDetail.subtitle}}</text>
       </view>
     </view>
@@ -32,7 +33,7 @@
     </view>
 
     <!-- 新建打卡内容 -->
-    <view class="action-card secondary" bindtap="goToEditor">
+    <view wx:if="{{!projectDetail.isArchived}}" class="action-card secondary" bindtap="goToEditor">
       <view class="icon">✍️</view>
       <view class="text-group">
         <text class="main">写新日志</text>
@@ -72,7 +73,7 @@
   </view>
 
   <!-- 单一入口：直接进入统一 editor -->
-  <view class="fab-container">
+  <view wx:if="{{!projectDetail.isArchived}}" class="fab-container">
     <view class="fab-trigger" bindtap="goToEditor">
       <view class="fab-cross">✍</view>
     </view>

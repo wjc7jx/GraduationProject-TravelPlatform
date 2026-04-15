@@ -71,6 +71,7 @@ Component({
         const projects = res.map((p, i) => {
           return {
             id: p.project_id,
+            isArchived: Number(p.is_archived) === 1,
             title: p.title,
             subtitle: p.tags ? p.tags.split(',').join(' ') : '',
             date: `${p.start_date.replace(/-/g, '.')} - ${p.end_date ? p.end_date.replace(/-/g, '.') : '至今'}`,
@@ -105,22 +106,50 @@ Component({
       })
     },
     // 长按项目卡片进行管理操作
-    onProjectLongPress(e: any) {
+    async onProjectLongPress(e: any) {
       const id = e.currentTarget.dataset.id
+      const project = this.data.projects.find((item: any) => String(item.id) === String(id))
+      if (!project) return
+
+      const isArchived = !!project.isArchived
+      const itemList = isArchived
+        ? ['取消归档', '删除项目']
+        : ['编辑项目', '归档项目', '删除项目']
+
       wx.showActionSheet({
-        itemList: ['编辑项目', '归档项目', '删除项目'],
+        itemList,
         itemColor: '#1C1C1C',
-        success: (res) => {
-          if (res.tapIndex === 0) {
-            // 编辑
+        success: async (res) => {
+          if (!isArchived && res.tapIndex === 0) {
             wx.navigateTo({
               url: `/pages/project-editor/project-editor?id=${id}`
             })
-          } else if (res.tapIndex === 1) {
-            // 归档 (可后续增加接口调用)
-            wx.showToast({ title: '功能开发中', icon: 'none' })
-          } else if (res.tapIndex === 2) {
-            // 删除
+            return
+          }
+
+          if ((isArchived && res.tapIndex === 0) || (!isArchived && res.tapIndex === 1)) {
+            const nextArchived = isArchived ? 0 : 1
+
+            // 仅归档时需要确认提示，取消归档直接执行
+            if (!isArchived) {
+              wx.showModal({
+                title: '确认归档',
+                content: '归档后项目将进入只读状态，可稍后再取消归档恢复编辑。',
+                confirmColor: '#2A4B3C',
+                success: async (mRes) => {
+                  if (!mRes.confirm) return
+                  await this.updateArchiveStatus(id, nextArchived)
+                }
+              })
+              return
+            }
+
+            await this.updateArchiveStatus(id, nextArchived)
+            return
+          }
+
+          const deleteTapIndex = isArchived ? 1 : 2
+          if (res.tapIndex === deleteTapIndex) {
             wx.showModal({
               title: '确认删除',
               content: '删除后无法恢复，确定要删除吗？',
@@ -140,6 +169,23 @@ Component({
           }
         }
       })
+    },
+
+    async updateArchiveStatus(id: string, nextArchived: number) {
+      try {
+        await request({
+          url: api.project.update(id),
+          method: 'PUT',
+          data: { is_archived: nextArchived }
+        })
+        wx.showToast({
+          title: nextArchived === 1 ? '已归档' : '已取消归档',
+          icon: 'success'
+        })
+        await this.loadProjects()
+      } catch (e) {
+        // utils/request 已自动弹出错误提示
+      }
     }
   }
 })

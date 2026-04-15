@@ -54,6 +54,17 @@ page {
   flex-direction: column;
 }
 
+.project-card.is-archived {
+  .card-image-wrap {
+    filter: saturate(0.75) brightness(0.92);
+  }
+
+  .card-title,
+  .card-subtitle {
+    opacity: 0.75;
+  }
+}
+
 .card-image-wrap {
   position: relative;
   border-radius: var(--radius-sm);
@@ -87,6 +98,18 @@ page {
   letter-spacing: 2rpx;
   text-transform: uppercase;
   mix-blend-mode: hard-light;
+}
+
+.archived-badge {
+  position: absolute;
+  top: 24rpx;
+  left: 24rpx;
+  background: rgba(28, 28, 28, 0.75);
+  color: #fff;
+  font-size: 20rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  letter-spacing: 1rpx;
 }
 
 .card-content {

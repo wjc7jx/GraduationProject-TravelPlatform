@@ -85,6 +85,17 @@
       font-family: var(--font-serif);
       margin-bottom: 8rpx;
     }
+    .archive-tag {
+      align-self: flex-start;
+      margin-bottom: 10rpx;
+      background: rgba(255, 255, 255, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 999rpx;
+      color: #fff;
+      font-size: 22rpx;
+      padding: 6rpx 16rpx;
+      letter-spacing: 1rpx;
+    }
     .subtitle {
       font-size: 28rpx;
       opacity: 0.9;

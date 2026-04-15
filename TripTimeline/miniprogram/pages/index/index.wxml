@@ -31,10 +31,11 @@
   <!-- 瀑布流/非对称卡片展示 -->
   <view wx:else class="gallery-container">
     <block wx:for="{{projects}}" wx:key="id">
-      <view class="project-card {{item.style}} fade-up" style="animation-delay: {{0.2 + index * 0.1}}s" bindtap="goToDetail" bindlongpress="onProjectLongPress" data-id="{{item.id}}">
+      <view class="project-card {{item.style}} {{item.isArchived ? 'is-archived' : ''}} fade-up" style="animation-delay: {{0.2 + index * 0.1}}s" bindtap="goToDetail" bindlongpress="onProjectLongPress" data-id="{{item.id}}">
         <view class="card-image-wrap">
           <image class="card-image" src="{{item.cover}}" mode="aspectFill" lazy-load></image>
           <view class="card-label">{{item.label}}</view>
+          <view wx:if="{{item.isArchived}}" class="archived-badge">已归档</view>
         </view>
         
         <view class="card-content">

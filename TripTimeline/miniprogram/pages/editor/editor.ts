@@ -7,6 +7,7 @@ import {
   TencentMapSuggestion
 } from '../../utils/tencentMap';
 import { readAndParseExif } from '../../utils/exif';
+import { fetchProjectArchivedState, guardArchivedWrite } from '../../utils/projectArchive';
 
 type VisibilityValue = 1 | 2 | 3;
 type PrivacyMode = 'inherit' | 'custom';
@@ -46,6 +47,7 @@ Page({
   data: {
     projectId: '',
     contentId: '',
+    isProjectArchived: false,
     isEditMode: false,
     existingLocationId: null as number | null,
     pageTitle: '新建记录',
@@ -124,6 +126,27 @@ Page({
       this.loadContentPrivacy(this.data.projectId, this.data.contentId);
     } else if (this.data.projectId) {
       this.loadProjectPrivacy(this.data.projectId);
+    }
+  },
+
+  async onShow() {
+    if (!this.data.projectId) return;
+    try {
+      const isProjectArchived = await fetchProjectArchivedState(this.data.projectId);
+      this.setData({ isProjectArchived });
+      if (isProjectArchived) {
+        wx.showToast({ title: '项目已归档，请先取消归档', icon: 'none' });
+        setTimeout(() => {
+          wx.navigateBack({
+            delta: 1,
+            fail: () => {
+              wx.switchTab({ url: '/pages/index/index' });
+            }
+          });
+        }, 250);
+      }
+    } catch (error) {
+      this.setData({ isProjectArchived: false });
     }
   },
 
@@ -765,6 +788,10 @@ Page({
 
   async saveEntry() {
     if (this.data.submitStatus === 'loading') return;
+
+    if (!guardArchivedWrite(!!this.data.isProjectArchived)) {
+      return;
+    }
 
     if (!this.data.title && !this.data.content) {
       wx.vibrateShort({ type: 'medium' });

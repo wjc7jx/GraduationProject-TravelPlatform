@@ -1,9 +1,11 @@
 import { request, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
+import { guardArchivedWrite, normalizeProjectArchived } from '../../utils/projectArchive';
 
 Page({
   data: {
     projectId: null,
+    isProjectArchived: false,
     timelineTitle: '时间地图',
     centerLon: 116.404,
     centerLat: 39.915,
@@ -53,6 +55,7 @@ Page({
       });
       this.setData({
         projectDetail: res,
+        isProjectArchived: normalizeProjectArchived(res?.is_archived),
         timelineTitle: res?.title || '时间地图',
       });
     } catch(e) {}
@@ -271,8 +274,10 @@ Page({
     if (!node || !projectId) {
       return;
     }
+    const isProjectArchived = !!this.data.isProjectArchived;
+    const itemList = isProjectArchived ? ['查看记录'] : ['查看记录', '编辑记录', '删除记录'];
     wx.showActionSheet({
-      itemList: ['查看记录', '编辑记录', '删除记录'],
+      itemList,
       itemColor: '#1C1C1C',
       success: async (res) => {
         if (res.tapIndex === 0) {
@@ -282,14 +287,14 @@ Page({
           return;
         }
 
-        if (res.tapIndex === 1) {
+        if (!isProjectArchived && res.tapIndex === 1) {
           wx.navigateTo({
             url: `/pages/editor/editor?projectId=${projectId}&contentId=${node.id}`
           });
           return;
         }
 
-        if (res.tapIndex === 2) {
+        if (!isProjectArchived && res.tapIndex === 2) {
           wx.showModal({
             title: '确认删除',
             content: `确定删除「${node.title || '该记录'}」吗？删除后不可恢复。`,
@@ -384,6 +389,9 @@ Page({
   goToEditor() {
     if (!this.data.projectId) {
       wx.showToast({ title: '请先进入具体项目后再新增记录', icon: 'none' });
+      return;
+    }
+    if (!guardArchivedWrite(!!this.data.isProjectArchived)) {
       return;
     }
     wx.navigateTo({

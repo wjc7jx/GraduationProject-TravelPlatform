@@ -102,7 +102,7 @@
   </view>
 
   <!-- 单一入口：直接进入统一 editor -->
-  <view class="fab-container">
+  <view wx:if="{{!isProjectArchived}}" class="fab-container">
     <view class="fab-trigger" bindtap="goToEditor">
       <view class="fab-cross">✍</view>
     </view>

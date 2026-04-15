@@ -5,7 +5,7 @@
     <view wx:if="{{loading}}" class="loading-text">加载中...</view>
 
     <block wx:else>
-      <view class="tip-text">点击卡片进入编辑</view>
+      <view class="tip-text">{{isProjectArchived ? '当前项目已归档，仅可查看记录' : '点击卡片进入编辑'}}</view>
 
       <view class="meta-row">
         <view class="chip">{{typeLabel}}</view>
@@ -30,7 +30,7 @@
         <audio src="{{audioUrl}}" controls></audio>
       </view>
 
-      <view class="edit-btn" bindtap="goToEdit">编辑当前记录</view>
+      <view wx:if="{{!isProjectArchived}}" class="edit-btn" bindtap="goToEdit">编辑当前记录</view>
     </block>
   </view>
 </scroll-view>

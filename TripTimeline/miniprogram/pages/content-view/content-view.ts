@@ -1,5 +1,6 @@
 import { request, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
+import { fetchProjectArchivedState, guardArchivedWrite } from '../../utils/projectArchive';
 
 Page({
   lastTapAt: 0,
@@ -7,6 +8,7 @@ Page({
   data: {
     projectId: '',
     contentId: '',
+    isProjectArchived: false,
     loading: true,
     typeLabel: '',
     title: '',
@@ -26,10 +28,16 @@ Page({
     });
   },
 
-  onShow() {
+  async onShow() {
     if (!this.data.projectId || !this.data.contentId) {
       wx.showToast({ title: '参数缺失', icon: 'none' });
       return;
+    }
+    try {
+      const isProjectArchived = await fetchProjectArchivedState(this.data.projectId);
+      this.setData({ isProjectArchived });
+    } catch (e) {
+      this.setData({ isProjectArchived: false });
     }
     this.fetchContent();
   },
@@ -107,6 +115,9 @@ Page({
   },
 
   onRecordTap() {
+    if (this.data.isProjectArchived) {
+      return;
+    }
     const now = Date.now();
     if (now - this.lastTapAt < 280) {
       this.goToEdit();
@@ -117,6 +128,9 @@ Page({
   },
 
   goToEdit() {
+    if (!guardArchivedWrite(!!this.data.isProjectArchived)) {
+      return;
+    }
     wx.navigateTo({
       url: `/pages/editor/editor?projectId=${this.data.projectId}&contentId=${this.data.contentId}`
     });

@@ -2,6 +2,11 @@ import { baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 type Phase = 'idle' | 'recording' | 'uploading' | 'ready';
+type InitPlayerOptions = {
+  enterReadyOnPlayable?: boolean;
+  onPlayable?: () => void;
+  onInvalid?: () => void;
+};
 
 function formatTime(seconds: number): string {
   const s = Math.floor(seconds || 0);
@@ -166,6 +171,17 @@ Component({
           const file = res.tempFiles?.[0];
           if (!file) return;
 
+          const allowedSuffixes = ['.mp3', '.m4a', '.wav', '.aac'];
+          const lowerName = String(file.name || '').toLowerCase();
+          const lowerPath = String(file.path || '').toLowerCase();
+          const isAllowed = allowedSuffixes.some((suffix) =>
+            lowerName.endsWith(suffix) || lowerPath.endsWith(suffix)
+          );
+          if (!isAllowed) {
+            wx.showToast({ title: '仅支持 MP3/M4A/WAV/AAC', icon: 'none' });
+            return;
+          }
+
           this.setData({
             phase: 'uploading',
             uploadingText: '正在上传音频...',
@@ -176,12 +192,36 @@ Component({
             const uploaded = await this._uploadFile(file.path);
             const url: string = uploaded?.url || '';
             const src = url ? asAbsoluteAssetUrl(url) : file.path;
-            this.setData({ phase: 'ready', previewSrc: src });
-            this._initPlayer(src);
+
+            await new Promise<void>((resolve, reject) => {
+              let settled = false;
+              const timer = setTimeout(() => {
+                if (settled) return;
+                settled = true;
+                reject(new Error('audio parse timeout'));
+              }, 3000);
+
+              this._initPlayer(src, {
+                enterReadyOnPlayable: true,
+                onPlayable: () => {
+                  if (settled) return;
+                  settled = true;
+                  clearTimeout(timer);
+                  resolve();
+                },
+                onInvalid: () => {
+                  if (settled) return;
+                  settled = true;
+                  clearTimeout(timer);
+                  reject(new Error('invalid audio file'));
+                }
+              });
+            });
+
             this.triggerEvent('audiochange', { url, name: file.name || 'audio', path: file.path });
           } catch {
             this.setData({ phase: 'idle' });
-            wx.showToast({ title: '上传失败，请重试', icon: 'none' });
+            wx.showToast({ title: '文件无效或上传失败，请重试', icon: 'none' });
           }
         }
       });
@@ -189,7 +229,7 @@ Component({
 
     // ─── Player ────────────────────────────────────────────────────
 
-    _initPlayer(src: string) {
+    _initPlayer(src: string, options?: InitPlayerOptions) {
       if (this.innerAudioContext) {
         try { this.innerAudioContext.destroy(); } catch {}
         this.innerAudioContext = null;
@@ -199,7 +239,18 @@ Component({
       ctx.src = src;
       ctx.autoplay = false;
 
+      let playableNotified = false;
+      const notifyPlayable = () => {
+        if (playableNotified) return;
+        playableNotified = true;
+        if (options?.enterReadyOnPlayable && this.data.phase !== 'ready') {
+          this.setData({ phase: 'ready', previewSrc: src });
+        }
+        options?.onPlayable?.();
+      };
+
       ctx.onCanplay(() => {
+        notifyPlayable();
         if (ctx.duration && isFinite(ctx.duration) && ctx.duration > 0) {
           this.setData({ duration: ctx.duration, durationDisplay: formatTime(ctx.duration) });
         }
@@ -214,6 +265,7 @@ Component({
           // 尝试补全 duration（有时 onCanplay 未触发）
           if (ctx.duration && isFinite(ctx.duration) && ctx.duration > 0 && this.data.duration === 0) {
             this.setData({ duration: ctx.duration, durationDisplay: formatTime(ctx.duration) });
+            notifyPlayable();
           }
         }
       });
@@ -224,6 +276,7 @@ Component({
 
       ctx.onError(() => {
         this.setData({ isPlaying: false });
+        options?.onInvalid?.();
         wx.showToast({ title: '音频加载失败', icon: 'none' });
       });
 

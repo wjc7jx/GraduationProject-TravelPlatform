@@ -56,7 +56,13 @@ Page({
     // 提交按钮状态
     submitStatus: 'idle' as 'idle' | 'loading' | 'success' | 'error',
 
-    // 内容类型：note（纯文字）/ photo / audio
+    // 格式化状态
+    formats: {} as any,
+    htmlContent: '',
+    showAudioPanel: false,
+    keyboardHeight: 0,
+
+    // 默认媒体类型
     contentType: 'note',
 
     // 日期时间
@@ -127,6 +133,39 @@ Page({
     } else if (this.data.projectId) {
       this.loadProjectPrivacy(this.data.projectId);
     }
+
+    wx.onKeyboardHeightChange((res) => {
+      this.setData({ keyboardHeight: Math.max(0, res.height - 10) }); // Leave a little offset
+    });
+  },
+
+  onEditorReady() {
+    wx.createSelectorQuery().select('#editor').context((res) => {
+      this.editorCtx = res.context;
+      if (this.data.isEditMode && this.data.htmlContent) {
+        this.editorCtx.setContents({
+          html: this.data.htmlContent,
+          success: () => {}
+        });
+      }
+    }).exec();
+  },
+
+  format(e: any) {
+    if (!this.editorCtx) return;
+    const { name, value } = e.target.dataset;
+    this.editorCtx.format(name, value);
+  },
+
+  onEditorInput(e: any) {
+    this.setData({
+      htmlContent: e.detail.html
+    });
+  },
+
+  onStatusChange(e: any) {
+    const formats = e.detail;
+    this.setData({ formats });
   },
 
   async onShow() {
@@ -233,14 +272,10 @@ Page({
       const imageUrl = Array.isArray(payload.images) ? (payload.images[0] || '') : '';
       const audioUrl = payload.audio?.url || '';
 
-      // 确定 contentType（忽略已废弃的 track 类型）
-      let contentType = target.content_type || 'note';
-      if (contentType === 'track') contentType = 'note';
-
       this.setData({
-        contentType,
         title: payload.title || '',
-        content: payload.content || '',
+        htmlContent: payload.content || '',
+        showAudioPanel: Boolean(audioUrl),
         date: Number.isNaN(recordTime.getTime()) ? this.data.date : `${recordTime.getFullYear()}-${pad(recordTime.getMonth() + 1)}-${pad(recordTime.getDate())}`,
         time: Number.isNaN(recordTime.getTime()) ? this.data.time : `${pad(recordTime.getHours())}:${pad(recordTime.getMinutes())}`,
         locationName: payload.location_text?.name || location?.name || '',
@@ -253,13 +288,19 @@ Page({
           lon: Number(location.longitude)
         } : null,
         existingLocationId: target.location_id || null,
-        imageUrl,
-        imagePath: imageUrl ? this.asAbsoluteUrl(imageUrl) : '',
         audioUrl,
         audioPath: audioUrl ? this.asAbsoluteUrl(audioUrl) : '',
         audioFileName: payload.audio?.name || '',
         audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : ''
       });
+
+      // 初始化如果编辑器已 ready
+      if (this.editorCtx && this.data.htmlContent) {
+        this.editorCtx.setContents({
+          html: this.data.htmlContent,
+          success: () => {}
+        });
+      }
 
       this.syncLocationMarker(this.data.location);
       wx.hideLoading();
@@ -480,7 +521,7 @@ Page({
     });
   },
 
-  chooseImage() {
+  insertImage() {
     wx.chooseMedia({
       count: 1,
       mediaType: ['image'],
@@ -488,22 +529,39 @@ Page({
       sourceType: ['album', 'camera'],
       success: async (res) => {
         const path = res.tempFiles[0].tempFilePath;
-        this.setData({ imagePath: path, contentType: 'photo' });
 
         try {
-          const exif = await readAndParseExif(path);
-          await this.applyExifAutofill(exif);
-        } catch (error) {
-          this.setData({ autoFillHint: '未能识别图片元数据，可手动填写时间地点' });
-        }
-
-        try {
+          wx.showLoading({ title: '正在上传...', mask: true });
           const uploaded = await this.uploadPhoto(path);
-          this.setData({ imageUrl: uploaded?.url || '' });
+          const url = uploaded?.url || '';
+          
+          if (url && this.editorCtx) {
+            this.editorCtx.insertImage({
+              src: this.asAbsoluteUrl(url),
+              width: '100%',
+              extClass: 'rich-media-img'
+            });
+          }
+          wx.hideLoading();
+
+          try {
+            const exif = await readAndParseExif(path);
+            await this.applyExifAutofill(exif);
+          } catch (error) {
+            this.setData({ autoFillHint: '未能识别图片元数据，可手动填写时间地点' });
+          }
+
         } catch (error) {
-          wx.showToast({ title: '图片上传失败，保存时重试', icon: 'none' });
+          wx.hideLoading();
+          wx.showToast({ title: '图片上传失败，请重试', icon: 'none' });
         }
       }
+    });
+  },
+
+  toggleAudioPanel() {
+    this.setData({
+      showAudioPanel: !this.data.showAudioPanel
     });
   },
 
@@ -752,21 +810,10 @@ Page({
     return this.uploadFile(filePath, `${api.upload}/photo`);
   },
 
-  removeImage() {
-    const nextType = this.data.contentType === 'photo'
-      ? (this.data.audioPath || this.data.audioUrl ? 'audio' : 'note')
-      : this.data.contentType;
-    this.setData({ imagePath: '', imageUrl: '', autoFillHint: '', contentType: nextType });
-  },
-
   removeAudio() {
     if (this.data.isRecording) {
       this.stopRecordAudio();
     }
-
-    const nextType = this.data.contentType === 'audio'
-      ? (this.data.imagePath || this.data.imageUrl ? 'photo' : 'note')
-      : this.data.contentType;
 
     this.setData({
       audioFileName: '',
@@ -774,7 +821,6 @@ Page({
       audioUrl: '',
       audioPreviewSrc: '',
       recordingSeconds: 0,
-      contentType: nextType
     });
   },
 
@@ -793,7 +839,7 @@ Page({
       return;
     }
 
-    if (!this.data.title && !this.data.content) {
+    if (!this.data.title && !this.data.htmlContent && (!this.editorCtx)) {
       wx.vibrateShort({ type: 'medium' });
       wx.showToast({ title: '请至少写下一点感受', icon: 'none' });
       return;
@@ -804,28 +850,34 @@ Page({
       return;
     }
 
-    if (this.data.contentType === 'photo' && !this.data.imagePath) {
-      wx.showToast({ title: '请先选择图片', icon: 'none' });
-      return;
-    }
-
-    if (this.data.contentType === 'audio' && !this.data.audioPath) {
-      wx.showToast({ title: '请先选择音频', icon: 'none' });
-      return;
-    }
-
     this.setData({ submitStatus: 'loading' });
 
     try {
-      let imageUrl = this.data.imageUrl;
-      let audioUrl = this.data.audioUrl;
-
-      if (this.data.contentType === 'photo' && !imageUrl && this.data.imagePath) {
-        const uploaded = await this.uploadPhoto(this.data.imagePath);
-        imageUrl = uploaded?.url || '';
+      // 确保从组件中获取到最新的 html 内容
+      let finalHtml = this.data.htmlContent || '';
+      let textContent = '';
+      if (this.editorCtx) {
+        const contents = await new Promise<any>((resolve) => {
+          this.editorCtx.getContents({
+            success: (res: any) => resolve(res),
+            fail: () => resolve({ html: this.data.htmlContent, text: '' })
+          });
+        });
+        finalHtml = contents.html;
+        textContent = contents.text || '';
       }
 
-      if (this.data.contentType === 'audio' && !audioUrl && this.data.audioPath) {
+      if (!this.data.title && !textContent.trim() && !finalHtml.includes('<img')) {
+        wx.vibrateShort({ type: 'medium' });
+        wx.showToast({ title: '请至少写下一点感受或配图', icon: 'none' });
+        this.setData({ submitStatus: 'idle' });
+        return;
+      }
+
+      let audioUrl = this.data.audioUrl;
+
+      // 如果选了音频还没上传的话，开始上传
+      if (this.data.showAudioPanel && !audioUrl && this.data.audioPath) {
         const uploaded = await this.uploadFile(this.data.audioPath, api.upload);
         audioUrl = uploaded?.url || '';
         this.setData({ audioPreviewSrc: audioUrl ? this.asAbsoluteUrl(audioUrl) : this.data.audioPath });
@@ -838,28 +890,40 @@ Page({
         return u.startsWith(assetBaseUrl) ? u.replace(assetBaseUrl, '') : u;
       };
 
+      // 从 HTML 中提取第一个 img 作为封面首图兼容
+      const imgMatch = finalHtml.match(/<img[^>]+src="([^">]+)"/);
+      let coverImage = '';
+      if (imgMatch && imgMatch[1]) {
+        coverImage = stripAssetUrl(imgMatch[1]);
+      }
+
       const contentData: any = {
         title: this.data.title,
-        content: this.data.content,
+        content: finalHtml,
         location_text: {
           name: this.data.locationName,
           address: this.data.locationAddress
         }
       };
 
-      if (this.data.contentType === 'photo') {
-        contentData.images = imageUrl ? [stripAssetUrl(imageUrl)] : [];
+      if (coverImage) {
+        contentData.images = [coverImage];
       }
 
-      if (this.data.contentType === 'audio') {
+      if (this.data.showAudioPanel && audioUrl) {
         contentData.audio = {
           name: this.data.audioFileName,
           url: stripAssetUrl(audioUrl)
         };
       }
 
+      let inferredContentType = this.data.contentType;
+      if (this.data.showAudioPanel && audioUrl) inferredContentType = 'audio';
+      else if (coverImage) inferredContentType = 'photo';
+      else inferredContentType = 'note';
+
       const requestData: any = {
-        content_type: this.data.contentType,
+        content_type: inferredContentType,
         content_data: contentData,
         record_time: logTime
       };

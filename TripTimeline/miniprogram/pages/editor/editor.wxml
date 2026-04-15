@@ -18,50 +18,18 @@
         bindinput="onTitleInput"
       />
       <view class="text-divider"></view>
-      <textarea
-        class="body-textarea"
+      <editor
+        id="editor"
+        class="body-editor"
         placeholder="写下当时的感受..."
-        placeholder-class="ph-body"
-        maxlength="-1"
-        auto-height
-        value="{{content}}"
-        bindinput="onContentInput"
-      />
-    </view>
-
-    <!-- 媒体附件选择区 -->
-    <view class="media-attach-section">
-      <view class="media-attach-label">添加附件（可选）</view>
-      <view class="type-chips-row">
-        <view
-          class="type-chip {{contentType === 'photo' ? 'active' : ''}}"
-          data-type="photo"
-          bindtap="onTypeToggle"
-        >📷 图片</view>
-        <view
-          class="type-chip {{contentType === 'audio' ? 'active' : ''}}"
-          data-type="audio"
-          bindtap="onTypeToggle"
-        >🎙 音频</view>
-      </view>
-    </view>
-
-    <!-- 图片附件区 -->
-    <view wx:if="{{contentType === 'photo'}}" class="media-section" bindtap="chooseImage">
-      <block wx:if="{{imagePath}}">
-        <image class="uploaded-image" src="{{imagePath}}" mode="aspectFill"></image>
-        <view class="remove-btn" catchtap="removeImage">✕</view>
-      </block>
-      <block wx:else>
-        <view class="empty-media">
-          <view class="plus-icon">+</view>
-          <view class="empty-text">添加照片，自动带入时间地点</view>
-        </view>
-      </block>
+        bindready="onEditorReady"
+        bindinput="onEditorInput"
+        bindstatuschange="onStatusChange"
+      ></editor>
     </view>
 
     <!-- 音频附件区 -->
-    <view wx:if="{{contentType === 'audio'}}" class="asset-section form-card">
+    <view wx:if="{{showAudioPanel}}" class="asset-section form-card">
       <view class="asset-actions-row">
         <view class="asset-action half {{isRecording ? 'disabled' : ''}}" bindtap="onStartRecordTap">开始录音</view>
         <view class="asset-action half stop {{!isRecording ? 'disabled' : ''}}" bindtap="onStopRecordTap">结束录音</view>
@@ -190,9 +158,9 @@
         </view>
       </block>
     </view>
-
-    <!-- 提交按钮（三态） -->
-    <view class="action-section">
+    
+    <!-- 提交按钮（三态）预留底部间距给Toolbar -->
+    <view class="action-section" style="padding-bottom: env(safe-area-inset-bottom); margin-bottom: 120rpx;">
       <view
         class="save-btn save-btn--{{submitStatus}} {{submitStatus === 'error' ? 'shake' : ''}} {{submitStatus === 'loading' ? 'disabled' : ''}}"
         bindtap="saveEntry"
@@ -205,3 +173,16 @@
     </view>
   </view>
 </scroll-view>
+
+<!-- 富文本工具栏（常驻底部悬浮） -->
+<view class="editor-toolbar" style="bottom: {{keyboardHeight}}px">
+  <view class="toolbar-item {{formats.bold ? 'active' : ''}}" data-name="bold" bindtap="format">B</view>
+  <view class="toolbar-item {{formats.italic ? 'active' : ''}}" data-name="italic" bindtap="format">I</view>
+  <view class="toolbar-item {{formats.header === 3 ? 'active' : ''}}" data-name="header" data-value="3" bindtap="format">H</view>
+  <view class="toolbar-divider"></view>
+  <view class="toolbar-item {{formats.list === 'bullet' ? 'active' : ''}}" data-name="list" data-value="bullet" bindtap="format">ul</view>
+  <view class="toolbar-item {{formats.list === 'ordered' ? 'active' : ''}}" data-name="list" data-value="ordered" bindtap="format">ol</view>
+  <view class="toolbar-divider"></view>
+  <view class="toolbar-item" bindtap="insertImage">📷 照片</view>
+  <view class="toolbar-item {{showAudioPanel ? 'active' : ''}}" bindtap="toggleAudioPanel">🎙 音频</view>
+</view>

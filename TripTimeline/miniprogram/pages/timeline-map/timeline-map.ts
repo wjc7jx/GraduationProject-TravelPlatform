@@ -87,7 +87,7 @@ Page({
             time: d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
             category: item.content_type === 'track' ? '足迹' : '日记',
             title: payload.title || '无标题',
-            desc: payload.content || '',
+          desc: (payload.content || '').replace(/<[^>]+>/g, '').trim(),
             image: imageList[0] || '',
             lon: hasLoc ? lon : 0,
             lat: hasLoc ? lat : 0,

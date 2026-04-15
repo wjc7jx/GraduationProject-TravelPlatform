@@ -13,7 +13,7 @@
       </view>
 
       <view class="title">{{title}}</view>
-      <view wx:if="{{content}}" class="content">{{content}}</view>
+      <rich-text wx:if="{{content}}" class="content" nodes="{{content}}"></rich-text>
 
       <view wx:if="{{locationName || locationAddress}}" class="location-box">
         <view class="location-title">地点</view>
@@ -21,7 +21,7 @@
         <view wx:if="{{locationAddress}}" class="location-sub">{{locationAddress}}</view>
       </view>
 
-      <view wx:if="{{images.length > 0}}" class="media-block">
+      <view wx:if="{{images.length > 0 && !contentHasImg}}" class="media-block">
         <image wx:for="{{images}}" wx:key="*this" class="detail-image" src="{{item}}" mode="widthFix"></image>
       </view>
 

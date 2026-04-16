@@ -27,10 +27,10 @@
 
   <!-- 空项目状态 -->
   <view wx:elif="{{hasAuth && projects.length === 0 && !isLoading}}" class="empty-state container fade-up" style="animation-delay: 0.3s">
-    <view class="empty-icon">🌍</view>
-    <view class="empty-title">第一本旅行日记</view>
-    <view class="empty-desc">还没有记录任何旅行故事，开启你的第一次记录吧</view>
-    <button class="primary-btn" bindtap="onCreateProjectTap">创建新项目</button>
+    <view class="empty-icon">{{hasActiveFilter ? '🔎' : '🌍'}}</view>
+    <view class="empty-title">{{hasActiveFilter ? '没有匹配的结果' : '第一本旅行日记'}}</view>
+    <view class="empty-desc">{{hasActiveFilter ? '请调整筛选条件或关键字后重试' : '还没有记录任何旅行故事，开启你的第一次记录吧'}}</view>
+    <button wx:if="{{!hasActiveFilter}}" class="primary-btn" bindtap="onCreateProjectTap">创建新项目</button>
   </view>
 
   <!-- 瀑布流/非对称卡片展示 -->

@@ -14,6 +14,7 @@ Component({
     filterTag: '',
     filterStartDate: '',
     filterEndDate: '',
+    hasActiveFilter: false,
   },
   lifetimes: {
     attached() {
@@ -29,6 +30,15 @@ Component({
     }
   },
   methods: {
+    getHasActiveFilter() {
+      return !!(
+        this.data.filterKeyword ||
+        this.data.filterTag ||
+        this.data.filterStartDate ||
+        this.data.filterEndDate
+      )
+    },
+
     applyCardStyles(projects: any[]) {
       const styles = ['card-large', 'card-medium right', 'card-medium left']
       return projects.map((project, index) => ({
@@ -123,11 +133,17 @@ Component({
 
     onFilterChange(e: any) {
       const detail = e.detail || {}
+      const filterKeyword = detail.keyword || ''
+      const filterTag = detail.tag || ''
+      const filterStartDate = detail.startDate || ''
+      const filterEndDate = detail.endDate || ''
+
       this.setData({
-        filterKeyword: detail.keyword || '',
-        filterTag: detail.tag || '',
-        filterStartDate: detail.startDate || '',
-        filterEndDate: detail.endDate || '',
+        filterKeyword,
+        filterTag,
+        filterStartDate,
+        filterEndDate,
+        hasActiveFilter: !!(filterKeyword || filterTag || filterStartDate || filterEndDate),
       })
       this.loadProjects()
     },

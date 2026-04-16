@@ -5,7 +5,7 @@
     "pages/year-review/year-review",
     "pages/content-view/content-view",
     "pages/editor/editor",
-    "pages/logs/logs",
+    "pages/profile/profile",
     "pages/project-editor/project-editor",
     "pages/project-detail/project-detail"
   ],
@@ -41,7 +41,7 @@
         "text": "旅途"
       },
       {
-        "pagePath": "pages/logs/logs",
+        "pagePath": "pages/profile/profile",
         "text": "我的"
       }
     ]

@@ -151,7 +151,7 @@ Component({
     // 事件处理函数
     bindViewTap() {
       wx.navigateTo({
-        url: '../logs/logs',
+        url: '../profile/profile',
       })
     },
     // 前往项目详情容器

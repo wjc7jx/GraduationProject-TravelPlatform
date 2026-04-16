@@ -12,7 +12,7 @@ Component({
         isCenter: true // 标识这是中间的悬浮新建按钮
       },
       {
-        pagePath: "/pages/logs/logs",
+        pagePath: "/pages/profile/profile",
         text: "我的",
         index: 1
       }

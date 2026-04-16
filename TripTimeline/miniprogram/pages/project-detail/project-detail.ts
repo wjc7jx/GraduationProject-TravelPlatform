@@ -64,6 +64,10 @@ function saveRemoteBinaryToUserData(
 Page({
   data: {
     projectId: null as string | null,
+    shareId: '' as string,
+    activeShareId: '' as string,
+    shareVisitMarked: false,
+    isOwner: false,
     projectDetail: {} as any,
     stats: {
       locations: 0,
@@ -76,12 +80,62 @@ Page({
     if (options.id) {
       this.setData({ projectId: options.id })
     }
+    if (options.shareId) {
+      this.setData({ shareId: String(options.shareId), activeShareId: String(options.shareId) })
+    }
   },
 
-  onShow() {
+  async onShow() {
     if (this.data.projectId) {
-      this.fetchProjectDetail(this.data.projectId);
-      this.fetchStats(this.data.projectId);
+      const loaded = await this.fetchProjectDetail(this.data.projectId);
+      if (!loaded) return;
+      await this.markShareVisitedIfNeeded();
+      await this.fetchStats(this.data.projectId);
+    }
+  },
+
+  getShareQueryData() {
+    const shareId = this.data.shareId || ''
+    if (!shareId) return {}
+    return { share_id: shareId }
+  },
+
+  async markShareVisitedIfNeeded() {
+    const projectId = this.data.projectId as string | null
+    const shareId = this.data.shareId
+    if (!projectId || !shareId || this.data.shareVisitMarked) return
+
+    try {
+      await request({
+        url: api.project.shareVisit(projectId, shareId),
+        method: 'POST',
+        showLoading: false,
+      })
+      this.setData({ shareVisitMarked: true })
+    } catch (error) {
+      wx.showToast({ title: '分享已失效', icon: 'none' })
+    }
+  },
+
+  async ensureShareLinkReady(project: any) {
+    const currentUserId = Number(wx.getStorageSync('userInfo')?.user_id || 0)
+    const ownerUserId = Number(project?.user_id || 0)
+    if (!currentUserId || !ownerUserId || currentUserId !== ownerUserId) return
+    if (this.data.activeShareId) return
+
+    try {
+      const share = await request<any>({
+        url: api.project.shares(String(project.project_id)),
+        method: 'POST',
+        data: { expires_in_hours: 24 * 7 },
+        showLoading: false,
+      })
+      const shareId = String(share?.share_id || '')
+      if (shareId) {
+        this.setData({ activeShareId: shareId })
+      }
+    } catch (error) {
+      // 仅影响分享卡片，不影响页面渲染
     }
   },
 
@@ -89,7 +143,8 @@ Page({
     try {
       const res = await request<any[]>({
         url: api.content.list(id),
-        method: 'GET'
+        method: 'GET',
+        data: this.getShareQueryData(),
       });
       
       let locationsCount = 0;
@@ -115,7 +170,8 @@ Page({
     try {
       const res = await request<any>({
         url: api.project.detail(id),
-        method: 'GET'
+        method: 'GET',
+        data: this.getShareQueryData(),
       });
       
       let dateStr = '未定时间';
@@ -137,6 +193,7 @@ Page({
       }
 
       this.setData({
+        isOwner: Number(wx.getStorageSync('userInfo')?.user_id || 0) === Number(res.user_id || 0),
         projectDetail: {
           id: res.project_id,
           title: res.title || '无标题',
@@ -147,9 +204,12 @@ Page({
         },
         'stats.days': days
       });
+      await this.ensureShareLinkReady(res)
       wx.setNavigationBarTitle({ title: this.data.projectDetail.title });
+      return true;
     } catch (err) {
       wx.showToast({ title: '加载失败', icon: 'error' });
+      return false;
     }
   },
 
@@ -164,13 +224,18 @@ Page({
 
   // 跳转到故事地图
   goToTimelineMap() {
+    const queryShare = this.data.shareId ? `&shareId=${encodeURIComponent(this.data.shareId)}` : ''
     wx.navigateTo({
-      url: `/pages/timeline-map/timeline-map?projectId=${this.data.projectId}`,
+      url: `/pages/timeline-map/timeline-map?projectId=${this.data.projectId}${queryShare}`,
     })
   },
 
   // 新建日记/足迹 (即现有的 editor)
   goToEditor() {
+    if (!this.data.isOwner) {
+      wx.showToast({ title: '仅项目创建者可编辑', icon: 'none' });
+      return;
+    }
     if (this.data.projectDetail?.isArchived) {
       wx.showToast({ title: '项目已归档，请先取消归档', icon: 'none' });
       return;
@@ -182,6 +247,10 @@ Page({
 
   // 编辑当前项目
   goToProjectEditor() {
+    if (!this.data.isOwner) {
+      wx.showToast({ title: '仅项目创建者可编辑', icon: 'none' });
+      return;
+    }
     if (this.data.projectDetail?.isArchived) {
       wx.showToast({ title: '项目已归档，请先取消归档', icon: 'none' });
       return;
@@ -192,10 +261,14 @@ Page({
   },
 
   onManageProjectTap() {
+    if (!this.data.isOwner) {
+      wx.showToast({ title: '仅项目创建者可管理', icon: 'none' });
+      return;
+    }
     const isArchived = !!this.data.projectDetail?.isArchived;
     const itemList = isArchived
-      ? ['取消归档', '删除项目']
-      : ['编辑项目', '归档项目', '删除项目'];
+      ? ['取消归档', '分享管理', '删除项目']
+      : ['编辑项目', '归档项目', '分享管理', '删除项目'];
 
     wx.showActionSheet({
       itemList,
@@ -227,7 +300,13 @@ Page({
           return;
         }
 
-        const deleteTapIndex = isArchived ? 1 : 2;
+        const shareManageTapIndex = isArchived ? 1 : 2;
+        if (res.tapIndex === shareManageTapIndex) {
+          await this.openShareManagement();
+          return;
+        }
+
+        const deleteTapIndex = isArchived ? 2 : 3;
         if (res.tapIndex === deleteTapIndex) {
           wx.showModal({
             title: '确认删除',
@@ -241,6 +320,61 @@ Page({
         }
       }
     });
+  },
+
+  formatShareRow(share: any) {
+    const created = share?.created_at
+      ? new Date(share.created_at).toLocaleDateString('zh-CN')
+      : '未知时间';
+    const revoked = Number(share?.is_revoked) === 1;
+    return `${created} | 访问${Number(share?.view_count || 0)}次 | ${revoked ? '已撤销' : '有效'}`;
+  },
+
+  async openShareManagement() {
+    const projectId = String(this.data.projectId || '');
+    if (!projectId) return;
+
+    try {
+      const shares = await request<any[]>({
+        url: api.project.shares(projectId),
+        method: 'GET',
+        showLoading: false,
+      });
+
+      if (!shares || shares.length === 0) {
+        wx.showToast({ title: '暂无分享记录', icon: 'none' });
+        return;
+      }
+
+      wx.showActionSheet({
+        itemList: shares.slice(0, 6).map((item) => this.formatShareRow(item)),
+        success: async (res) => {
+          const target = shares[res.tapIndex];
+          if (!target) return;
+
+          if (Number(target.is_revoked) === 1) {
+            wx.showToast({ title: '该分享已撤销', icon: 'none' });
+            return;
+          }
+
+          wx.showModal({
+            title: '撤销分享',
+            content: '撤销后该分享链接将立即失效，是否继续？',
+            confirmColor: '#E53935',
+            success: async (modalRes) => {
+              if (!modalRes.confirm) return;
+              await request({
+                url: api.project.revokeShare(projectId, String(target.share_id)),
+                method: 'PATCH' as any,
+              });
+              wx.showToast({ title: '已撤销', icon: 'success' });
+            }
+          });
+        }
+      });
+    } catch (error) {
+      wx.showToast({ title: '分享记录加载失败', icon: 'none' });
+    }
   },
 
   async updateArchiveStatus(nextArchived: number) {
@@ -421,6 +555,25 @@ Page({
       wx.hideLoading();
       wx.showToast({ title: 'HTML导出失败', icon: 'none' });
       console.error('HTML export failed:', err);
+    }
+  },
+
+  onShareAppMessage() {
+    const projectId = String(this.data.projectId || '')
+    const shareId = this.data.activeShareId || this.data.shareId
+    const projectTitle = this.data.projectDetail?.title || '旅行项目'
+
+    if (!projectId || !shareId) {
+      return {
+        title: `${projectTitle} · TripTimeline`,
+        path: '/pages/index/index',
+      }
+    }
+
+    return {
+      title: `邀请你查看《${projectTitle}》`,
+      path: `/pages/project-detail/project-detail?id=${encodeURIComponent(projectId)}&shareId=${encodeURIComponent(shareId)}`,
+      imageUrl: this.data.projectDetail?.cover || '',
     }
   }
 

@@ -2,12 +2,12 @@
 import { request } from './utils/request'
 import api from './utils/api'
 
-const PENDING_INVITER_KEY = 'pending_inviter_user_id'
+const PENDING_INVITE_CODE_KEY = 'pending_friend_invite_code'
 
 App<IAppOption>({
   globalData: {},
   onLaunch(options) {
-    this.captureInviterFromLaunch(options)
+    this.captureInviteCodeFromLaunch(options)
     // 展示本地存储能力
     const logs = wx.getStorageSync('logs') || []
     logs.unshift(Date.now())
@@ -18,46 +18,38 @@ App<IAppOption>({
     if (!token) {
       this.doWechatLogin()
     } else {
-      this.tryAcceptPendingInvite()
+      this.tryApplyPendingInviteCode()
     }
   },
 
   onShow(options) {
-    this.captureInviterFromLaunch(options)
-    this.tryAcceptPendingInvite()
+    this.captureInviteCodeFromLaunch(options)
+    this.tryApplyPendingInviteCode()
   },
 
-  captureInviterFromLaunch(options: WechatMiniprogram.App.LaunchShowOption | undefined) {
-    const inviter = Number(options?.query?.inviter)
-    if (!Number.isFinite(inviter) || inviter <= 0) return
-
-    const currentUser = wx.getStorageSync('userInfo')
-    if (Number(currentUser?.user_id) === inviter) return
-    wx.setStorageSync(PENDING_INVITER_KEY, inviter)
+  captureInviteCodeFromLaunch(options: WechatMiniprogram.App.LaunchShowOption | undefined) {
+    const inviteCode = String(options?.query?.inviteCode || '').trim().toUpperCase()
+    if (!inviteCode) return
+    wx.setStorageSync(PENDING_INVITE_CODE_KEY, inviteCode)
   },
 
-  async tryAcceptPendingInvite() {
+  async tryApplyPendingInviteCode() {
     const token = wx.getStorageSync('token')
-    const inviter = Number(wx.getStorageSync(PENDING_INVITER_KEY))
-    const currentUser = wx.getStorageSync('userInfo')
+    const inviteCode = String(wx.getStorageSync(PENDING_INVITE_CODE_KEY) || '').trim().toUpperCase()
 
     if (!token) return
-    if (!Number.isFinite(inviter) || inviter <= 0) return
-    if (Number(currentUser?.user_id) === inviter) {
-      wx.removeStorageSync(PENDING_INVITER_KEY)
-      return
-    }
+    if (!inviteCode) return
 
     try {
       await request({
-        url: api.friend.acceptInvite,
+        url: api.friend.applyInviteCode,
         method: 'POST',
         data: {
-          inviter_user_id: inviter,
+          code: inviteCode,
         },
         showLoading: false,
       })
-      wx.removeStorageSync(PENDING_INVITER_KEY)
+      wx.removeStorageSync(PENDING_INVITE_CODE_KEY)
       wx.showToast({ title: '已添加好友', icon: 'success' })
     } catch (error) {
       // 保留待处理邀请，等待下次进入时继续尝试
@@ -80,7 +72,7 @@ App<IAppOption>({
               if (data.token) {
                 wx.setStorageSync('token', data.token)
                 wx.setStorageSync('userInfo', data.user)
-                this.tryAcceptPendingInvite()
+                this.tryApplyPendingInviteCode()
                 console.log('登录成功，Token已保存')
                 resolve(data)
               } else {

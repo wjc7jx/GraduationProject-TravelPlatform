@@ -130,30 +130,10 @@
     <!-- 隐私设置 -->
     <view class="form-card privacy-block">
       <view class="privacy-title">隐私设置</view>
-      <view class="privacy-mode-row">
-        <view
-          class="privacy-chip {{privacyMode === 'inherit' ? 'active' : ''}}"
-          data-mode="inherit"
-          bindtap="onPrivacyModeChange"
-        >跟随日记本</view>
-        <view
-          class="privacy-chip {{privacyMode === 'custom' ? 'active' : ''}}"
-          data-mode="custom"
-          bindtap="onPrivacyModeChange"
-        >单独设置</view>
-      </view>
       <view class="privacy-summary">{{privacySummary}}</view>
-
-      <block wx:if="{{privacyMode === 'custom'}}">
-        <view class="privacy-picker-wrap">
-          <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">
-            <view class="privacy-picker">{{visibilityOptions[privacyVisibilityIndex]}}</view>
-          </picker>
-        </view>
-        <view wx:if="{{privacyVisibility === 2}}" class="privacy-whitelist-wrap">
-          好友可见将根据双方好友关系自动判断，无需输入ID
-        </view>
-      </block>
+      <view class="privacy-whitelist-wrap">
+        记录隐私统一继承项目设置，如需调整请前往项目详情页修改。
+      </view>
     </view>
     
     <!-- 提交按钮（三态）预留底部间距给Toolbar -->

@@ -7,13 +7,17 @@ Page({
     logs: [] as Array<{ date: string; timeStamp: string }>,
     friends: [] as Array<{ user_id: number; nickname: string; avatar_url: string }>,
     isLoadingFriends: false,
-    inviterUserId: 0,
+    inviteCode: '',
+    inviteCodeExpireAt: '',
+    inviteCodeInput: '',
+    creatingInviteCode: false,
+    applyingInviteCode: false,
   },
 
-  onShow() {
-    this.setData({ inviterUserId: Number(wx.getStorageSync('userInfo')?.user_id || 0) })
+  async onShow() {
     this.loadLogs()
-    this.loadFriends()
+    await this.loadFriends()
+    await this.ensureInviteCode()
     wx.showShareMenu({
       withShareTicket: true,
       menus: ['shareAppMessage'],
@@ -53,20 +57,99 @@ Page({
     }
   },
 
+  async ensureInviteCode() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      this.setData({ inviteCode: '', inviteCodeExpireAt: '' })
+      return
+    }
+    if (this.data.inviteCode) return
+
+    await this.generateInviteCode({ showSuccessToast: false })
+  },
+
+  async generateInviteCode(options: { showSuccessToast?: boolean } = {}) {
+    if (this.data.creatingInviteCode) return
+    this.setData({ creatingInviteCode: true })
+    try {
+      const result = await request<any>({
+        url: api.friend.createInviteCode,
+        method: 'POST',
+        data: {
+          max_uses: 10,
+          expires_in_hours: 24,
+        },
+        showLoading: false,
+      })
+
+      const expiresAt = result?.expires_at
+        ? new Date(result.expires_at).toLocaleString('zh-CN', { hour12: false })
+        : ''
+
+      this.setData({
+        inviteCode: String(result?.code || ''),
+        inviteCodeExpireAt: expiresAt,
+      })
+
+      if (options.showSuccessToast !== false) {
+        wx.showToast({ title: '邀请码已刷新', icon: 'success' })
+      }
+    } catch (error) {
+      this.setData({ inviteCode: '', inviteCodeExpireAt: '' })
+    } finally {
+      this.setData({ creatingInviteCode: false })
+    }
+  },
+
+  onInviteCodeInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail?.value || '').replace(/\s+/g, '').toUpperCase()
+    this.setData({ inviteCodeInput: value })
+  },
+
+  async onApplyInviteCodeTap() {
+    const code = this.data.inviteCodeInput.trim().toUpperCase()
+    if (!code) {
+      wx.showToast({ title: '请输入邀请码', icon: 'none' })
+      return
+    }
+    if (this.data.applyingInviteCode) return
+
+    this.setData({ applyingInviteCode: true })
+    try {
+      await request({
+        url: api.friend.applyInviteCode,
+        method: 'POST',
+        data: { code },
+        showLoading: false,
+      })
+      wx.showToast({ title: '添加好友成功', icon: 'success' })
+      this.setData({ inviteCodeInput: '' })
+      await this.loadFriends()
+    } catch (error) {
+      // 错误提示已由请求层处理
+    } finally {
+      this.setData({ applyingInviteCode: false })
+    }
+  },
+
   goToYearReview() {
     wx.navigateTo({
       url: '/pages/year-review/year-review',
     })
   },
 
-  onInviteTap() {
-    if (!this.data.inviterUserId) {
+  async onInviteTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
       wx.showToast({ title: '请先登录后邀请好友', icon: 'none' })
+      return
     }
+
+    await this.generateInviteCode({ showSuccessToast: true })
   },
 
   onShareAppMessage() {
-    if (!this.data.inviterUserId) {
+    if (!this.data.inviteCode) {
       return {
         title: 'TripTimeline 旅行记忆',
         path: '/pages/index/index',
@@ -74,8 +157,8 @@ Page({
     }
 
     return {
-      title: '邀请你成为旅行好友，一起看彼此旅程',
-      path: `/pages/index/index?inviter=${this.data.inviterUserId}`,
+      title: '输入邀请码，成为我的旅行好友',
+      path: `/pages/index/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}`,
       imageUrl: '',
     }
   },

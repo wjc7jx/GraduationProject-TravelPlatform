@@ -6,6 +6,6 @@ interface IAppOption {
   }
   userInfoReadyCallback?: WechatMiniprogram.GetUserInfoSuccessCallback,
   doWechatLogin?: () => Promise<any>,
-  tryAcceptPendingInvite?: () => Promise<void>,
-  captureInviterFromLaunch?: (options: WechatMiniprogram.App.LaunchShowOption | undefined) => void,
+  tryApplyPendingInviteCode?: () => Promise<void>,
+  captureInviteCodeFromLaunch?: (options: WechatMiniprogram.App.LaunchShowOption | undefined) => void,
 }

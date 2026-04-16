@@ -1,5 +1,5 @@
 import { Content, Location } from '../models/index.js';
-import { getProjectOrThrow } from './projectService.js';
+import { getProjectById, getProjectOrThrow } from './projectService.js';
 import { filterViewableContents } from './privacyService.js';
 
 function ensureProjectEditable(project) {
@@ -10,8 +10,10 @@ function ensureProjectEditable(project) {
   }
 }
 
-export async function listContents(projectId, userId) {
-  const project = await getProjectOrThrow(projectId, userId);
+export async function listContents(projectId, userId, options = {}) {
+  const project = await getProjectById(projectId, userId, {
+    shareId: options.shareId,
+  });
   const contents = await Content.findAll({
     where: { 
       project_id: projectId,

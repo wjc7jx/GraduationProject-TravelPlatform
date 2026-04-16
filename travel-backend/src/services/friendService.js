@@ -1,5 +1,10 @@
 import { Op } from 'sequelize';
-import { Friendship, User, sequelize } from '../models/index.js';
+import { Friendship, InvitationCode, User, sequelize } from '../models/index.js';
+
+const INVITE_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const DEFAULT_MAX_USES = 3;
+const DEFAULT_EXPIRES_HOURS = 24;
+const MAX_EXPIRES_HOURS = 30 * 24;
 
 function toUserBrief(user) {
   const raw = typeof user?.toJSON === 'function' ? user.toJSON() : user;
@@ -7,6 +12,27 @@ function toUserBrief(user) {
     user_id: Number(raw?.user_id),
     nickname: raw?.nickname || '旅行者',
     avatar_url: raw?.avatar_url || '',
+  };
+}
+
+function randomInviteCode(length = 8) {
+  let code = '';
+  for (let i = 0; i < length; i += 1) {
+    const index = Math.floor(Math.random() * INVITE_CODE_ALPHABET.length);
+    code += INVITE_CODE_ALPHABET[index];
+  }
+  return code;
+}
+
+function toInviteCodePayload(row) {
+  const raw = typeof row?.toJSON === 'function' ? row.toJSON() : row;
+  return {
+    code: raw.code,
+    max_uses: Number(raw.max_uses),
+    used_count: Number(raw.used_count),
+    expires_at: raw.expires_at,
+    status: Number(raw.status),
+    created_at: raw.created_at,
   };
 }
 
@@ -126,6 +152,187 @@ export async function acceptInvite(inviterUserId, currentUserId) {
   const inviter = users.find((item) => Number(item.user_id) === inviterId);
   return {
     inviter: toUserBrief(inviter),
+    added: true,
+  };
+}
+
+export async function createInviteCode(creatorUserId, payload = {}) {
+  const creatorId = Number(creatorUserId);
+  if (!Number.isFinite(creatorId) || creatorId <= 0) {
+    const err = new Error('用户ID无效');
+    err.status = 400;
+    throw err;
+  }
+
+  const maxUses = Number(payload.max_uses ?? DEFAULT_MAX_USES);
+  const expiresInHours = Number(payload.expires_in_hours ?? DEFAULT_EXPIRES_HOURS);
+
+  if (!Number.isInteger(maxUses) || maxUses <= 0 || maxUses > 100) {
+    const err = new Error('max_uses 必须是 1-100 的整数');
+    err.status = 400;
+    throw err;
+  }
+  if (!Number.isInteger(expiresInHours) || expiresInHours <= 0 || expiresInHours > MAX_EXPIRES_HOURS) {
+    const err = new Error(`expires_in_hours 必须是 1-${MAX_EXPIRES_HOURS} 的整数`);
+    err.status = 400;
+    throw err;
+  }
+
+  const user = await User.findOne({
+    where: { user_id: creatorId, status: 1 },
+    attributes: ['user_id'],
+  });
+  if (!user) {
+    const err = new Error('用户不存在或不可用');
+    err.status = 404;
+    throw err;
+  }
+
+  const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
+
+  let created = null;
+  for (let i = 0; i < 8; i += 1) {
+    const code = randomInviteCode(8);
+    try {
+      created = await InvitationCode.create({
+        code,
+        creator_user_id: creatorId,
+        max_uses: maxUses,
+        used_count: 0,
+        expires_at: expiresAt,
+        status: 1,
+      });
+      break;
+    } catch (error) {
+      if (error?.name !== 'SequelizeUniqueConstraintError') {
+        throw error;
+      }
+    }
+  }
+
+  if (!created) {
+    const err = new Error('邀请码生成失败，请重试');
+    err.status = 500;
+    throw err;
+  }
+
+  return toInviteCodePayload(created);
+}
+
+export async function applyInviteCode(codeInput, currentUserId) {
+  const code = String(codeInput || '').trim().toUpperCase();
+  const currentId = Number(currentUserId);
+
+  if (!code) {
+    const err = new Error('邀请码不能为空');
+    err.status = 400;
+    throw err;
+  }
+  if (!Number.isFinite(currentId) || currentId <= 0) {
+    const err = new Error('当前用户ID无效');
+    err.status = 400;
+    throw err;
+  }
+
+  const currentUser = await User.findOne({
+    where: { user_id: currentId, status: 1 },
+    attributes: ['user_id'],
+  });
+  if (!currentUser) {
+    const err = new Error('当前用户不存在或不可用');
+    err.status = 404;
+    throw err;
+  }
+
+  let inviterBrief = null;
+
+  await sequelize.transaction(async (transaction) => {
+    const invite = await InvitationCode.findOne({
+      where: { code },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    if (!invite) {
+      const err = new Error('邀请码不存在');
+      err.status = 404;
+      throw err;
+    }
+
+    const inviteRaw = invite.toJSON();
+    const inviterId = Number(inviteRaw.creator_user_id);
+
+    if (inviterId === currentId) {
+      const err = new Error('不能使用自己的邀请码');
+      err.status = 400;
+      throw err;
+    }
+
+    if (Number(inviteRaw.status) !== 1) {
+      const err = new Error('邀请码已失效');
+      err.status = 400;
+      throw err;
+    }
+
+    if (inviteRaw.expires_at && new Date(inviteRaw.expires_at).getTime() < Date.now()) {
+      const err = new Error('邀请码已过期');
+      err.status = 400;
+      throw err;
+    }
+
+    if (Number(inviteRaw.used_count) >= Number(inviteRaw.max_uses)) {
+      const err = new Error('邀请码使用次数已达上限');
+      err.status = 400;
+      throw err;
+    }
+
+    const inviter = await User.findOne({
+      where: { user_id: inviterId, status: 1 },
+      attributes: ['user_id', 'nickname', 'avatar_url'],
+      transaction,
+    });
+    if (!inviter) {
+      const err = new Error('邀请码创建者不存在或不可用');
+      err.status = 404;
+      throw err;
+    }
+
+    await Friendship.findOrCreate({
+      where: {
+        user_id: inviterId,
+        friend_id: currentId,
+      },
+      defaults: {
+        user_id: inviterId,
+        friend_id: currentId,
+      },
+      transaction,
+    });
+
+    await Friendship.findOrCreate({
+      where: {
+        user_id: currentId,
+        friend_id: inviterId,
+      },
+      defaults: {
+        user_id: currentId,
+        friend_id: inviterId,
+      },
+      transaction,
+    });
+
+    await invite.update(
+      {
+        used_count: Number(inviteRaw.used_count) + 1,
+      },
+      { transaction }
+    );
+
+    inviterBrief = toUserBrief(inviter);
+  });
+
+  return {
+    inviter: inviterBrief,
     added: true,
   };
 }

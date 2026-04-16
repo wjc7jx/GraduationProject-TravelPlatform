@@ -7,6 +7,12 @@ import {
   setProjectPinned,
   getTimelineMapOverview,
 } from '../services/projectService.js';
+import {
+  createProjectShare,
+  listProjectShares,
+  revokeProjectShare,
+  visitProjectShare,
+} from '../services/projectShareService.js';
 import { sendSuccess } from '../utils/response.js';
 
 export async function getProjects(req, res, next) {
@@ -31,7 +37,8 @@ export async function getTimelineMapData(req, res, next) {
 export async function getProjectDetail(req, res, next) {
   try {
     const { id } = req.params;
-    const project = await getProjectById(id, req.user.user_id);
+    const shareId = String(req.query?.share_id || '').trim() || null;
+    const project = await getProjectById(id, req.user.user_id, { shareId });
     sendSuccess(res, project, '获取项目详情成功');
   } catch (error) {
     next(error);
@@ -72,6 +79,46 @@ export async function pinProject(req, res, next) {
     const { id } = req.params;
     const project = await setProjectPinned(id, req.user.user_id, req.body);
     sendSuccess(res, project, Number(project.is_pinned) === 1 ? '项目置顶成功' : '已取消置顶');
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createShare(req, res, next) {
+  try {
+    const { id } = req.params;
+    const data = await createProjectShare(id, req.user.user_id, req.body || {});
+    sendSuccess(res, data, '创建分享成功', 201);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getShares(req, res, next) {
+  try {
+    const { id } = req.params;
+    const data = await listProjectShares(id, req.user.user_id);
+    sendSuccess(res, data, '获取分享记录成功');
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function revokeShare(req, res, next) {
+  try {
+    const { id, shareId } = req.params;
+    const data = await revokeProjectShare(id, shareId, req.user.user_id);
+    sendSuccess(res, data, '撤销分享成功');
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function markShareVisited(req, res, next) {
+  try {
+    const { id, shareId } = req.params;
+    const data = await visitProjectShare(id, shareId);
+    sendSuccess(res, data, '分享访问已记录');
   } catch (error) {
     next(error);
   }

@@ -5,6 +5,7 @@ import { guardArchivedWrite, normalizeProjectArchived } from '../../utils/projec
 Page({
   data: {
     projectId: null,
+    shareId: '',
     isProjectArchived: false,
     timelineTitle: '时间地图',
     centerLon: 116.404,
@@ -36,6 +37,11 @@ Page({
         projectId: options.projectId,
       });
     }
+    if (options.shareId) {
+      this.setData({
+        shareId: String(options.shareId),
+      })
+    }
   },
 
   onShow() {
@@ -51,7 +57,8 @@ Page({
     try {
       const res = await request<any>({
         url: api.project.detail(id),
-        method: 'GET'
+        method: 'GET',
+        data: this.data.shareId ? { share_id: this.data.shareId } : {},
       });
       this.setData({
         projectDetail: res,
@@ -65,7 +72,8 @@ Page({
     try {
       const res = await request<any[]>({
         url: api.content.list(projectId),
-        method: 'GET'
+        method: 'GET',
+        data: this.data.shareId ? { share_id: this.data.shareId } : {},
       });
       if (res) {
         let globalIndex = 0;

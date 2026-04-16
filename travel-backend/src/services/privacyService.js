@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Content, Permission, Project } from '../models/index.js';
+import { Permission, Project } from '../models/index.js';
 import { areFriends } from './friendService.js';
 
 const VISIBILITY_PRIVATE = 1;
@@ -84,23 +84,6 @@ async function ensureProjectOwner(projectId, userId) {
   return project;
 }
 
-async function ensureContentOwner(projectId, contentId, userId) {
-  await ensureProjectOwner(projectId, userId);
-  const content = await Content.findOne({
-    where: {
-      content_id: contentId,
-      project_id: projectId,
-      is_deleted: 0,
-    },
-  });
-  if (!content) {
-    const err = new Error('未找到该内容');
-    err.status = 404;
-    throw err;
-  }
-  return content;
-}
-
 async function upsertRule(targetType, targetId, rule) {
   const payload = normalizeRule(rule);
   const [permission, created] = await Permission.findOrCreate({
@@ -152,38 +135,6 @@ export async function getProjectRules(projectIds) {
   });
 
   return ruleMap;
-}
-
-export async function getContentRules(contentIds) {
-  const ids = Array.from(new Set((contentIds || []).map((id) => Number(id)).filter((id) => Number.isFinite(id))));
-  const ruleMap = new Map();
-
-  if (!ids.length) return ruleMap;
-
-  const rows = await Permission.findAll({
-    where: {
-      target_type: 'content',
-      target_id: {
-        [Op.in]: ids,
-      },
-    },
-  });
-
-  rows.forEach((row) => {
-    ruleMap.set(Number(row.target_id), normalizeRule(row.toJSON()));
-  });
-
-  return ruleMap;
-}
-
-export function resolveContentRule(content, options = {}) {
-  const plain = toPlainObject(content) || {};
-  const contentId = Number(plain.content_id);
-  const contentRule = options.contentRulesMap?.get(contentId);
-  if (contentRule) {
-    return normalizeRule(contentRule);
-  }
-  return normalizeRule(options.projectRule);
 }
 
 export async function canView(rule, ownerUserId, viewerUserId) {
@@ -264,14 +215,13 @@ export async function filterViewableContents(contents, viewerUserId, options = {
 
   const { projectId, ownerUserId } = options;
   const projectRule = options.projectRule || await getProjectRule(projectId);
-  const contentRulesMap = options.contentRulesMap || await getContentRules(items.map((item) => Number(item.content_id)));
+  const normalizedProjectRule = normalizeRule(projectRule);
+  if (!(await canView(normalizedProjectRule, ownerUserId, viewerUserId))) return [];
+
+  const viewerLevel = await getViewerLevel(normalizedProjectRule, ownerUserId, viewerUserId);
 
   const result = [];
   for (const item of items) {
-    const rule = resolveContentRule(item, { projectRule, contentRulesMap });
-    if (!(await canView(rule, ownerUserId, viewerUserId))) continue;
-
-    const viewerLevel = await getViewerLevel(rule, ownerUserId, viewerUserId);
     result.push(sanitizeLocation(item, viewerLevel));
   }
 
@@ -334,55 +284,5 @@ export async function setProjectPrivacy(projectId, userId, payload) {
     target_type: 'project',
     target_id: Number(projectId),
     ...saved,
-  };
-}
-
-export async function getContentPrivacy(projectId, contentId, userId) {
-  await ensureContentOwner(projectId, contentId, userId);
-
-  const projectRule = await getProjectRule(projectId);
-  const contentRulesMap = await getContentRules([contentId]);
-  const contentRule = contentRulesMap.get(Number(contentId)) || null;
-  const effectiveRule = contentRule || projectRule;
-
-  return {
-    target_type: 'content',
-    target_id: Number(contentId),
-    inherited: !contentRule,
-    project_rule: projectRule,
-    content_rule: contentRule,
-    effective_rule: effectiveRule,
-  };
-}
-
-export async function setContentPrivacy(projectId, contentId, userId, payload) {
-  await ensureContentOwner(projectId, contentId, userId);
-  const rule = normalizePrivacyPayload(payload);
-  const saved = await upsertRule('content', Number(contentId), rule);
-  return {
-    target_type: 'content',
-    target_id: Number(contentId),
-    inherited: false,
-    effective_rule: saved,
-  };
-}
-
-export async function clearContentPrivacy(projectId, contentId, userId) {
-  await ensureContentOwner(projectId, contentId, userId);
-
-  await Permission.destroy({
-    where: {
-      target_type: 'content',
-      target_id: Number(contentId),
-    },
-  });
-
-  const projectRule = await getProjectRule(projectId);
-  return {
-    target_type: 'content',
-    target_id: Number(contentId),
-    inherited: true,
-    content_rule: null,
-    effective_rule: projectRule,
   };
 }

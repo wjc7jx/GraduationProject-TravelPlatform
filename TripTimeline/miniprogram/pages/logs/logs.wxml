@@ -5,6 +5,23 @@
     <view class="hero-title">旅行回顾中心</view>
     <view class="hero-subtitle">查看年度足迹与项目总结</view>
     <button class="invite-btn" open-type="share" bindtap="onInviteTap">微信卡片邀请好友</button>
+    <view class="invite-code-card">
+      <view class="invite-code-label">我的邀请码</view>
+      <view class="invite-code-value">{{inviteCode || '暂未生成'}}</view>
+      <view wx:if="{{inviteCodeExpireAt}}" class="invite-code-expire">24小时有效，过期时间：{{inviteCodeExpireAt}}</view>
+      <button class="invite-refresh-btn" bindtap="onInviteTap" loading="{{creatingInviteCode}}">刷新邀请码</button>
+      <view class="invite-input-row">
+        <input
+          class="invite-input"
+          type="text"
+          maxlength="32"
+          placeholder="输入好友邀请码"
+          value="{{inviteCodeInput}}"
+          bindinput="onInviteCodeInput"
+        />
+        <button class="invite-apply-btn" bindtap="onApplyInviteCodeTap" loading="{{applyingInviteCode}}">添加</button>
+      </view>
+    </view>
     <view class="review-entry" bindtap="goToYearReview">
       <view class="entry-title">年度回顾</view>
       <view class="entry-desc">按年份汇总所有项目，并在地图中回顾足迹</view>

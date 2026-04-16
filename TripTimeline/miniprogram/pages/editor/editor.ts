@@ -10,7 +10,7 @@ import { readAndParseExif } from '../../utils/exif';
 import { fetchProjectArchivedState, guardArchivedWrite } from '../../utils/projectArchive';
 
 type VisibilityValue = 1 | 2 | 3;
-type PrivacyMode = 'inherit' | 'custom';
+type PrivacyMode = 'inherit';
 
 function normalizeVisibility(value: any): VisibilityValue {
   const visibility = Number(value);
@@ -182,11 +182,8 @@ Page({
   },
 
   buildPrivacySummary(mode: PrivacyMode, visibility: VisibilityValue, inheritedLabel?: string) {
-    if (mode === 'inherit') {
-      const label = inheritedLabel || visibilityLabel(visibility);
-      return `当前继承项目策略：${label}`;
-    }
-    return `当前单独设置：${visibilityLabel(visibility)}`;
+    const label = inheritedLabel || visibilityLabel(visibility);
+    return `当前继承项目策略：${label}`;
   },
 
   async loadProjectPrivacy(projectId: string) {
@@ -213,33 +210,7 @@ Page({
   },
 
   async loadContentPrivacy(projectId: string, contentId: string) {
-    try {
-      const privacy = await request<any>({
-        url: api.content.privacy(projectId, contentId),
-        method: 'GET',
-        showLoading: false
-      });
-
-      const inherited = Boolean(privacy?.inherited);
-      const effectiveRule = privacy?.effective_rule || {};
-      const projectRule = privacy?.project_rule || {};
-      const visibility = normalizeVisibility(effectiveRule.visibility);
-      const inheritedVisibility = normalizeVisibility(projectRule.visibility || visibility);
-
-      this.setData({
-        privacyMode: inherited ? 'inherit' : 'custom',
-        projectPrivacyVisibility: inheritedVisibility,
-        privacyVisibility: visibility,
-        privacyVisibilityIndex: visibility - 1,
-        privacySummary: this.buildPrivacySummary(
-          inherited ? 'inherit' : 'custom',
-          inherited ? inheritedVisibility : visibility,
-          visibilityLabel(inheritedVisibility)
-        )
-      });
-    } catch (error) {
-      this.loadProjectPrivacy(projectId);
-    }
+    await this.loadProjectPrivacy(projectId);
   },
 
   async loadExistingContent(projectId: string, contentId: string) {
@@ -325,14 +296,11 @@ Page({
   },
 
   onPrivacyModeChange(e: WechatMiniprogram.BaseEvent) {
-    const mode = e.currentTarget.dataset.mode as PrivacyMode;
-    if (mode !== 'inherit' && mode !== 'custom') return;
-    const summaryVisibility = mode === 'inherit'
-      ? this.data.projectPrivacyVisibility
-      : this.data.privacyVisibility;
     this.setData({
-      privacyMode: mode,
-      privacySummary: this.buildPrivacySummary(mode, summaryVisibility)
+      privacyMode: 'inherit',
+      privacyVisibility: this.data.projectPrivacyVisibility,
+      privacyVisibilityIndex: this.data.projectPrivacyVisibility - 1,
+      privacySummary: this.buildPrivacySummary('inherit', this.data.projectPrivacyVisibility)
     });
   },
 
@@ -797,20 +765,7 @@ Page({
 
       if (!targetContentId) throw new Error('内容ID缺失，无法保存隐私配置');
 
-      if (this.data.privacyMode === 'custom') {
-        await request({
-          url: api.content.privacy(this.data.projectId, targetContentId),
-          method: 'PUT',
-          data: { visibility: this.data.privacyVisibility, white_list: [] },
-          showLoading: false
-        });
-      } else if (this.data.isEditMode) {
-        await request({
-          url: api.content.privacy(this.data.projectId, targetContentId),
-          method: 'DELETE',
-          showLoading: false
-        });
-      }
+      // 内容级隐私已下线，记录统一继承项目隐私。
 
       this.setData({ submitStatus: 'success' });
       setTimeout(() => wx.navigateBack(), 1500);

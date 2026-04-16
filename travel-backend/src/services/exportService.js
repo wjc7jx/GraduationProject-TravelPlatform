@@ -5,10 +5,8 @@ import { Content, Location } from '../models/index.js';
 import { getProjectOrThrow } from './projectService.js';
 import { env } from '../config/env.js';
 import {
-  getContentRules,
   getProjectRule,
   getViewerLevel,
-  resolveContentRule,
   sanitizeLocation,
   shouldKeepByExportScope,
 } from './privacyService.js';
@@ -229,17 +227,15 @@ export async function buildExportData(projectId, userId, options = {}) {
   const includeSet = new Set(normalizeArrayNumber(includeContentIds));
   const excludeSet = new Set(normalizeArrayNumber(excludeContentIds));
 
-  const contentIds = contents.map((item) => item.content_id);
   const projectRule = await getProjectRule(project.project_id);
-  const contentRulesMap = await getContentRules(contentIds);
+  const normalizedRule = projectRule;
 
   const filteredRaw = [];
   for (const item of contents) {
     if (includeSet.size > 0 && !includeSet.has(Number(item.content_id))) continue;
     if (excludeSet.has(Number(item.content_id))) continue;
 
-    const rule = resolveContentRule(item, { projectRule, contentRulesMap });
-    const shouldKeep = await shouldKeepByExportScope(rule, {
+    const shouldKeep = await shouldKeepByExportScope(normalizedRule, {
       visibilityScope: scope,
       requesterUserId: userId,
       ownerUserId: project.user_id,
@@ -253,9 +249,8 @@ export async function buildExportData(projectId, userId, options = {}) {
   const normalizedContents = [];
   for (const item of filteredRaw) {
     // 顺序 await 避免大量并发读取本地图片导致导出卡顿
-    const rule = resolveContentRule(item, { projectRule, contentRulesMap });
     const privacyViewerId = scope === 'all' ? userId : viewerUserId;
-    const viewerLevel = await getViewerLevel(rule, project.user_id, privacyViewerId);
+    const viewerLevel = await getViewerLevel(normalizedRule, project.user_id, privacyViewerId);
     const normalized = await normalizeContentItem(sanitizeLocation(item, viewerLevel));
     normalizedContents.push(normalized);
   }

@@ -166,6 +166,16 @@
       font-size: 40rpx;
     }
   }
+
+  .share-action {
+    width: 100%;
+    margin: 0;
+    line-height: normal;
+  }
+
+  .share-action::after {
+    border: none;
+  }
 }
 
 // 统计区

@@ -46,6 +46,82 @@ page {
   border: none;
 }
 
+.invite-code-card {
+  margin-top: 18rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  background: #f5f8f6;
+  border: 1rpx solid #dce8e0;
+}
+
+.invite-code-label {
+  font-size: 24rpx;
+  color: #5f6f66;
+}
+
+.invite-code-value {
+  margin-top: 8rpx;
+  font-size: 40rpx;
+  color: #1f2b24;
+  letter-spacing: 4rpx;
+  font-weight: 700;
+}
+
+.invite-code-expire {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #728078;
+}
+
+.invite-refresh-btn {
+  margin-top: 12rpx;
+  width: 240rpx;
+  background: #ffffff;
+  color: #2a4b3c;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  border: 1rpx solid #d3dfd8;
+  line-height: 1;
+  padding: 18rpx 22rpx;
+}
+
+.invite-refresh-btn::after {
+  border: none;
+}
+
+.invite-input-row {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.invite-input {
+  flex: 1;
+  height: 72rpx;
+  border-radius: 12rpx;
+  background: #fff;
+  border: 1rpx solid #d9e3dd;
+  padding: 0 18rpx;
+  color: #1f2b24;
+  font-size: 26rpx;
+}
+
+.invite-apply-btn {
+  width: 140rpx;
+  height: 72rpx;
+  border-radius: 12rpx;
+  line-height: 72rpx;
+  font-size: 26rpx;
+  color: #fff;
+  background: #2a4b3c;
+  padding: 0;
+}
+
+.invite-apply-btn::after {
+  border: none;
+}
+
 .review-entry {
   margin-top: 24rpx;
   background: linear-gradient(135deg, #2a4b3c, #3b6a54);

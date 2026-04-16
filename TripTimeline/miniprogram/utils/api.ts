@@ -15,6 +15,9 @@ export default {
     privacy: (id: string) => `/projects/${id}/privacy`,
     exportHtml: (id: string) => `/projects/${id}/exports/html`,
     exportPdf: (id: string) => `/projects/${id}/exports/pdf`,
+    shares: (id: string) => `/projects/${id}/shares`,
+    shareVisit: (id: string, shareId: string) => `/projects/${id}/shares/${shareId}/visit`,
+    revokeShare: (id: string, shareId: string) => `/projects/${id}/shares/${shareId}/revoke`,
     update: (id: string) => `/projects/${id}`,
     pin: (id: string) => `/projects/${id}/pin`,
     delete: (id: string) => `/projects/${id}`
@@ -23,13 +26,14 @@ export default {
   content: {
     list: (projectId: string) => `/projects/${projectId}/contents`,
     create: (projectId: string) => `/projects/${projectId}/contents`,
-    privacy: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}/privacy`,
     update: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`,
     delete: (projectId: string, contentId: string) => `/projects/${projectId}/contents/${contentId}`
   },
   // 好友模块
   friend: {
     list: '/friends',
-    acceptInvite: '/friends/invite/accept'
+    acceptInvite: '/friends/invite/accept',
+    createInviteCode: '/friends/invite-code',
+    applyInviteCode: '/friends/invite-code/apply',
   }
 };

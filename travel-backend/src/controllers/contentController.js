@@ -4,7 +4,8 @@ import { sendSuccess } from '../utils/response.js';
 export async function getContents(req, res, next) {
   try {
     const { projectId } = req.params;
-    const data = await listContents(projectId, req.user.user_id);
+    const shareId = String(req.query?.share_id || '').trim() || null;
+    const data = await listContents(projectId, req.user.user_id, { shareId });
     sendSuccess(res, data, '获取内容列表成功');
   } catch (error) {
     next(error);

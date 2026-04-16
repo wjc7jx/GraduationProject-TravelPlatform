@@ -2,12 +2,12 @@ import { Content, Location, Project } from '../models/index.js';
 import { Op } from 'sequelize';
 import {
   canView,
-  getContentRules,
+  getProjectRule,
   getProjectRules,
   getViewerLevel,
-  resolveContentRule,
   sanitizeLocation,
 } from './privacyService.js';
+import { getActiveProjectShare } from './projectShareService.js';
 
 export async function listProjects(userId, filters = {}) {
   const where = {
@@ -85,8 +85,43 @@ export async function createProject(userId, payload) {
   });
 }
 
-export async function getProjectById(projectId, userId) {
-  return await getProjectOrThrow(projectId, userId);
+export async function getProjectById(projectId, userId, options = {}) {
+  const pid = Number(projectId);
+  const uid = Number(userId);
+  const shareId = String(options.shareId || '').trim();
+
+  const project = await Project.findOne({
+    where: {
+      project_id: pid,
+      is_deleted: 0,
+    },
+  });
+  if (!project) {
+    const err = new Error('未找到该旅行项目');
+    err.status = 404;
+    throw err;
+  }
+
+  if (Number(project.user_id) === uid) {
+    return project;
+  }
+
+  if (!shareId) {
+    const err = new Error('无权查看该项目');
+    err.status = 403;
+    throw err;
+  }
+
+  await getActiveProjectShare(pid, shareId);
+  const rule = await getProjectRule(pid);
+  const viewable = await canView(rule, project.user_id, uid);
+  if (!viewable) {
+    const err = new Error('无权查看该项目');
+    err.status = 403;
+    throw err;
+  }
+
+  return project;
 }
 
 export async function getProjectOrThrow(projectId, userId) {
@@ -210,13 +245,9 @@ export async function getTimelineMapOverview(userId) {
   });
 
   const projectRulesMap = await getProjectRules(projects.map((project) => project.project_id));
-  const contentRulesMap = await getContentRules(contents.map((item) => item.content_id));
   const visibleContents = [];
   for (const item of contents) {
-    const rule = resolveContentRule(item, {
-      projectRule: projectRulesMap.get(Number(item.project_id)),
-      contentRulesMap,
-    });
+    const rule = projectRulesMap.get(Number(item.project_id));
     const ownerUserId = item.project?.user_id || userId;
 
     if (!(await canView(rule, ownerUserId, userId))) continue;

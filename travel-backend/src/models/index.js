@@ -5,6 +5,8 @@ import { initContent, Content } from './content.js';
 import { initLocation, Location } from './location.js';
 import { initPermission, Permission } from './permission.js';
 import { initFriendship, Friendship } from './friendship.js';
+import { initInvitationCode, InvitationCode } from './invitationCode.js';
+import { initProjectShare, ProjectShare } from './projectShare.js';
 
 initUser(sequelize);
 initProject(sequelize);
@@ -12,6 +14,8 @@ initContent(sequelize);
 initLocation(sequelize);
 initPermission(sequelize);
 initFriendship(sequelize);
+initInvitationCode(sequelize);
+initProjectShare(sequelize);
 
 // Associations
 User.hasMany(Project, { foreignKey: 'user_id', as: 'projects' });
@@ -28,4 +32,23 @@ User.hasMany(Friendship, { foreignKey: 'friend_id', as: 'friendedBy' });
 Friendship.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Friendship.belongsTo(User, { foreignKey: 'friend_id', as: 'friend' });
 
-export { sequelize, testConnection, User, Project, Content, Location, Permission, Friendship };
+User.hasMany(InvitationCode, { foreignKey: 'creator_user_id', as: 'invitationCodes' });
+InvitationCode.belongsTo(User, { foreignKey: 'creator_user_id', as: 'creator' });
+
+Project.hasMany(ProjectShare, { foreignKey: 'project_id', as: 'shares' });
+ProjectShare.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+User.hasMany(ProjectShare, { foreignKey: 'creator_user_id', as: 'projectShares' });
+ProjectShare.belongsTo(User, { foreignKey: 'creator_user_id', as: 'shareCreator' });
+
+export {
+	sequelize,
+	testConnection,
+	User,
+	Project,
+	Content,
+	Location,
+	Permission,
+	Friendship,
+	InvitationCode,
+	ProjectShare,
+};

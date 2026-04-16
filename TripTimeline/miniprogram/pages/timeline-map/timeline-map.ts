@@ -297,6 +297,10 @@ Page({
   },
 
   onNodeLongPress(e: any) {
+    if (this.data.isShareView) {
+      return;
+    }
+
     const index = e.currentTarget.dataset.index;
     const node = this.getNodeByIndex(index);
     const projectId = this.data.projectId ? String(this.data.projectId) : '';

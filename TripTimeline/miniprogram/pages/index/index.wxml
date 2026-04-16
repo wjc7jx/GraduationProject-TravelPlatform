@@ -12,6 +12,11 @@
     <view class="editorial-subtitle">记录你在地球上的足迹。</view>
   </view>
 
+  <project-filter
+    wx:if="{{hasAuth}}"
+    bind:filterchange="onFilterChange"
+  ></project-filter>
+
   <!-- 授权与登录状态 -->
   <view wx:if="{{!hasAuth && !isLoading}}" class="empty-state container fade-up" style="animation-delay: 0.3s">
     <image class="empty-icon" src="/assets/img/empty-travel.png" mode="aspectFit"></image>

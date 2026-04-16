@@ -1,0 +1,46 @@
+<view class="filter-wrap">
+  <view class="search-row">
+    <input
+      class="search-input"
+      type="text"
+      placeholder="搜索项目名称"
+      value="{{keyword}}"
+      bindinput="onKeywordInput"
+      confirm-type="search"
+    />
+    <button class="toggle-btn" size="mini" bindtap="toggleAdvanced">
+      {{showAdvanced ? '收起' : '筛选'}}
+    </button>
+  </view>
+
+  <view wx:if="{{showAdvanced}}" class="advanced-panel">
+    <view class="field-row">
+      <view class="field-label">标签</view>
+      <input
+        class="field-input"
+        type="text"
+        placeholder="输入标签关键字"
+        value="{{tag}}"
+        bindinput="onTagInput"
+      />
+    </view>
+
+    <view class="field-row">
+      <view class="field-label">开始日期</view>
+      <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+        <view class="picker-value">{{startDate || '不限'}}</view>
+      </picker>
+    </view>
+
+    <view class="field-row">
+      <view class="field-label">结束日期</view>
+      <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+        <view class="picker-value">{{endDate || '不限'}}</view>
+      </picker>
+    </view>
+
+    <view class="actions">
+      <button class="clear-btn" size="mini" bindtap="onClear">清空条件</button>
+    </view>
+  </view>
+</view>

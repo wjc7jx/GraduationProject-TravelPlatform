@@ -11,7 +11,8 @@ import { sendSuccess } from '../utils/response.js';
 
 export async function getProjects(req, res, next) {
   try {
-    const data = await listProjects(req.user.user_id);
+    const { startDate, endDate, keyword, tag } = req.query;
+    const data = await listProjects(req.user.user_id, { startDate, endDate, keyword, tag });
     sendSuccess(res, data, '获取项目列表成功');
   } catch (error) {
     next(error);

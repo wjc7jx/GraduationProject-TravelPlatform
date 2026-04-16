@@ -1,4 +1,5 @@
 import { Content, Location, Project } from '../models/index.js';
+import { Op } from 'sequelize';
 import {
   canView,
   getContentRules,
@@ -8,13 +9,61 @@ import {
   sanitizeLocation,
 } from './privacyService.js';
 
-export async function listProjects(userId) {
-  return Project.findAll({ 
-    where: { 
-      user_id: userId,
-      is_deleted: 0 
-    }, 
-    order: [['is_pinned', 'DESC'], ['pinned_at', 'DESC'], ['created_at', 'DESC']] 
+export async function listProjects(userId, filters = {}) {
+  const where = {
+    user_id: userId,
+    is_deleted: 0,
+  };
+
+  const keyword = (filters.keyword || '').trim();
+  const tag = (filters.tag || '').trim();
+  const startDate = (filters.startDate || '').trim();
+  const endDate = (filters.endDate || '').trim();
+
+  const andConditions = [];
+
+  if (keyword) {
+    andConditions.push({
+      [Op.or]: [
+        { title: { [Op.like]: `%${keyword}%` } },
+        { subtitle: { [Op.like]: `%${keyword}%` } },
+      ],
+    });
+  }
+
+  if (tag) {
+    andConditions.push({
+      tags: { [Op.like]: `%${tag}%` },
+    });
+  }
+
+  if (startDate) {
+    andConditions.push({
+      start_date: { [Op.gte]: startDate },
+    });
+  }
+
+  if (endDate) {
+    andConditions.push({
+      [Op.or]: [
+        { end_date: { [Op.lte]: endDate } },
+        {
+          [Op.and]: [
+            { end_date: null },
+            { start_date: { [Op.lte]: endDate } },
+          ],
+        },
+      ],
+    });
+  }
+
+  if (andConditions.length > 0) {
+    where[Op.and] = andConditions;
+  }
+
+  return Project.findAll({
+    where,
+    order: [['is_pinned', 'DESC'], ['pinned_at', 'DESC'], ['created_at', 'DESC']]
   });
 }
 

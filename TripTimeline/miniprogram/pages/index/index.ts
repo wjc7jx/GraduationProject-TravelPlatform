@@ -1,5 +1,5 @@
 // index.ts
-import { request, baseUrl, asAbsoluteAssetUrl } from '../../utils/request'
+import { request, asAbsoluteAssetUrl } from '../../utils/request'
 import api from '../../utils/api'
 
 // 获取应用实例
@@ -10,6 +10,10 @@ Component({
     projects: [] as any[],
     isLoading: true,
     hasAuth: false,
+    filterKeyword: '',
+    filterTag: '',
+    filterStartDate: '',
+    filterEndDate: '',
   },
   lifetimes: {
     attached() {
@@ -81,9 +85,16 @@ Component({
     async loadProjects() {
       this.setData({ isLoading: true })
       try {
+        const query: Record<string, string> = {}
+        if (this.data.filterKeyword) query.keyword = this.data.filterKeyword
+        if (this.data.filterTag) query.tag = this.data.filterTag
+        if (this.data.filterStartDate) query.startDate = this.data.filterStartDate
+        if (this.data.filterEndDate) query.endDate = this.data.filterEndDate
+
         const res = await request<any[]>({
           url: api.project.list,
-          method: 'GET'
+          method: 'GET',
+          data: query
         })
 
         const baseProjects = res.map((p) => {
@@ -108,6 +119,17 @@ Component({
         console.error('加载项目列表失败', err)
         this.setData({ isLoading: false })
       }
+    },
+
+    onFilterChange(e: any) {
+      const detail = e.detail || {}
+      this.setData({
+        filterKeyword: detail.keyword || '',
+        filterTag: detail.tag || '',
+        filterStartDate: detail.startDate || '',
+        filterEndDate: detail.endDate || '',
+      })
+      this.loadProjects()
     },
     
     // 事件处理函数
@@ -148,7 +170,7 @@ Component({
       try {
         await request({
           url: api.project.pin(id),
-          method: 'PATCH',
+          method: 'PATCH' as any,
           data: { is_pinned: nextPinned }
         })
         wx.showToast({

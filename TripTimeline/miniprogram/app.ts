@@ -3,6 +3,7 @@ import { request } from './utils/request'
 import api from './utils/api'
 
 const PENDING_INVITE_CODE_KEY = 'pending_friend_invite_code'
+const LAST_HANDLED_SHARE_KEY = 'last_handled_share_command'
 
 App<IAppOption>({
   globalData: {},
@@ -25,6 +26,7 @@ App<IAppOption>({
   onShow(options) {
     this.captureInviteCodeFromLaunch(options)
     this.tryApplyPendingInviteCode()
+    this.tryHandleClipboardShareCommand()
   },
 
   captureInviteCodeFromLaunch(options: WechatMiniprogram.App.LaunchShowOption | undefined) {
@@ -53,6 +55,56 @@ App<IAppOption>({
       wx.showToast({ title: '已添加好友', icon: 'success' })
     } catch (error) {
       // 保留待处理邀请，等待下次进入时继续尝试
+    }
+  },
+
+  parseClipboardShareCommand(text: string) {
+    const raw = String(text || '').trim()
+    if (!raw) return null
+    const matched = raw.match(/TripTimeline:\/\/share\?projectId=([^&\s]+)&shareId=([^&\s]+)/i)
+    if (!matched) return null
+
+    const projectId = decodeURIComponent(matched[1] || '').trim()
+    const shareId = decodeURIComponent(matched[2] || '').trim()
+    if (!projectId || !shareId) return null
+
+    return { projectId, shareId }
+  },
+
+  async tryHandleClipboardShareCommand() {
+    const token = wx.getStorageSync('token')
+    if (!token) return
+
+    try {
+      const clipboard = await new Promise<string>((resolve, reject) => {
+        wx.getClipboardData({
+          success: (res) => resolve(String(res.data || '')),
+          fail: reject,
+        })
+      })
+
+      const parsed = this.parseClipboardShareCommand(clipboard)
+      if (!parsed) return
+
+      const fingerprint = `${parsed.projectId}|${parsed.shareId}`
+      const lastHandled = String(wx.getStorageSync(LAST_HANDLED_SHARE_KEY) || '')
+      if (fingerprint === lastHandled) return
+
+      wx.showModal({
+        title: '检测到分享口令',
+        content: '是否在小程序中打开该旅行项目？',
+        confirmText: '立即查看',
+        cancelText: '稍后',
+        success: (res) => {
+          if (!res.confirm) return
+          wx.setStorageSync(LAST_HANDLED_SHARE_KEY, fingerprint)
+          wx.navigateTo({
+            url: `/pages/project-detail/project-detail?id=${encodeURIComponent(parsed.projectId)}&shareId=${encodeURIComponent(parsed.shareId)}`,
+          })
+        }
+      })
+    } catch (error) {
+      // 读取剪贴板失败时静默忽略
     }
   },
 

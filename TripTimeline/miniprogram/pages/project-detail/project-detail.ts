@@ -2,6 +2,7 @@ import { request, baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
 type ExportScope = 'all' | 'public';
+const VISIBILITY_PRIVATE = 1;
 
 /** PDF 由服务端 Puppeteer 生成，耗时长；downloadFile 在开发者工具/localhost 下易出现 ENOENT，故用 request arraybuffer + writeFile */
 const EXPORT_BINARY_TIMEOUT_MS = 180000;
@@ -23,7 +24,7 @@ function parseErrorMessageFromArrayBuffer(ab: ArrayBuffer): string | null {
 function saveRemoteBinaryToUserData(
   url: string,
   headers: Record<string, string>,
-  ext: 'pdf' | 'html',
+  ext: 'pdf' | 'html' | 'png',
   timeoutMs: number
 ): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -47,7 +48,7 @@ function saveRemoteBinaryToUserData(
           return;
         }
         const fs = wx.getFileSystemManager();
-        const safeExt = ext === 'pdf' ? 'pdf' : 'html';
+        const safeExt = ext === 'pdf' ? 'pdf' : ext === 'png' ? 'png' : 'html';
         const filePath = `${wx.env.USER_DATA_PATH}/export_${Date.now()}.${safeExt}`;
         fs.writeFile({
           filePath,
@@ -68,6 +69,7 @@ Page({
     activeShareId: '' as string,
     shareVisitMarked: false,
     isOwner: false,
+    projectVisibility: VISIBILITY_PRIVATE,
     projectDetail: {} as any,
     stats: {
       locations: 0,
@@ -120,8 +122,8 @@ Page({
   async ensureShareLinkReady(project: any) {
     const currentUserId = Number(wx.getStorageSync('userInfo')?.user_id || 0)
     const ownerUserId = Number(project?.user_id || 0)
-    if (!currentUserId || !ownerUserId || currentUserId !== ownerUserId) return
-    if (this.data.activeShareId) return
+    if (!currentUserId || !ownerUserId || currentUserId !== ownerUserId) return ''
+    if (this.data.activeShareId) return this.data.activeShareId
 
     try {
       const share = await request<any>({
@@ -133,10 +135,126 @@ Page({
       const shareId = String(share?.share_id || '')
       if (shareId) {
         this.setData({ activeShareId: shareId })
+        return shareId
       }
     } catch (error) {
       // 仅影响分享卡片，不影响页面渲染
     }
+
+    return ''
+  },
+
+  async fetchProjectVisibility(projectId: string) {
+    if (!this.data.isOwner) return
+    try {
+      const privacy = await request<any>({
+        url: api.project.privacy(projectId),
+        method: 'GET',
+        showLoading: false,
+      })
+      this.setData({
+        projectVisibility: Number(privacy?.visibility || VISIBILITY_PRIVATE),
+      })
+    } catch (error) {
+      this.setData({ projectVisibility: VISIBILITY_PRIVATE })
+    }
+  },
+
+  buildMiniProgramShareCommand(projectId: string, shareId: string) {
+    return `TripTimeline://share?projectId=${encodeURIComponent(projectId)}&shareId=${encodeURIComponent(shareId)}`
+  },
+
+  async createShareOrThrow(projectId: string) {
+    const existing = this.data.activeShareId
+    if (existing) return existing
+
+    const share = await request<any>({
+      url: api.project.shares(projectId),
+      method: 'POST',
+      data: { expires_in_hours: 24 * 7 },
+      showLoading: false,
+    })
+    const shareId = String(share?.share_id || '')
+    if (!shareId) {
+      throw new Error('创建分享失败')
+    }
+    this.setData({ activeShareId: shareId })
+    return shareId
+  },
+
+  async copyInternalShareCommand() {
+    const projectId = String(this.data.projectId || '')
+    if (!projectId) return
+
+    if (Number(this.data.projectVisibility) === VISIBILITY_PRIVATE) {
+      wx.showToast({ title: '私密项目不可分享', icon: 'none' })
+      return
+    }
+
+    try {
+      const shareId = await this.createShareOrThrow(projectId)
+      const command = this.buildMiniProgramShareCommand(projectId, shareId)
+      wx.setClipboardData({
+        data: command,
+        success: () => wx.showToast({ title: '口令已复制', icon: 'success' }),
+      })
+    } catch (error) {
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String((error as Error).message)
+        : '生成分享口令失败'
+      wx.showToast({ title: message.length <= 18 ? message : '生成分享口令失败', icon: 'none' })
+    }
+  },
+
+  async previewInternalShareQrcode() {
+    const projectId = String(this.data.projectId || '')
+    if (!projectId) return
+
+    if (Number(this.data.projectVisibility) === VISIBILITY_PRIVATE) {
+      wx.showToast({ title: '私密项目不可分享', icon: 'none' })
+      return
+    }
+
+    try {
+      const shareId = await this.createShareOrThrow(projectId)
+      const token = wx.getStorageSync('token')
+      const qrcodeUrl = `${baseUrl}${api.project.shareQrcode(projectId, shareId)}?access_token=${encodeURIComponent(token || '')}`
+      wx.showLoading({ title: '生成二维码中...', mask: true })
+      const localPath = await saveRemoteBinaryToUserData(
+        qrcodeUrl,
+        this.getAuthHeader(),
+        'png',
+        30000
+      )
+      wx.hideLoading()
+      wx.previewImage({ current: localPath, urls: [localPath] })
+    } catch (error) {
+      wx.hideLoading()
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String((error as Error).message)
+        : '二维码生成失败'
+      wx.showToast({ title: message.length <= 18 ? message : '二维码生成失败', icon: 'none' })
+    }
+  },
+
+  onInternalShareTap() {
+    if (!this.data.isOwner) {
+      wx.showToast({ title: '仅项目创建者可分享', icon: 'none' })
+      return
+    }
+
+    wx.showActionSheet({
+      itemList: ['复制小程序口令链接', '预览分享二维码'],
+      success: async (res) => {
+        if (res.tapIndex === 0) {
+          await this.copyInternalShareCommand()
+          return
+        }
+        if (res.tapIndex === 1) {
+          await this.previewInternalShareQrcode()
+        }
+      }
+    })
   },
 
   async fetchStats(id: string) {
@@ -204,6 +322,7 @@ Page({
         },
         'stats.days': days
       });
+      await this.fetchProjectVisibility(id)
       await this.ensureShareLinkReady(res)
       wx.setNavigationBarTitle({ title: this.data.projectDetail.title });
       return true;

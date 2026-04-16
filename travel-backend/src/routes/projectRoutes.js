@@ -8,6 +8,7 @@ import {
 	pinProject,
 	createShare,
 	getShares,
+	getShareQrcode,
 	markShareVisited,
 	removeProject,
 	revokeShare,
@@ -27,6 +28,7 @@ router.get('/:id/privacy', getProjectPrivacyRule);
 router.put('/:id/privacy', updateProjectPrivacyRule);
 router.get('/:id/shares', getShares);
 router.post('/:id/shares', createShare);
+router.get('/:id/shares/:shareId/qrcode', getShareQrcode);
 router.post('/:id/shares/:shareId/visit', markShareVisited);
 router.patch('/:id/shares/:shareId/revoke', revokeShare);
 router.get('/:id', getProjectDetail);

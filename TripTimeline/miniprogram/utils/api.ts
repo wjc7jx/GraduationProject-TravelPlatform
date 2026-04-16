@@ -16,6 +16,7 @@ export default {
     exportHtml: (id: string) => `/projects/${id}/exports/html`,
     exportPdf: (id: string) => `/projects/${id}/exports/pdf`,
     shares: (id: string) => `/projects/${id}/shares`,
+    shareQrcode: (id: string, shareId: string) => `/projects/${id}/shares/${shareId}/qrcode`,
     shareVisit: (id: string, shareId: string) => `/projects/${id}/shares/${shareId}/visit`,
     revokeShare: (id: string, shareId: string) => `/projects/${id}/shares/${shareId}/revoke`,
     update: (id: string) => `/projects/${id}`,

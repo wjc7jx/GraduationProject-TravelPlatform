@@ -12,6 +12,7 @@ import {
   listProjectShares,
   revokeProjectShare,
   visitProjectShare,
+  generateProjectShareQrcode,
 } from '../services/projectShareService.js';
 import { sendSuccess } from '../utils/response.js';
 
@@ -119,6 +120,20 @@ export async function markShareVisited(req, res, next) {
     const { id, shareId } = req.params;
     const data = await visitProjectShare(id, shareId);
     sendSuccess(res, data, '分享访问已记录');
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getShareQrcode(req, res, next) {
+  try {
+    const { id, shareId } = req.params;
+    const pngBuffer = await generateProjectShareQrcode(id, shareId, req.user.user_id);
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.send(pngBuffer);
   } catch (error) {
     next(error);
   }

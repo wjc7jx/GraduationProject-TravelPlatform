@@ -1,8 +1,11 @@
 import { Project, ProjectShare } from '../models/index.js';
 import { randomUUID } from 'crypto';
+import QRCode from 'qrcode';
+import { getProjectRule } from './privacyService.js';
 
 const DEFAULT_SHARE_EXPIRES_HOURS = 7 * 24;
 const MAX_SHARE_EXPIRES_HOURS = 90 * 24;
+const VISIBILITY_PRIVATE = 1;
 
 function toSharePayload(row) {
   const raw = typeof row?.toJSON === 'function' ? row.toJSON() : row;
@@ -48,6 +51,12 @@ export async function createProjectShare(projectId, creatorUserId, payload = {})
   }
 
   await ensureProjectOwner(pid, creatorId);
+  const projectRule = await getProjectRule(pid);
+  if (Number(projectRule.visibility) === VISIBILITY_PRIVATE) {
+    const err = new Error('私密项目不可生成分享链接，请先调整为公开或好友可见');
+    err.status = 403;
+    throw err;
+  }
 
   const expiresInHours = Number(payload.expires_in_hours ?? DEFAULT_SHARE_EXPIRES_HOURS);
   if (!Number.isInteger(expiresInHours) || expiresInHours <= 0 || expiresInHours > MAX_SHARE_EXPIRES_HOURS) {
@@ -160,4 +169,38 @@ export async function visitProjectShare(projectId, shareId) {
   });
 
   return toSharePayload(share);
+}
+
+export function buildMiniProgramShareLink(projectId, shareId) {
+  const pid = Number(projectId);
+  const sid = String(shareId || '').trim();
+  return `TripTimeline://share?projectId=${encodeURIComponent(String(pid))}&shareId=${encodeURIComponent(sid)}`;
+}
+
+export async function generateProjectShareQrcode(projectId, shareId, userId) {
+  const pid = Number(projectId);
+  const uid = Number(userId);
+  const sid = String(shareId || '').trim();
+
+  if (!Number.isFinite(pid) || pid <= 0) {
+    const err = new Error('项目ID无效');
+    err.status = 400;
+    throw err;
+  }
+  if (!sid) {
+    const err = new Error('分享标识不能为空');
+    err.status = 400;
+    throw err;
+  }
+
+  await ensureProjectOwner(pid, uid);
+  await getActiveProjectShare(pid, sid);
+
+  const shareLink = buildMiniProgramShareLink(pid, sid);
+  return QRCode.toBuffer(shareLink, {
+    errorCorrectionLevel: 'M',
+    margin: 2,
+    width: 600,
+    type: 'png',
+  });
 }

@@ -52,6 +52,15 @@
       <view class="arrow">↗</view>
     </button>
 
+    <view wx:if="{{isOwner}}" class="action-card tertiary" bindtap="onInternalShareTap">
+      <view class="icon">📱</view>
+      <view class="text-group">
+        <text class="main">口令与二维码分享</text>
+        <text class="sub">仅支持小程序内访问</text>
+      </view>
+      <view class="arrow">↗</view>
+    </view>
+
     <!-- 导出纪念册 -->
     <view class="action-card tertiary" bindtap="onExportTap">
       <view class="icon">📤</view>

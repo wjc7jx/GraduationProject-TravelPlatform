@@ -6,6 +6,8 @@ Page({
   data: {
     projectId: null,
     shareId: '',
+    shareVisitMarked: false,
+    isShareView: false,
     isProjectArchived: false,
     timelineTitle: '时间地图',
     centerLon: 116.404,
@@ -40,6 +42,7 @@ Page({
     if (options.shareId) {
       this.setData({
         shareId: String(options.shareId),
+        isShareView: true,
       })
     }
   },
@@ -48,8 +51,26 @@ Page({
     if (this.data.projectId) {
       this.fetchProjectDetail(String(this.data.projectId));
       this.fetchTimelineData(String(this.data.projectId));
+      this.markShareVisitedIfNeeded();
     } else {
       wx.showToast({ title: '请从项目进入时间地图', icon: 'none' });
+    }
+  },
+
+  async markShareVisitedIfNeeded() {
+    const projectId = this.data.projectId ? String(this.data.projectId) : '';
+    const shareId = String(this.data.shareId || '');
+    if (!projectId || !shareId || this.data.shareVisitMarked) return;
+
+    try {
+      await request({
+        url: api.project.shareVisit(projectId, shareId),
+        method: 'POST',
+        showLoading: false,
+      });
+      this.setData({ shareVisitMarked: true });
+    } catch (error) {
+      wx.showToast({ title: '分享已失效', icon: 'none' });
     }
   },
 
@@ -283,7 +304,8 @@ Page({
       return;
     }
     const isProjectArchived = !!this.data.isProjectArchived;
-    const itemList = isProjectArchived ? ['查看记录'] : ['查看记录', '编辑记录', '删除记录'];
+    const isShareView = !!this.data.isShareView;
+    const itemList = (isProjectArchived || isShareView) ? ['查看记录'] : ['查看记录', '编辑记录', '删除记录'];
     wx.showActionSheet({
       itemList,
       itemColor: '#1C1C1C',
@@ -395,6 +417,10 @@ Page({
   },
 
   goToEditor() {
+    if (this.data.isShareView) {
+      wx.showToast({ title: '分享模式下不可编辑', icon: 'none' });
+      return;
+    }
     if (!this.data.projectId) {
       wx.showToast({ title: '请先进入具体项目后再新增记录', icon: 'none' });
       return;

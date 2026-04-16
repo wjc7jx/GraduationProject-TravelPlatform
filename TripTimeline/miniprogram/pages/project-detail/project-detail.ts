@@ -79,6 +79,12 @@ Page({
   },
 
   onLoad(options: any) {
+    if (options.id && options.shareId) {
+      const nextUrl = `/pages/timeline-map/timeline-map?projectId=${encodeURIComponent(String(options.id))}&shareId=${encodeURIComponent(String(options.shareId))}`
+      wx.redirectTo({ url: nextUrl })
+      return
+    }
+
     if (options.id) {
       this.setData({ projectId: options.id })
     }
@@ -691,7 +697,7 @@ Page({
 
     return {
       title: `邀请你查看《${projectTitle}》`,
-      path: `/pages/project-detail/project-detail?id=${encodeURIComponent(projectId)}&shareId=${encodeURIComponent(shareId)}`,
+      path: `/pages/timeline-map/timeline-map?projectId=${encodeURIComponent(projectId)}&shareId=${encodeURIComponent(shareId)}`,
       imageUrl: this.data.projectDetail?.cover || '',
     }
   }

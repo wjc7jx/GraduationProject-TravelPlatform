@@ -35,6 +35,21 @@
   box-shadow: 0 8rpx 24rpx rgba(42, 75, 60, 0.16);
 }
 
+.share-badge {
+  position: absolute;
+  top: 112rpx;
+  left: 24rpx;
+  z-index: 12;
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(200, 90, 61, 0.35);
+  color: #b24f36;
+  font-size: 22rpx;
+  font-weight: 600;
+  box-shadow: 0 10rpx 28rpx rgba(178, 79, 54, 0.12);
+}
+
 /* --- 底部抽屉 --- */
 .bottom-sheet {
   position: absolute;

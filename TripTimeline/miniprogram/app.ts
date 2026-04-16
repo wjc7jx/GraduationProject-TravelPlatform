@@ -99,7 +99,7 @@ App<IAppOption>({
           if (!res.confirm) return
           wx.setStorageSync(LAST_HANDLED_SHARE_KEY, fingerprint)
           wx.navigateTo({
-            url: `/pages/project-detail/project-detail?id=${encodeURIComponent(parsed.projectId)}&shareId=${encodeURIComponent(parsed.shareId)}`,
+            url: `/pages/timeline-map/timeline-map?projectId=${encodeURIComponent(parsed.projectId)}&shareId=${encodeURIComponent(parsed.shareId)}`,
           })
         }
       })

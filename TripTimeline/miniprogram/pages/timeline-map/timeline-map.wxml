@@ -18,6 +18,8 @@
     show-location
   ></map>
 
+  <view class="share-badge" wx:if="{{isShareView}}">分享浏览模式</view>
+
   <view class="map-tools" wx:if="{{markers.length > 1 && showResetViewport}}">
     <view class="map-tool-btn" bindtap="onResetViewportTap">回到全览</view>
   </view>
@@ -102,7 +104,7 @@
   </view>
 
   <!-- 单一入口：直接进入统一 editor -->
-  <view wx:if="{{!isProjectArchived}}" class="fab-container">
+  <view wx:if="{{!isProjectArchived && !isShareView}}" class="fab-container">
     <view class="fab-trigger" bindtap="goToEditor">
       <view class="fab-cross">✍</view>
     </view>

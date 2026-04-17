@@ -10,35 +10,6 @@ page {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 头部排版 */
-.header-section {
-  padding: 40rpx 48rpx 60rpx;
-  position: relative;
-}
-
-.date-stamp {
-  font-family: var(--font-sans);
-  font-size: 22rpx;
-  text-transform: uppercase;
-  letter-spacing: 4rpx;
-  color: var(--color-accent);
-  margin-bottom: 24rpx;
-  font-weight: 600;
-}
-
-.title-offset {
-  margin-left: 80rpx;
-  margin-top: -10rpx;
-}
-
-.editorial-subtitle {
-  margin-top: 32rpx;
-  margin-left: 10rpx;
-  font-family: var(--font-serif);
-  font-style: italic;
-  color: var(--color-text-sub);
-}
-
 /* 画廊容器 */
 .gallery-container {
   padding: 0 32rpx 80rpx;

@@ -1,16 +1,9 @@
 <!--index.wxml-->
-<navigation-bar title="旅行日记" back="{{false}}" color="#1C1C1C" background="transparent"></navigation-bar>
+<navigation-bar back="{{false}}" color="#1C1C1C" background="transparent">
+  <view slot="left" class="editorial-title" style="font-size: 40rpx; height: 100%; display: flex; align-items: center; letter-spacing: 0;">Travel Journals.</view>
+</navigation-bar>
 
 <scroll-view class="scrollarea" scroll-y type="list">
-  
-  <!-- 头部：大标题，展示杂志风格 -->
-  <view class="header-section fade-up" style="animation-delay: 0.1s">
-    <view class="date-stamp" wx:if="{{hasAuth}}">第 1 卷 / 共 {{projects.length}} 次旅行</view>
-    <view class="date-stamp" wx:else>旅行即将开始</view>
-    <view class="editorial-title">Travel</view>
-    <view class="editorial-title title-offset">Journals.</view>
-    <view class="editorial-subtitle">记录你在地球上的足迹。</view>
-  </view>
 
   <project-filter
     wx:if="{{hasAuth}}"

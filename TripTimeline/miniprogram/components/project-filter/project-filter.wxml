@@ -1,16 +1,20 @@
 <view class="filter-wrap">
   <view class="search-row">
-    <input
-      class="search-input"
-      type="text"
-      placeholder="搜索项目名称"
-      value="{{keyword}}"
-      bindinput="onKeywordInput"
-      bindconfirm="onKeywordConfirm"
-      confirm-type="search"
-    />
+    <view class="search-box">
+      <icon type="search" size="14" color="#8A877E"></icon>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="搜索项目名称..."
+        placeholder-style="color: #8A877E;"
+        value="{{keyword}}"
+        bindinput="onKeywordInput"
+        bindconfirm="onKeywordConfirm"
+        confirm-type="search"
+      />
+    </view>
     <view class="filter-trigger" bindtap="toggleAdvanced">
-      <view class="filter-icon"></view>
+      <image class="filter-icon" src="/assets/img/filter.svg" mode="aspectFit"></image>
     </view>
   </view>
 

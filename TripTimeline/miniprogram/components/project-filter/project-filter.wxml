@@ -21,41 +21,39 @@
   <view wx:if="{{showAdvanced}}" class="advanced-layer">
     <view class="overlay" bindtap="closeAdvanced"></view>
     <view class="bottom-sheet" catchtap="noop">
+      <view class="sheet-handle"></view>
       <view class="sheet-header">
         <view class="sheet-title">高级筛选</view>
-        <view class="sheet-close" bindtap="closeAdvanced">关闭</view>
       </view>
 
-      <view class="advanced-panel">
-        <view class="field-row">
-          <view class="field-label">标签</view>
-          <input
-            class="field-input"
-            type="text"
-            placeholder="输入标签关键字"
-            value="{{tag}}"
-            bindinput="onTagInput"
-          />
-        </view>
+      <view class="filter-section">
+        <view class="section-label">项目标签</view>
+        <input
+          class="custom-input"
+          type="text"
+          placeholder="请输入标签关键字..."
+          placeholder-style="color: #999C99;"
+          value="{{tag}}"
+          bindinput="onTagInput"
+        />
+      </view>
 
-        <view class="field-row">
-          <view class="field-label">开始日期</view>
-          <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
-            <view class="picker-value">{{startDate || '不限'}}</view>
+      <view class="filter-section">
+        <view class="section-label">时间范围</view>
+        <view class="date-range-row">
+          <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange" class="date-picker">
+            <view class="date-box {{startDate ? 'has-value' : ''}}">{{startDate || '开始日期'}}</view>
           </picker>
-        </view>
-
-        <view class="field-row">
-          <view class="field-label">结束日期</view>
-          <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
-            <view class="picker-value">{{endDate || '不限'}}</view>
+          <view class="date-separator">至</view>
+          <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange" class="date-picker">
+            <view class="date-box {{endDate ? 'has-value' : ''}}">{{endDate || '结束日期'}}</view>
           </picker>
         </view>
       </view>
 
       <view class="actions">
-        <button class="clear-btn" size="mini" bindtap="onClear">清空</button>
-        <button class="apply-btn" size="mini" bindtap="onApply">确定</button>
+        <button class="btn-reset" bindtap="onClear" hover-class="btn-hover">重置</button>
+        <button class="btn-apply" bindtap="onApply" hover-class="btn-hover">查看结果</button>
       </view>
     </view>
   </view>

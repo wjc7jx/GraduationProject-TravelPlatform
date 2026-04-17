@@ -15,6 +15,11 @@ Page({
   },
 
   async onShow() {
+    // 修复底部 tabbar 的红点/选中状态
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 1 })
+    }
+
     this.loadLogs()
     await this.loadFriends()
     await this.ensureInviteCode()

@@ -13,9 +13,9 @@
     
     <!-- 正常的 Tab 按钮 -->
     <view wx:else class="tab-bar-item {{selected === item.index ? 'active' : ''}}" data-path="{{item.pagePath}}" data-index="{{item.index}}" bindtap="switchTab">
-      <!-- 若有图标可以加入 image -->
+      <!-- 根据有无图标展现 -->
+      <image class="tab-icon" wx:if="{{item.iconPath}}" src="{{item.iconPath}}" mode="aspectFit"></image>
       <view class="tab-text">{{item.text}}</view>
-      <view class="active-dot" wx:if="{{selected === item.index}}"></view>
     </view>
   </block>
 </view>

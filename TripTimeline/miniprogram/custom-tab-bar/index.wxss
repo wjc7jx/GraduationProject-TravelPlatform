@@ -34,6 +34,20 @@
   transition: all 0.3s ease;
 }
 
+.tab-icon {
+  width: 48rpx;
+  height: 48rpx;
+  margin-bottom: 6rpx;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+  color: #2A4B3C;
+}
+
+.active .tab-icon {
+  color: #2A4B3C;
+  opacity: 1;
+}
+
 .tab-text {
   font-size: 24rpx;
   color: #8A877E;
@@ -45,15 +59,6 @@
 .active .tab-text {
   color: #2A4B3C;
   font-weight: 600;
-}
-
-.active-dot {
-  position: absolute;
-  bottom: 20rpx;
-  width: 8rpx;
-  height: 8rpx;
-  border-radius: 50%;
-  background-color: #C85A3D;
 }
 
 .center-btn {

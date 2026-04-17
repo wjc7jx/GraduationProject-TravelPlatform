@@ -5,6 +5,7 @@ Component({
       {
         pagePath: "/pages/index/index",
         text: "旅途",
+        iconPath: "/assets/img/map.svg",
         index: 0
       },
       {
@@ -14,9 +15,24 @@ Component({
       {
         pagePath: "/pages/profile/profile",
         text: "我的",
+        iconPath: "/assets/img/profile.svg",
         index: 1
       }
     ]
+  },
+  pageLifetimes: {
+    show() {
+      // 页面显示时，根据当前路由自动匹配选中的 Tab
+      const pages = getCurrentPages();
+      if (pages.length > 0) {
+        const currentPage = pages[pages.length - 1];
+        const url = `/${currentPage.route}`;
+        const item = this.data.list.find(item => item.pagePath === url);
+        if (item && item.index !== undefined && this.data.selected !== item.index) {
+          this.setData({ selected: item.index });
+        }
+      }
+    }
   },
   methods: {
     switchTab(e: any) {
@@ -31,13 +47,14 @@ Component({
         return;
       }
       
-      // 否则进行正常的 Tab 切换
+      // 这里的选中状态提前响应，提供更好的点击反馈
+      if (data.index !== undefined && this.data.selected !== data.index) {
+        this.setData({ selected: data.index });
+      }
+
+      // 进行正常的 Tab 切换
       wx.switchTab({
         url
-      });
-      // 这里的选中状态会由页面 mixin 或 onShow 来修复一致性
-      this.setData({
-        selected: data.index
       });
     }
   }

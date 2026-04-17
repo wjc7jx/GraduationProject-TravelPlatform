@@ -23,6 +23,10 @@ Component({
   },
   pageLifetimes: {
     show() {
+      // 修复底部 tabbar 的红点/选中状态
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setData({ selected: 0 })
+      }
       // 页面显示时刷新列表
       if(this.data.hasAuth) {
         this.loadProjects()

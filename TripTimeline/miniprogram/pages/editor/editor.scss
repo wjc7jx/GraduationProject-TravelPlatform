@@ -132,6 +132,17 @@
       flex-shrink: 0;
     }
 
+    .toolbar-item--with-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 8rpx;
+    }
+
+    .toolbar-item-icon {
+      width: 30rpx;
+      height: 30rpx;
+    }
+
     .toolbar-item.active {
       color: #1f3d31;
       background: rgba(31, 61, 49, 0.1);
@@ -248,10 +259,18 @@
     }
 
     .asset-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8rpx;
       font-size: 24rpx;
       font-weight: 700;
       color: #2a4b3c;
       letter-spacing: 1rpx;
+    }
+
+    .asset-section-title-icon {
+      width: 32rpx;
+      height: 32rpx;
     }
 
     .track-map {
@@ -280,8 +299,7 @@
 
     .info-icon {
       width: 48rpx;
-      text-align: center;
-      font-size: 30rpx;
+      height: 48rpx;
     }
 
     .info-body {

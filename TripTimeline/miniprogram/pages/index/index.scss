@@ -195,10 +195,20 @@ page {
 }
 
 .empty-icon {
-  font-size: 100rpx;
   width: 160rpx;
   height: 160rpx;
   margin-bottom: 40rpx;
+}
+
+.card-loc-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.card-loc-count-icon {
+  width: 24rpx;
+  height: 24rpx;
 }
 
 .empty-title {

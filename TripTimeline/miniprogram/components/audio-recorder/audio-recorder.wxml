@@ -5,12 +5,12 @@
   <view wx:if="{{phase === 'idle'}}" class="ar-idle">
     <view class="ar-idle-actions">
       <view class="ar-idle-btn ar-idle-btn--rec" bindtap="startRecord">
-        <text class="ar-idle-btn-icon">🎙</text>
+        <app-icon class="ar-idle-btn-icon" name="microphone" size="44rpx"></app-icon>
         <text class="ar-idle-btn-label">录音</text>
       </view>
       <view class="ar-idle-sep"></view>
       <view class="ar-idle-btn ar-idle-btn--file" bindtap="chooseFile">
-        <text class="ar-idle-btn-icon">📂</text>
+        <app-icon class="ar-idle-btn-icon" name="folder" size="44rpx"></app-icon>
         <text class="ar-idle-btn-label">选择文件</text>
       </view>
     </view>
@@ -23,7 +23,7 @@
       <view class="ar-mic-ripple ar-mic-ripple--1"></view>
       <view class="ar-mic-ripple ar-mic-ripple--2"></view>
       <view class="ar-mic-core">
-        <text class="ar-mic-emoji">🎙</text>
+        <app-icon class="ar-mic-emoji" name="microphone" size="36rpx"></app-icon>
       </view>
     </view>
     <view class="ar-rec-status">
@@ -47,7 +47,8 @@
   <view wx:if="{{phase === 'ready'}}" class="ar-ready">
     <view class="ar-player">
       <view class="ar-play-btn {{isPlaying ? 'ar-play-btn--playing' : ''}}" bindtap="togglePlay">
-        <text class="ar-play-icon">{{isPlaying ? '⏸' : '▶'}}</text>
+        <app-icon wx:if="{{isPlaying}}" class="ar-play-icon" name="pause" size="28rpx"></app-icon>
+        <app-icon wx:else class="ar-play-icon" name="play" size="28rpx"></app-icon>
       </view>
       <view class="ar-player-body">
         <text class="ar-filename">{{displayName}}</text>
@@ -68,7 +69,7 @@
         </view>
       </view>
       <view class="ar-delete-btn" bindtap="removeAudio">
-        <text class="ar-delete-icon">✕</text>
+        <app-icon class="ar-delete-icon" name="close" size="22rpx"></app-icon>
       </view>
     </view>
     <view class="ar-change-row">

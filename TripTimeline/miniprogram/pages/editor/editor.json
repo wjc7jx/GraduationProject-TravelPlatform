@@ -3,6 +3,7 @@
   "navigationStyle": "custom",
   "usingComponents": {
     "navigation-bar": "../../components/navigation-bar/navigation-bar",
-    "audio-recorder": "../../components/audio-recorder/audio-recorder"
+    "audio-recorder": "../../components/audio-recorder/audio-recorder",
+    "app-icon": "/components/app-icon/app-icon"
   }
 }

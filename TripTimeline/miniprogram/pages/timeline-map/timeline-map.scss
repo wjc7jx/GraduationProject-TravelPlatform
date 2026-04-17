@@ -371,12 +371,10 @@
 }
 
 .fab-container .fab-trigger .fab-cross {
-  color: #fff;
-  font-size: 64rpx;
-  font-weight: 300;
-  line-height: 1;
-  margin-top: -8rpx;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.4s;
+  width: 56rpx;
+  height: 56rpx;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s;
+  filter: brightness(0) invert(1);
 }
 
 .fab-container.active .fab-backdrop {
@@ -396,6 +394,6 @@
 }
 
 .fab-container.active .fab-trigger .fab-cross {
-  color: var(--color-primary);
+  filter: none;
   transform: rotate(135deg);
 }

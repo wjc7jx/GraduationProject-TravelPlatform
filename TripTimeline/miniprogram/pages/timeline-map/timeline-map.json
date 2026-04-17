@@ -2,6 +2,7 @@
   "navigationBarTitleText": "地图与时间轴",
   "navigationStyle": "custom",
   "usingComponents": {
-    "navigation-bar": "../../components/navigation-bar/navigation-bar"
+    "navigation-bar": "../../components/navigation-bar/navigation-bar",
+    "app-icon": "/components/app-icon/app-icon"
   }
 }

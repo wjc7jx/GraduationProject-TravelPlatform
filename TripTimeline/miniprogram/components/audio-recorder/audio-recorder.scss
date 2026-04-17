@@ -56,8 +56,8 @@
 }
 
 .ar-idle-btn-icon {
-  font-size: 44rpx;
-  line-height: 1;
+  width: 44rpx;
+  height: 44rpx;
 }
 
 .ar-idle-btn-label {
@@ -137,8 +137,9 @@
 }
 
 .ar-mic-emoji {
-  font-size: 36rpx;
-  line-height: 1;
+  width: 36rpx;
+  height: 36rpx;
+  filter: brightness(0) invert(1);
 }
 
 .ar-rec-status {
@@ -264,8 +265,9 @@
 }
 
 .ar-play-icon {
-  font-size: 28rpx;
-  color: #f3efe4;
+  width: 28rpx;
+  height: 28rpx;
+  filter: brightness(0) invert(1);
   /* Optical centering for play icon */
   padding-left: 4rpx;
 }
@@ -325,9 +327,8 @@
 }
 
 .ar-delete-icon {
-  font-size: 22rpx;
-  color: #a1432a;
-  font-weight: 700;
+  width: 22rpx;
+  height: 22rpx;
 }
 
 .ar-change-row {

@@ -85,7 +85,8 @@
     );
 
     .empty-icon {
-      font-size: 80rpx;
+      width: 80rpx;
+      height: 80rpx;
       margin-bottom: 16rpx;
       opacity: 0.6;
     }
@@ -165,7 +166,8 @@
   margin-bottom: 40rpx;
 
   .row-icon {
-    font-size: 36rpx;
+    width: 36rpx;
+    height: 36rpx;
     margin-right: 16rpx;
     margin-top: -2rpx;
   }

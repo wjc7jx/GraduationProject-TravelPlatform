@@ -20,7 +20,7 @@
     </swiper>
     
     <view class="empty-cover" wx:else bindtap="chooseCover">
-      <view class="empty-icon">📷</view>
+      <app-icon class="empty-icon" name="camera" size="80rpx"></app-icon>
       <view class="empty-text">添加旅行封面</view>
       <view class="empty-hint">最多上传3张，点亮你的旅程</view>
     </view>
@@ -36,7 +36,7 @@
 
     <!-- 行程时间 -->
     <view class="form-row">
-      <view class="row-icon">📅</view>
+      <app-icon class="row-icon" name="calendar" size="36rpx"></app-icon>
       <view class="row-content time-row">
         <view class="row-label">行程时间</view>
         <view class="time-picker-group">
@@ -54,7 +54,7 @@
     <!-- 旅行印记 (标签) -->
     <view class="form-row block-row">
       <view class="row-header">
-        <view class="row-icon">🏷️</view>
+        <app-icon class="row-icon" name="tag" size="36rpx"></app-icon>
         <view class="row-label">这趟旅行是...</view>
         <view class="row-tools">
           <view class="tag-count">{{tags.length}}/5</view>
@@ -92,7 +92,7 @@
 
     <!-- 谁能看到 -->
     <view class="form-row">
-      <view class="row-icon">👁️</view>
+      <app-icon class="row-icon" name="eye" size="36rpx"></app-icon>
       <view class="row-content">
         <view class="row-label">谁可以看到这本日记</view>
         <picker mode="selector" range="{{visibilityOptions}}" value="{{privacyVisibilityIndex}}" bindchange="onPrivacyVisibilityChange">

@@ -31,7 +31,10 @@
     <!-- 音频附件区 -->
     <view wx:if="{{showAudioPanel}}" class="asset-section form-card">
       <view class="asset-section-header">
-        <text class="asset-section-title">🎙 音频</text>
+        <view class="asset-section-title">
+          <app-icon class="asset-section-title-icon" name="microphone" size="32rpx"></app-icon>
+          <text>音频</text>
+        </view>
       </view>
       <audio-recorder
         value="{{audioValue}}"
@@ -45,7 +48,7 @@
 
       <!-- 日期时间（合并单行） -->
       <view class="info-row datetime-row">
-        <text class="info-icon">🕐</text>
+        <app-icon class="info-icon" name="clock" size="40rpx"></app-icon>
         <view class="info-body">
           <view class="info-label">时间</view>
           <view class="datetime-pickers">
@@ -64,7 +67,7 @@
 
       <!-- 地点折叠入口 -->
       <view class="info-row location-entry" bindtap="toggleLocation">
-        <text class="info-icon">📍</text>
+        <app-icon class="info-icon" name="location" size="40rpx"></app-icon>
         <view class="info-body">
           <view class="info-label">地点</view>
           <view class="location-summary {{locationName ? '' : 'empty'}}">{{locationName || '添加地点'}}</view>
@@ -160,6 +163,12 @@
   <view class="toolbar-item {{formats.list === 'bullet' ? 'active' : ''}}" data-name="list" data-value="bullet" bindtap="format">ul</view>
   <view class="toolbar-item {{formats.list === 'ordered' ? 'active' : ''}}" data-name="list" data-value="ordered" bindtap="format">ol</view>
   <view class="toolbar-divider"></view>
-  <view class="toolbar-item" bindtap="insertImage">📷 照片</view>
-  <view class="toolbar-item {{showAudioPanel ? 'active' : ''}}" bindtap="toggleAudioPanel">🎙 音频</view>
+  <view class="toolbar-item toolbar-item--with-icon" bindtap="insertImage">
+    <app-icon class="toolbar-item-icon" name="camera" size="30rpx"></app-icon>
+    <text>照片</text>
+  </view>
+  <view class="toolbar-item toolbar-item--with-icon {{showAudioPanel ? 'active' : ''}}" bindtap="toggleAudioPanel">
+    <app-icon class="toolbar-item-icon" name="microphone" size="30rpx"></app-icon>
+    <text>音频</text>
+  </view>
 </view>

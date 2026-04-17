@@ -114,7 +114,7 @@ Page({
             id: item.content_id,
             dateStr: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`,
             time: d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-            category: item.content_type === 'track' ? '足迹' : '日记',
+              category: item.content_type === 'photo' ? '照片' : (item.content_type === 'note' ? '日记' : '音频'),
             title: payload.title || '无标题',
           desc: (payload.content || '').replace(/<[^>]+>/g, '').trim(),
             image: imageList[0] || '',

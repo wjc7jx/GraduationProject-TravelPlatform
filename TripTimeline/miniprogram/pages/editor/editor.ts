@@ -79,8 +79,9 @@ Page({
     locationEditedByUser: false,
 
     // 图片
-    imagePath: '',
-    imageUrl: '',
+    images: [] as string[], // 相对路径数组（用于提交，顺序即展示顺序）
+    imagePreviews: [] as string[], // 绝对 URL 数组（用于展示/预览）
+    isImageUploading: false,
 
     // 音频
     audioFileName: '',
@@ -232,12 +233,18 @@ Page({
       const recordTime = new Date(target.record_time || target.created_at);
       const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 
-      const imageUrl = Array.isArray(payload.images) ? (payload.images[0] || '') : '';
       const audioUrl = payload.audio?.url || '';
+      const rawHtml = payload.content || '';
+      const normalizedFromField = this.normalizeImages(payload.images);
+      const fallbackFromHtml = normalizedFromField.length ? [] : this.extractImagesFromHtml(rawHtml);
+      const normalized = normalizedFromField.length ? normalizedFromField : fallbackFromHtml;
+      const images = normalized.map((item) => item.rel);
+      const imagePreviews = normalized.map((item) => item.abs);
+      const sanitizedHtml = normalized.length ? this.sanitizeHtmlRemoveImages(rawHtml) : rawHtml;
 
       this.setData({
         title: payload.title || '',
-        htmlContent: payload.content || '',
+        htmlContent: sanitizedHtml,
         showAudioPanel: Boolean(audioUrl),
         date: Number.isNaN(recordTime.getTime()) ? this.data.date : `${recordTime.getFullYear()}-${pad(recordTime.getMonth() + 1)}-${pad(recordTime.getDate())}`,
         time: Number.isNaN(recordTime.getTime()) ? this.data.time : `${pad(recordTime.getHours())}:${pad(recordTime.getMinutes())}`,
@@ -251,6 +258,8 @@ Page({
           lon: Number(location.longitude)
         } : null,
         existingLocationId: target.location_id || null,
+        images,
+        imagePreviews,
         audioUrl,
         audioFileName: payload.audio?.name || '',
         audioValue: audioUrl
@@ -432,42 +441,150 @@ Page({
     });
   },
 
-  insertImage() {
+  normalizeImages(input: any): Array<{ rel: string; abs: string }> {
+    const strip = (u: string) => {
+      if (!u) return '';
+      return u.startsWith(assetBaseUrl) ? u.replace(assetBaseUrl, '') : u;
+    };
+
+    const toPair = (u: any) => {
+      const rel = strip(String(u || '').trim());
+      return rel ? { rel, abs: asAbsoluteAssetUrl(rel) } : null;
+    };
+
+    if (Array.isArray(input)) {
+      return input.map(toPair).filter(Boolean) as any;
+    }
+    if (typeof input === 'string' && input.trim()) {
+      try {
+        const parsed = JSON.parse(input);
+        if (Array.isArray(parsed)) {
+          return parsed.map(toPair).filter(Boolean) as any;
+        }
+      } catch (e) {
+        const single = toPair(input);
+        return single ? [single] : [];
+      }
+    }
+    return [];
+  },
+
+  extractImagesFromHtml(html: string): Array<{ rel: string; abs: string }> {
+    if (!html) return [];
+    const urls: string[] = [];
+    const re = /<img[^>]+src=(?:"([^">]+)"|'([^'>]+)'|([^>\s]+))/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html))) {
+      const src = (m[1] || m[2] || m[3] || '').trim();
+      if (src) urls.push(src);
+    }
+    return this.normalizeImages(urls);
+  },
+
+  sanitizeHtmlRemoveImages(html: string): string {
+    return (html || '').replace(/<img[^>]*>/gi, '');
+  },
+
+  async chooseImages() {
+    if (this.data.isImageUploading) return;
+    const remaining = 9 - (this.data.images?.length || 0);
+    if (remaining <= 0) {
+      wx.showToast({ title: '最多添加 9 张图片', icon: 'none' });
+      return;
+    }
+
     wx.chooseMedia({
-      count: 1,
+      count: remaining,
       mediaType: ['image'],
       sizeType: ['original'],
       sourceType: ['album', 'camera'],
       success: async (res) => {
-        const path = res.tempFiles[0].tempFilePath;
+        const files = (res.tempFiles || []).map((f: any) => f.tempFilePath).filter(Boolean);
+        if (!files.length) return;
 
+        this.setData({ isImageUploading: true });
         try {
-          wx.showLoading({ title: '正在上传...', mask: true });
-          const uploaded = await this.uploadPhoto(path);
-          const url = uploaded?.url || '';
-          
-          if (url && this.editorCtx) {
-            this.editorCtx.insertImage({
-              src: this.asAbsoluteUrl(url),
-              width: '100%',
-              extClass: 'rich-media-img'
-            });
-          }
-          wx.hideLoading();
+          wx.showLoading({ title: `上传中 0/${files.length}`, mask: true });
+          const nextRels = [...(this.data.images || [])];
+          const nextAbs = [...(this.data.imagePreviews || [])];
 
-          try {
-            const exif = await readAndParseExif(path);
-            await this.applyExifAutofill(exif);
-          } catch (error) {
-            this.setData({ autoFillHint: '未能识别图片元数据，可手动填写时间地点' });
+          for (let i = 0; i < files.length; i++) {
+            wx.showLoading({ title: `上传中 ${i + 1}/${files.length}`, mask: true });
+            const uploaded = await this.uploadPhoto(files[i]);
+            const url = uploaded?.url || '';
+            if (!url) continue;
+
+            // 保存相对路径（提交用）与绝对 URL（预览用）
+            const rel = url.startsWith(assetBaseUrl) ? url.replace(assetBaseUrl, '') : url;
+            nextRels.push(rel);
+            nextAbs.push(this.asAbsoluteUrl(rel));
+
+            // 首张图尝试识别 EXIF 自动填充（不强制）
+            if (i === 0) {
+              try {
+                const exif = await readAndParseExif(files[i]);
+                await this.applyExifAutofill(exif);
+              } catch (error) {
+                // ignore
+              }
+            }
           }
 
+          this.setData({
+            images: nextRels.slice(0, 9),
+            imagePreviews: nextAbs.slice(0, 9)
+          });
         } catch (error) {
-          wx.hideLoading();
           wx.showToast({ title: '图片上传失败，请重试', icon: 'none' });
+        } finally {
+          wx.hideLoading();
+          this.setData({ isImageUploading: false });
         }
       }
     });
+  },
+
+  previewImage(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    const urls = this.data.imagePreviews || [];
+    if (!urls.length || !Number.isFinite(index)) return;
+    wx.previewImage({
+      urls,
+      current: urls[Math.max(0, Math.min(index, urls.length - 1))]
+    });
+  },
+
+  removeImage(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isFinite(index)) return;
+    const nextRels = [...(this.data.images || [])];
+    const nextAbs = [...(this.data.imagePreviews || [])];
+    if (index < 0 || index >= nextRels.length) return;
+    nextRels.splice(index, 1);
+    nextAbs.splice(index, 1);
+    this.setData({ images: nextRels, imagePreviews: nextAbs });
+  },
+
+  moveImageLeft(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isFinite(index) || index <= 0) return;
+    this.swapImage(index, index - 1);
+  },
+
+  moveImageRight(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    const len = (this.data.images || []).length;
+    if (!Number.isFinite(index) || index < 0 || index >= len - 1) return;
+    this.swapImage(index, index + 1);
+  },
+
+  swapImage(a: number, b: number) {
+    const nextRels = [...(this.data.images || [])];
+    const nextAbs = [...(this.data.imagePreviews || [])];
+    if (a < 0 || b < 0 || a >= nextRels.length || b >= nextRels.length) return;
+    [nextRels[a], nextRels[b]] = [nextRels[b], nextRels[a]];
+    [nextAbs[a], nextAbs[b]] = [nextAbs[b], nextAbs[a]];
+    this.setData({ images: nextRels, imagePreviews: nextAbs });
   },
 
   toggleAudioPanel() {
@@ -658,7 +775,7 @@ Page({
       return;
     }
 
-    if (!this.data.title && !this.data.htmlContent && (!this.editorCtx)) {
+    if (!this.data.title && !this.data.htmlContent && (!this.editorCtx) && !(this.data.images || []).length && !(this.data.showAudioPanel && this.data.audioUrl)) {
       wx.vibrateShort({ type: 'medium' });
       wx.showToast({ title: '请至少写下一点感受', icon: 'none' });
       return;
@@ -686,9 +803,11 @@ Page({
         textContent = contents.text || '';
       }
 
-      if (!this.data.title && !textContent.trim() && !finalHtml.includes('<img')) {
+      const hasImages = (this.data.images || []).length > 0;
+      const hasAudio = this.data.showAudioPanel && !!this.data.audioUrl;
+      if (!this.data.title && !textContent.trim() && !hasImages && !hasAudio) {
         wx.vibrateShort({ type: 'medium' });
-        wx.showToast({ title: '请至少写下一点感受或配图', icon: 'none' });
+        wx.showToast({ title: '请至少写下一点感受或添加图片/音频', icon: 'none' });
         this.setData({ submitStatus: 'idle' });
         return;
       }
@@ -702,13 +821,6 @@ Page({
         return u.startsWith(assetBaseUrl) ? u.replace(assetBaseUrl, '') : u;
       };
 
-      // 从 HTML 中提取第一个 img 作为封面首图兼容
-      const imgMatch = finalHtml.match(/<img[^>]+src="([^">]+)"/);
-      let coverImage = '';
-      if (imgMatch && imgMatch[1]) {
-        coverImage = stripAssetUrl(imgMatch[1]);
-      }
-
       const contentData: any = {
         title: this.data.title,
         content: finalHtml,
@@ -718,9 +830,8 @@ Page({
         }
       };
 
-      if (coverImage) {
-        contentData.images = [coverImage];
-      }
+      const images = (this.data.images || []).map(stripAssetUrl).filter(Boolean).slice(0, 9);
+      if (images.length) contentData.images = images;
 
       if (this.data.showAudioPanel && audioUrl) {
         contentData.audio = {
@@ -731,7 +842,7 @@ Page({
 
       let inferredContentType = this.data.contentType;
       if (this.data.showAudioPanel && audioUrl) inferredContentType = 'audio';
-      else if (coverImage) inferredContentType = 'photo';
+      else if (images.length) inferredContentType = 'photo';
       else inferredContentType = 'note';
 
       const requestData: any = {

@@ -13,7 +13,6 @@ Page({
     typeLabel: '',
     title: '',
     content: '',
-    contentHasImg: false,
     dateText: '',
     timeText: '',
     locationName: '',
@@ -58,7 +57,9 @@ Page({
       }
 
       const payload = target.content_data || {};
-      const images = this.normalizeImages(payload.images);
+      const rawContent = payload.content || '';
+      const images = this.mergeImages(payload.images, rawContent);
+      const sanitizedContent = images.length ? rawContent.replace(/<img[^>]*>/gi, '') : rawContent;
       const recordDate = new Date(target.record_time || target.created_at);
       const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
       const dateText = Number.isNaN(recordDate.getTime())
@@ -80,8 +81,7 @@ Page({
         loading: false,
         typeLabel: typeLabelMap[target.content_type] || '记录',
         title: payload.title || '未命名记录',
-        content: payload.content || '',
-        contentHasImg: (payload.content || '').includes('<img'),
+        content: sanitizedContent,
         dateText,
         timeText,
         locationName: locationText.name || location.name || '',
@@ -110,6 +110,26 @@ Page({
       }
     }
     return [];
+  },
+
+  extractImagesFromHtml(html: string): string[] {
+    if (!html) return [];
+    const urls: string[] = [];
+    const re = /<img[^>]+src=(?:"([^">]+)"|'([^'>]+)'|([^>\s]+))/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html))) {
+      const src = (m[1] || m[2] || m[3] || '').trim();
+      if (src) urls.push(src);
+    }
+    return urls;
+  },
+
+  mergeImages(imagesField: any, html: string): string[] {
+    const fromField = this.normalizeImages(imagesField);
+    if (fromField.length) return fromField;
+    const fromHtml = this.extractImagesFromHtml(html);
+    if (!fromHtml.length) return [];
+    return fromHtml.map((u) => this.asAbsoluteUrl(u));
   },
 
   asAbsoluteUrl(url: string) {

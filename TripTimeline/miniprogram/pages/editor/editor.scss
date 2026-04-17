@@ -258,6 +258,11 @@
       gap: 8rpx;
     }
 
+    .asset-section-header--with-action {
+      justify-content: space-between;
+      gap: 12rpx;
+    }
+
     .asset-section-title {
       display: flex;
       align-items: center;
@@ -266,6 +271,79 @@
       font-weight: 700;
       color: #2a4b3c;
       letter-spacing: 1rpx;
+    }
+
+    .asset-section-subtitle {
+      margin-left: 6rpx;
+      font-size: 22rpx;
+      color: rgba(42, 75, 60, 0.62);
+      font-weight: 600;
+    }
+
+    .asset-action-btn {
+      padding: 10rpx 18rpx;
+      border-radius: 999rpx;
+      background: rgba(31, 61, 49, 0.1);
+      border: 2rpx solid rgba(31, 61, 49, 0.22);
+      color: #1f3d31;
+      font-size: 24rpx;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .asset-action-btn.disabled {
+      opacity: 0.45;
+    }
+
+    .asset-empty-hint {
+      margin-top: 6rpx;
+      font-size: 22rpx;
+      color: #7a756b;
+    }
+
+    .image-grid {
+      margin-top: 10rpx;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14rpx;
+    }
+
+    .image-item {
+      display: flex;
+      flex-direction: column;
+      gap: 10rpx;
+    }
+
+    .image-thumb {
+      width: 100%;
+      height: 200rpx;
+      border-radius: 14rpx;
+      background: rgba(28, 28, 28, 0.04);
+      border: 2rpx solid rgba(28, 28, 28, 0.08);
+      overflow: hidden;
+    }
+
+    .image-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8rpx;
+    }
+
+    .img-act {
+      padding: 10rpx 0;
+      border-radius: 12rpx;
+      background: rgba(42, 75, 60, 0.06);
+      border: 2rpx solid rgba(42, 75, 60, 0.1);
+      color: #2a4b3c;
+      font-size: 22rpx;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .img-act--danger {
+      background: rgba(205, 102, 73, 0.08);
+      border-color: rgba(205, 102, 73, 0.2);
+      color: #b24f36;
     }
 
     .asset-section-title-icon {

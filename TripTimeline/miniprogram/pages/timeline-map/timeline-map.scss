@@ -251,15 +251,75 @@
   overflow: hidden;
 }
 
-.node-image {
+/* 多图布局 */
+.img-layout {
   width: 100%;
-  height: 400rpx;
-  display: block;
-  background-color: var(--bg-surface);
-  border-radius: 8rpx;
+  display: flex;
+  gap: 10rpx;
 }
 
-.timeline-node.active .node-image {
+.img-layout--one .img-one {
+  width: 100%;
+  height: 420rpx;
+  display: block;
+  border-radius: 10rpx;
+  background-color: var(--bg-surface);
+}
+
+.img-layout--two .img-two {
+  width: 50%;
+  height: 360rpx;
+  display: block;
+  border-radius: 10rpx;
+  background-color: var(--bg-surface);
+}
+
+.img-layout--three .img-left {
+  width: 66.6667%;
+  height: 420rpx;
+  display: block;
+  border-radius: 10rpx;
+  background-color: var(--bg-surface);
+}
+
+.img-right-col {
+  width: 33.3333%;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.img-right-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.img-right {
+  width: 100%;
+  height: 205rpx;
+  display: block;
+  border-radius: 10rpx;
+  background-color: var(--bg-surface);
+}
+
+.img-more {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: 800;
+  border-radius: 10rpx;
+  letter-spacing: 1rpx;
+}
+
+.timeline-node.active .img-one,
+.timeline-node.active .img-two,
+.timeline-node.active .img-left,
+.timeline-node.active .img-right {
   box-shadow: 0 16rpx 48rpx -16rpx rgba(42, 75, 60, 0.2);
 }
 

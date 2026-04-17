@@ -79,10 +79,30 @@
                     <view class="node-title">{{item.title}}</view>
                     <rich-text class="node-html" nodes="{{item.richContent}}" wx:if="{{item.richContent}}"></rich-text>
                     
-                    <!-- 沉浸式图文排版重叠效果 -->
-                    <view class="node-media" wx:if="{{item.image}}">
-                      <image src="{{item.image}}" class="node-image" mode="aspectFill" lazy-load></image>
-                      <view class="media-caption" wx:if="{{item.caption}}">{{item.caption}}</view>
+                    <!-- 多图布局（独立图片区） -->
+                    <view class="node-media" wx:if="{{item.images && item.images.length > 0}}">
+                      <!-- 1 张 -->
+                      <view wx:if="{{item.images.length === 1}}" class="img-layout img-layout--one">
+                        <image src="{{item.images[0]}}" class="img-one" mode="aspectFill" lazy-load></image>
+                      </view>
+
+                      <!-- 2 张 -->
+                      <view wx:elif="{{item.images.length === 2}}" class="img-layout img-layout--two">
+                        <image src="{{item.images[0]}}" class="img-two" mode="aspectFill" lazy-load></image>
+                        <image src="{{item.images[1]}}" class="img-two" mode="aspectFill" lazy-load></image>
+                      </view>
+
+                      <!-- ≥3 张 -->
+                      <view wx:else class="img-layout img-layout--three">
+                        <image src="{{item.images[0]}}" class="img-left" mode="aspectFill" lazy-load></image>
+                        <view class="img-right-col">
+                          <image src="{{item.images[1]}}" class="img-right" mode="aspectFill" lazy-load></image>
+                          <view class="img-right-wrap">
+                            <image src="{{item.images[2]}}" class="img-right" mode="aspectFill" lazy-load></image>
+                            <view class="img-more" wx:if="{{item.images.length > 3}}">+{{item.images.length - 3}}</view>
+                          </view>
+                        </view>
+                      </view>
                     </view>
 
                     <!-- 音频小控件 -->

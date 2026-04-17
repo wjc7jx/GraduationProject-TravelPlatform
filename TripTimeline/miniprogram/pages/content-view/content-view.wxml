@@ -21,7 +21,7 @@
         <view wx:if="{{locationAddress}}" class="location-sub">{{locationAddress}}</view>
       </view>
 
-      <view wx:if="{{images.length > 0 && !contentHasImg}}" class="media-block">
+      <view wx:if="{{images.length > 0}}" class="media-block">
         <image wx:for="{{images}}" wx:key="*this" class="detail-image" src="{{item}}" mode="widthFix"></image>
       </view>
 

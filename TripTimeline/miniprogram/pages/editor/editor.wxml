@@ -43,6 +43,46 @@
       />
     </view>
 
+    <!-- 图片附件区（独立于富文本） -->
+    <view class="asset-section form-card">
+      <view class="asset-section-header asset-section-header--with-action">
+        <view class="asset-section-title">
+          <app-icon class="asset-section-title-icon" name="camera" size="32rpx"></app-icon>
+          <text>图片</text>
+          <text class="asset-section-subtitle">{{images.length}}/9</text>
+        </view>
+        <view
+          class="asset-action-btn {{images.length >= 9 ? 'disabled' : ''}}"
+          bindtap="chooseImages"
+        >添加</view>
+      </view>
+
+      <view wx:if="{{images.length === 0}}" class="asset-empty-hint">可添加多张图片并调整顺序</view>
+
+      <view wx:if="{{images.length > 0}}" class="image-grid">
+        <view
+          class="image-item"
+          wx:for="{{imagePreviews}}"
+          wx:key="*this"
+          data-index="{{index}}"
+        >
+          <image
+            class="image-thumb"
+            src="{{item}}"
+            mode="aspectFill"
+            lazy-load
+            bindtap="previewImage"
+            data-index="{{index}}"
+          ></image>
+          <view class="image-actions">
+            <view class="img-act" bindtap="moveImageLeft" data-index="{{index}}">左移</view>
+            <view class="img-act" bindtap="moveImageRight" data-index="{{index}}">右移</view>
+            <view class="img-act img-act--danger" bindtap="removeImage" data-index="{{index}}">删除</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 时间 & 地点信息卡 -->
     <view class="info-card form-card">
 
@@ -163,9 +203,6 @@
   <view class="toolbar-item {{formats.list === 'bullet' ? 'active' : ''}}" data-name="list" data-value="bullet" bindtap="format">ul</view>
   <view class="toolbar-item {{formats.list === 'ordered' ? 'active' : ''}}" data-name="list" data-value="ordered" bindtap="format">ol</view>
   <view class="toolbar-divider"></view>
-  <view class="toolbar-item toolbar-item--with-icon" bindtap="insertImage">
-    <app-icon class="toolbar-item-icon" name="camera" size="30rpx"></app-icon>
-  </view>
   <view class="toolbar-item toolbar-item--with-icon {{showAudioPanel ? 'active' : ''}}" bindtap="toggleAudioPanel">
     <app-icon class="toolbar-item-icon" name="microphone" size="30rpx"></app-icon>
   </view>

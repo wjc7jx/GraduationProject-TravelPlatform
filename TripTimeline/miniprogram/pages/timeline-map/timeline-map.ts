@@ -161,11 +161,14 @@ Page({
           const lon = Number(location.longitude);
           const lat = Number(location.latitude);
           const hasLoc = Number.isFinite(lon) && Number.isFinite(lat);
-          const imageList = Array.isArray(payload.images)
+          const imageListRaw = Array.isArray(payload.images)
             ? payload.images
             : (typeof payload.images === 'string' ? (() => {
                 try { return JSON.parse(payload.images); } catch (e) { return []; }
               })() : []);
+          const imageList = (Array.isArray(imageListRaw) ? imageListRaw : [])
+            .filter(Boolean)
+            .map((u: any) => asAbsoluteAssetUrl(String(u)));
               
           const audioUrl = payload.audio?.url || payload.audio_url || '';
           const audio = audioUrl ? { url: asAbsoluteAssetUrl(audioUrl), name: payload.audio?.name || '音频' } : null;
@@ -179,16 +182,14 @@ Page({
             desc: (payload.content || '').replace(/<[^>]+>/g, '').trim(),
             richContent: payload.content || '',
             audio,
-            image: imageList[0] || '',
+            images: imageList,
             lon: hasLoc ? lon : 0,
             lat: hasLoc ? lat : 0,
             hasLoc
           };
         });
         
-        mappedData.forEach((d: any) => {
-          d.image = asAbsoluteAssetUrl(d.image);
-        });
+        // images 已在 map 内转为绝对 URL
 
         // Group by date
         const grouped: any[] = [];

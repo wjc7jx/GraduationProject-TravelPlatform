@@ -139,43 +139,41 @@
     }
   }
 
-  .share-export-card {
-    height: auto;
-    padding: 32rpx 24rpx;
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .share-col {
-    flex: 1;
+  .sub-action-row {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12rpx;
-    background: transparent;
-    border: none;
-    padding: 0;
-    margin: 0;
-    line-height: normal;
-    &::after { border: none; }
-  }
+    gap: 24rpx;
+    width: 100%;
+    
+    .action-card.secondary {
+      flex: 1;
+      height: 144rpx;
+      background: #E8E5DF;
+      border: 1px solid #DCD8D0;
+      border-radius: 32rpx;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 12rpx;
+      padding: 0;
+      box-shadow: none;
 
-  .share-icon {
-    width: 48rpx;
-    height: 48rpx;
-  }
+      .icon {
+        margin-right: 0;
+        width: 48rpx;
+        height: 48rpx;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-  .share-label {
-    font-size: 22rpx;
-    color: #6f665b;
-    text-align: center;
-  }
-
-  .share-divider {
-    width: 1px;
-    height: 64rpx;
-    background: rgba(0, 0, 0, 0.08);
-    flex-shrink: 0;
+      .label {
+        font-size: 28rpx;
+        color: #2A4B3C;
+        font-weight: 500;
+        margin-top: -6rpx;
+      }
+    }
   }
 }
 
@@ -241,20 +239,12 @@
   .fab-manage {
     background: #fff;
     
-    .fab-text {
-      font-size: 28rpx;
-      color: #2e2a25;
-      font-weight: 500;
-    }
-  }
-
-  .fab-edit {
-    background: #2A4B3C;
-
-    .fab-cross {
+    .fab-icon {
       width: 48rpx;
       height: 48rpx;
-      filter: brightness(0) invert(1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   }
 }

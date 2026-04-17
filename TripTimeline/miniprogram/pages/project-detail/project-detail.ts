@@ -533,26 +533,35 @@ Page({
     }
   },
 
-  onExportTap() {
-    const scopeText = ['导出 PDF（全部内容）', '导出 PDF（仅公开）', '导出 HTML（全部内容）', '导出 HTML（仅公开）'];
+  showMoreActions() {
+    const itemList = this.data.isOwner 
+      ? ['口令/二维码分享', '导出 PDF', '导出 HTML']
+      : ['导出 PDF', '导出 HTML'];
+
     wx.showActionSheet({
-      itemList: scopeText,
+      itemList,
       success: async (res) => {
-        const index = res.tapIndex;
-        if (index === 0) {
-          await this.exportPdf('all');
-          return;
-        }
-        if (index === 1) {
-          await this.exportPdf('public');
-          return;
-        }
-        if (index === 2) {
-          await this.exportHtml('all');
-          return;
-        }
-        if (index === 3) {
-          await this.exportHtml('public');
+        const tapIndex = res.tapIndex;
+        if (this.data.isOwner) {
+          if (tapIndex === 0) {
+            this.onInternalShareTap();
+            return;
+          }
+          if (tapIndex === 1) {
+            await this.exportPdf('all');
+            return;
+          }
+          if (tapIndex === 2) {
+            await this.exportHtml('all');
+          }
+        } else {
+          if (tapIndex === 0) {
+            await this.exportPdf('all');
+            return;
+          }
+          if (tapIndex === 1) {
+            await this.exportHtml('all');
+          }
         }
       }
     });
@@ -680,25 +689,6 @@ Page({
       wx.hideLoading();
       wx.showToast({ title: 'HTML导出失败', icon: 'none' });
       console.error('HTML export failed:', err);
-    }
-  },
-
-  onShareAppMessage() {
-    const projectId = String(this.data.projectId || '')
-    const shareId = this.data.activeShareId || this.data.shareId
-    const projectTitle = this.data.projectDetail?.title || '旅行项目'
-
-    if (!projectId || !shareId) {
-      return {
-        title: `${projectTitle} · TripTimeline`,
-        path: '/pages/index/index',
-      }
-    }
-
-    return {
-      title: `邀请你查看《${projectTitle}》`,
-      path: `/pages/timeline-map/timeline-map?projectId=${encodeURIComponent(projectId)}&shareId=${encodeURIComponent(shareId)}`,
-      imageUrl: this.data.projectDetail?.cover || '',
     }
   }
 

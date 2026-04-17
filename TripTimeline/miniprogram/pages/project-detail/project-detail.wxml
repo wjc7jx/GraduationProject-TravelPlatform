@@ -29,21 +29,15 @@
             <app-icon class="icon" name="enter" size="56rpx" color="#fff"></app-icon>
     </view>
 
-    <!-- 分享与导出（合并卡片）-->
-    <view class="action-card tertiary share-export-card">
-      <button wx:if="{{isOwner}}" class="share-col" open-type="share">
-        <app-icon class="share-icon" name="link" size="48rpx"></app-icon>
-        <text class="share-label">小程序分享</text>
-      </button>
-      <view wx:if="{{isOwner}}" class="share-divider"></view>
-      <view wx:if="{{isOwner}}" class="share-col" bindtap="onInternalShareTap">
-        <app-icon class="share-icon" name="mobile" size="48rpx"></app-icon>
-        <text class="share-label">口令/二维码</text>
+    <!-- 次级操作行 -->
+    <view class="sub-action-row">
+      <view class="action-card secondary" bindtap="goToEditor">
+        <app-icon class="icon" name="edit" size="40rpx" color="#2A4B3C"></app-icon>
+        <text class="label">写记录</text>
       </view>
-      <view wx:if="{{isOwner}}" class="share-divider"></view>
-      <view class="share-col" bindtap="onExportTap">
-        <app-icon class="share-icon" name="export" size="48rpx"></app-icon>
-        <text class="share-label">导出纪念册</text>
+      <view class="action-card secondary" bindtap="showMoreActions">
+        <app-icon class="icon" name="export" size="40rpx" color="#2A4B3C"></app-icon>
+        <text class="label">分享/导出</text>
       </view>
     </view>
   </view>
@@ -70,12 +64,7 @@
   <view class="fab-group">
     <!-- 管理按钮：始终在该组顶部显示 -->
     <view wx:if="{{isOwner}}" class="fab-trigger fab-manage" bindtap="onManageProjectTap">
-      <view class="fab-text">管理</view>
-    </view>
-    
-    <!-- 编辑按钮：仅未归档时显示 -->
-    <view wx:if="{{isOwner && !projectDetail.isArchived}}" class="fab-trigger fab-edit" bindtap="goToEditor">
-      <app-icon class="fab-cross" name="edit" size="48rpx"></app-icon>
+      <app-icon class="fab-icon" name="settings" size="48rpx" color="#2e2a25"></app-icon>
     </view>
   </view>
 

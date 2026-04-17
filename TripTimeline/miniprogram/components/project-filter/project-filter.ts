@@ -25,34 +25,24 @@ Component({
       this.triggerEvent('filterchange', payload);
     },
 
-    emitFilterChangeDebounced() {
-      const self = this as any;
-      if (self._debounceTimer) {
-        clearTimeout(self._debounceTimer);
-      }
-      self._debounceTimer = setTimeout(() => {
-        this.emitFilterChange();
-      }, 350);
-    },
-
     onKeywordInput(e: any) {
       this.setData({ keyword: e.detail.value || '' });
-      this.emitFilterChangeDebounced();
+    },
+
+    onKeywordConfirm() {
+      this.emitFilterChange();
     },
 
     onTagInput(e: any) {
       this.setData({ tag: e.detail.value || '' });
-      this.emitFilterChangeDebounced();
     },
 
     onStartDateChange(e: any) {
       this.setData({ startDate: e.detail.value || '' });
-      this.emitFilterChange();
     },
 
     onEndDateChange(e: any) {
       this.setData({ endDate: e.detail.value || '' });
-      this.emitFilterChange();
     },
 
     onClear() {
@@ -62,20 +52,21 @@ Component({
         startDate: '',
         endDate: '',
       });
-      this.emitFilterChange();
     },
+
+    onApply() {
+      this.emitFilterChange();
+      this.setData({ showAdvanced: false });
+    },
+
+    closeAdvanced() {
+      this.setData({ showAdvanced: false });
+    },
+
+    noop() {},
 
     toggleAdvanced() {
       this.setData({ showAdvanced: !this.data.showAdvanced });
-    }
-  },
-
-  lifetimes: {
-    detached() {
-      const self = this as any;
-      if (self._debounceTimer) {
-        clearTimeout(self._debounceTimer);
-      }
     }
   }
 });

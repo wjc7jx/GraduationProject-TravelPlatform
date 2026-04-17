@@ -120,10 +120,10 @@ Component({
             subtitle: p.tags ? p.tags.split(',').join(' ') : '',
             date: `${p.start_date.replace(/-/g, '.')} - ${p.end_date ? p.end_date.replace(/-/g, '.') : '至今'}`,
             label: p.tags ? p.tags.split(',')[0] : '旅行',
-            cover: p.cover_image 
-                ? asAbsoluteAssetUrl(p.cover_image) 
+            cover: p.cover_image
+                ? asAbsoluteAssetUrl(p.cover_image)
               : '',
-            locationCount: 0,
+            locationCount: p.locationCount || 0,
           }
         })
 

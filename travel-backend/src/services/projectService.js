@@ -1,4 +1,4 @@
-import { Content, Location, Project } from '../models/index.js';
+import { Content, Location, Project, sequelize } from '../models/index.js';
 import { Op } from 'sequelize';
 import {
   canView,
@@ -63,6 +63,21 @@ export async function listProjects(userId, filters = {}) {
 
   return Project.findAll({
     where,
+    attributes: {
+      include: [
+        [
+          sequelize.literal(`(
+            SELECT COUNT(*)
+            FROM contents AS content
+            WHERE
+              content.project_id = Project.project_id
+              AND content.location_id IS NOT NULL
+              AND content.is_deleted = 0
+          )`),
+          'locationCount'
+        ]
+      ]
+    },
     order: [['is_pinned', 'DESC'], ['pinned_at', 'DESC'], ['created_at', 'DESC']]
   });
 }

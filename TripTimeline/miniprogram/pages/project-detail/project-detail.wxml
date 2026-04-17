@@ -4,7 +4,7 @@
   <!-- 顶部封面与信息 -->
   <view class="header-banner">
     <view class="back-btn" bindtap="goBack">
-      <app-icon class="back-icon"  name="backIcon" size="48rpx" color="#8A877E"></app-icon>
+      <app-icon class="back-icon"  name="backIcon" size="48rpx" color="#fff"></app-icon>
     </view>
     <image class="cover-image" src="{{projectDetail.cover}}" mode="aspectFill"></image>
     <view class="overlay">

@@ -60,21 +60,6 @@ page {
   transform: scale(1.02);
 }
 
-.card-label {
-  position: absolute;
-  top: 74rpx;
-  right: 24rpx;
-  background: var(--bg-base);
-  color: var(--color-primary);
-  font-size: 20rpx;
-  padding: 8rpx 16rpx;
-  border-radius: 4rpx;
-  font-weight: bold;
-  letter-spacing: 2rpx;
-  text-transform: uppercase;
-  mix-blend-mode: hard-light;
-}
-
 .pin-btn {
   position: absolute;
   top: 24rpx;

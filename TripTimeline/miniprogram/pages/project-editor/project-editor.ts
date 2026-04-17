@@ -42,7 +42,7 @@ Page({
     
     // 输入框状态
     tagInput: '',
-    presetTags: ['🏕️ 露营', '🏖️ 看海', '☕️ 城市漫游', '📸 扫街', '⛰️ 特种兵', '🚗 自驾'],
+    presetTags: ['露营', '看海', '城市漫游', '扫街', '特种兵', '自驾'],
     showTagSelector: false
   },
 

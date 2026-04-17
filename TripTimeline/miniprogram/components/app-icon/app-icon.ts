@@ -21,6 +21,8 @@ type IconKey =
   | 'search'
   | 'globe'
   | 'backIcon'
+  | 'enter'
+  | 'plus'
   | 'world';
 
 const ICON_MAP: Record<IconKey, string> = {
@@ -46,7 +48,10 @@ const ICON_MAP: Record<IconKey, string> = {
   search: '/assets/img/search.svg',
   globe: '/assets/img/no-data.svg',
   world: '/assets/img/no-data.svg',
-  backIcon: '/assets/img/back.svg'
+  backIcon: '/assets/img/back.svg',
+  enter: '/assets/img/enter.svg',
+  plus: '/assets/img/plus.svg'
+
 };
 
 const SIZE_MAP: Record<string, string> = {

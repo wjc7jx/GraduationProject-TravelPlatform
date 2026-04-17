@@ -24,12 +24,12 @@
   <view class="action-grid">
     <!-- 进入时间轴与地图 -->
     <view class="action-card primary" bindtap="goToTimelineMap">
-      <app-icon class="icon" name="map" size="56rpx"></app-icon>
+      <app-icon class="icon" name="map" size="56rpx" color="#fff"></app-icon>
       <view class="text-group">
         <text class="main">故事地图</text>
         <text class="sub">查看我的路线与回忆</text>
       </view>
-      <view class="arrow">→</view>
+            <app-icon class="icon" name="enter" size="56rpx" color="#fff"></app-icon>
     </view>
 
     <!-- 新建打卡内容 -->

@@ -9,7 +9,7 @@
           <view class="weui-navigation-bar__buttons weui-navigation-bar__buttons_goback">
             <view
               bindtap="back"
-              class="weui-navigation-bar__btn_goback_wrapper"
+              class="weui-navigation-bar__btn_goback_wrapper {{iconTheme === 'white' ? 'theme-white' : ''}} {{iconTheme === 'black' ? 'theme-black' : ''}}"
               hover-class="weui-active"
               hover-stay-time="100"
               aria-role="button"

@@ -34,6 +34,10 @@ Component({
       type: Boolean,
       value: false,
     },
+    iconTheme: {
+      type: String,
+      value: 'default' // 'default' | 'white' | 'black'
+    },
     animated: {
       // 显示隐藏的时候opacity动画效果
       type: Boolean,

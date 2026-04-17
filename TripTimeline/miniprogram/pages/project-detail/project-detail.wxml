@@ -1,10 +1,10 @@
 <!--pages/project-detail/project-detail.wxml-->
 <view class="container">
-  
+
   <!-- 顶部封面与信息 -->
   <view class="header-banner">
     <view class="back-btn" bindtap="goBack">
-      <view class="back-icon">←</view>
+      <app-icon class="back-icon"  name="backIcon" size="48rpx" color="#8A877E"></app-icon>
     </view>
     <view wx:if="{{isOwner}}" class="edit-btn" bindtap="onManageProjectTap">
       <view class="edit-icon">管理</view>

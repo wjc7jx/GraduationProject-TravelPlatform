@@ -1,1 +1,2 @@
-<image class="app-icon {{customClass}}" src="{{src}}" mode="aspectFit" style="width: {{resolvedSize}}; height: {{resolvedSize}};"></image>
+<view wx:if="{{color}}" class="app-icon {{customClass}}" style="width: {{resolvedSize}}; height: {{resolvedSize}}; background-color: {{color}}; -webkit-mask: url({{src}}) no-repeat center; mask: url({{src}}) no-repeat center; -webkit-mask-size: contain; mask-size: contain; display: block;"></view>
+<image wx:else class="app-icon {{customClass}}" src="{{src}}" mode="aspectFit" style="width: {{resolvedSize}}; height: {{resolvedSize}}; display: block;"></image>

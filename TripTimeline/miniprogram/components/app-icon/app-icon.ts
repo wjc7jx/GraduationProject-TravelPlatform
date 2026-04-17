@@ -20,6 +20,7 @@ type IconKey =
   | 'folder'
   | 'search'
   | 'globe'
+  | 'backIcon'
   | 'world';
 
 const ICON_MAP: Record<IconKey, string> = {
@@ -44,7 +45,8 @@ const ICON_MAP: Record<IconKey, string> = {
   folder: '/assets/img/no-data.svg',
   search: '/assets/img/search.svg',
   globe: '/assets/img/no-data.svg',
-  world: '/assets/img/no-data.svg'
+  world: '/assets/img/no-data.svg',
+  backIcon: '/assets/img/back.svg'
 };
 
 const SIZE_MAP: Record<string, string> = {
@@ -62,6 +64,10 @@ Component({
     size: {
       type: String,
       value: 'md'
+    },
+    color: {
+      type: String,
+      value: ''
     },
     fallback: {
       type: String,

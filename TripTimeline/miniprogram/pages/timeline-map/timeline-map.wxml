@@ -77,12 +77,23 @@
                   <!-- 只有在激活(active)状态下才展开的内容区域 -->
                   <view class="node-details" wx:if="{{activeIndex === item.globalIndex}}">
                     <view class="node-title">{{item.title}}</view>
-                    <view class="node-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+                    <rich-text class="node-html" nodes="{{item.richContent}}" wx:if="{{item.richContent}}"></rich-text>
                     
                     <!-- 沉浸式图文排版重叠效果 -->
                     <view class="node-media" wx:if="{{item.image}}">
                       <image src="{{item.image}}" class="node-image" mode="aspectFill" lazy-load></image>
                       <view class="media-caption" wx:if="{{item.caption}}">{{item.caption}}</view>
+                    </view>
+
+                    <!-- 音频小控件 -->
+                    <view class="audio-player-mini" wx:if="{{item.audio}}" catchtap="onToggleAudio" data-id="{{item.id}}" data-url="{{item.audio.url}}">
+                      <view class="mini-play-btn {{playingAudioId === item.id ? 'is-playing' : ''}}">
+                        <app-icon name="{{playingAudioId === item.id ? 'pause' : 'play'}}" size="28rpx"></app-icon>
+                      </view>
+                      <view class="mini-audio-info">
+                        <text class="mini-audio-name">{{item.audio.name}}</text>
+                        <text class="mini-audio-status">{{playingAudioId === item.id ? '正在播放...' : '点击播放'}}</text>
+                      </view>
                     </view>
                   </view>
                 </view>

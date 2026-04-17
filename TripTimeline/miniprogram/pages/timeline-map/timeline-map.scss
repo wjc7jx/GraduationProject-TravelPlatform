@@ -272,6 +272,75 @@
   text-align: right;
 }
 
+/* 富文本显示 */
+.node-html {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: var(--color-text-main);
+  opacity: 0.85;
+  display: block;
+}
+
+/* 音频小控件 */
+.audio-player-mini {
+  margin-top: 24rpx;
+  padding: 16rpx 20rpx;
+  background: rgba(42, 75, 60, 0.04);
+  border-radius: 999rpx;
+  border: 1px solid rgba(42, 75, 60, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 16rpx;
+  transition: all 0.3s ease;
+}
+
+.audio-player-mini:active {
+  background: rgba(42, 75, 60, 0.08);
+  transform: scale(0.98);
+}
+
+.mini-play-btn {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  color: var(--color-primary);
+  transition: all 0.3s ease;
+}
+
+.mini-play-btn.is-playing {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.mini-audio-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-right: 16rpx;
+}
+
+.mini-audio-name {
+  font-size: 24rpx;
+  font-family: var(--font-sans);
+  color: var(--color-text-main);
+  font-weight: 500;
+  max-width: 300rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-audio-status {
+  font-size: 20rpx;
+  color: var(--color-text-sub);
+  margin-top: 4rpx;
+}
+
 /* 剧末标记 */
 .end-mark {
   display: flex;

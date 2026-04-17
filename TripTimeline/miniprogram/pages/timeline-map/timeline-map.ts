@@ -3,6 +3,8 @@ import api from '../../utils/api';
 import { guardArchivedWrite, normalizeProjectArchived } from '../../utils/projectArchive';
 
 Page({
+  _audioContext: null as WechatMiniprogram.InnerAudioContext | null,
+
   data: {
     projectId: null,
     shareId: '',
@@ -30,7 +32,10 @@ Page({
     projectDetail: null as any,
     timelineData: [] as any[],
     _startY: 0,
-    _startHeight: 0
+    _startHeight: 0,
+    
+    // Audio Player State
+    playingAudioId: null as string | null
   },
 
   onLoad(options: any) {
@@ -55,6 +60,57 @@ Page({
     } else {
       wx.showToast({ title: '请从项目进入时间地图', icon: 'none' });
     }
+  },
+
+  onHide() {
+    this.stopAudio();
+  },
+
+  onUnload() {
+    if (this._audioContext) {
+      this._audioContext.destroy();
+      this._audioContext = null;
+    }
+  },
+
+  stopAudio() {
+    if (this._audioContext) {
+      this._audioContext.stop();
+      this.setData({ playingAudioId: null });
+    }
+  },
+
+  onToggleAudio(e: any) {
+    const { id, url } = e.currentTarget.dataset;
+    if (!url) return;
+
+    if (this.data.playingAudioId === id) {
+      // 正在播放当前音频则暂停
+      if (this._audioContext) {
+        this._audioContext.pause();
+        this.setData({ playingAudioId: null });
+      }
+      return;
+    }
+
+    // 暂停/停止当前播放的其他音频
+    this.stopAudio();
+
+    if (!this._audioContext) {
+      this._audioContext = wx.createInnerAudioContext();
+      this._audioContext.onEnded(() => {
+        this.setData({ playingAudioId: null });
+      });
+      this._audioContext.onError((err: any) => {
+        console.error('Audio play error:', err);
+        wx.showToast({ title: '音频播放失败', icon: 'none' });
+        this.setData({ playingAudioId: null });
+      });
+    }
+
+    this._audioContext.src = url;
+    this._audioContext.play();
+    this.setData({ playingAudioId: id });
   },
 
   async markShareVisitedIfNeeded() {
@@ -110,13 +166,19 @@ Page({
             : (typeof payload.images === 'string' ? (() => {
                 try { return JSON.parse(payload.images); } catch (e) { return []; }
               })() : []);
+              
+          const audioUrl = payload.audio?.url || payload.audio_url || '';
+          const audio = audioUrl ? { url: asAbsoluteAssetUrl(audioUrl), name: payload.audio?.name || '音频' } : null;
+
           return {
             id: item.content_id,
             dateStr: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`,
             time: d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-              category: item.content_type === 'photo' ? '照片' : (item.content_type === 'note' ? '日记' : '音频'),
+            category: item.content_type === 'photo' ? '照片' : (item.content_type === 'note' ? '日记' : '音频'),
             title: payload.title || '无标题',
-          desc: (payload.content || '').replace(/<[^>]+>/g, '').trim(),
+            desc: (payload.content || '').replace(/<[^>]+>/g, '').trim(),
+            richContent: payload.content || '',
+            audio,
             image: imageList[0] || '',
             lon: hasLoc ? lon : 0,
             lat: hasLoc ? lat : 0,

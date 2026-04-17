@@ -52,6 +52,8 @@ Component({
         startDate: '',
         endDate: '',
       });
+      // Optionally trigger change immediately upon reset so list updates instantly.
+      this.emitFilterChange();
     },
 
     onApply() {

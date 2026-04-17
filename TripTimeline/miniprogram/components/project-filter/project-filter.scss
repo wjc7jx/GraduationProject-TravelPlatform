@@ -36,6 +36,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.filter-trigger.is-active {
+  background: #EDF1EE;
+  border: 2rpx solid rgba(42, 75, 60, 0.15);
+}
+
+.active-badge {
+  position: absolute;
+  top: 14rpx;
+  right: 14rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #E0534C;
+  border: 3rpx solid #EDF1EE;
 }
 
 .filter-icon {

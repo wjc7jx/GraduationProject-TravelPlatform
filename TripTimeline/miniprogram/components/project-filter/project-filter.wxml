@@ -13,8 +13,9 @@
         confirm-type="search"
       />
     </view>
-    <view class="filter-trigger" bindtap="toggleAdvanced">
+    <view class="filter-trigger {{(tag || startDate || endDate) ? 'is-active' : ''}}" bindtap="toggleAdvanced">
       <image class="filter-icon" src="/assets/img/filter.svg" mode="aspectFit"></image>
+      <view wx:if="{{tag || startDate || endDate}}" class="active-badge"></view>
     </view>
   </view>
 

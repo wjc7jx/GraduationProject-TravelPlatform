@@ -126,14 +126,6 @@
       .arrow { color: #fff; }
     }
 
-    &.secondary {
-      background: #fff;
-      color: #333;
-      border: 1px solid rgba(0,0,0,0.05);
-      .sub { color: #888; }
-      .arrow { color: var(--color-primary); font-size: 48rpx; font-weight: 300; }
-    }
-
     &.tertiary {
       background: #f0ece2;
       color: #2e2a25;

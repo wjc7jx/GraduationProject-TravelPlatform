@@ -32,16 +32,6 @@
             <app-icon class="icon" name="enter" size="56rpx" color="#fff"></app-icon>
     </view>
 
-    <!-- 新建打卡内容 -->
-    <view wx:if="{{isOwner && !projectDetail.isArchived}}" class="action-card secondary" bindtap="goToEditor">
-      <app-icon class="icon" name="edit" size="56rpx"></app-icon>
-      <view class="text-group">
-        <text class="main">写新日志</text>
-        <text class="sub">记录当下的足迹与感受</text>
-      </view>
-      <view class="arrow">+</view>
-    </view>
-
     <!-- 分享与导出（合并卡片）-->
     <view class="action-card tertiary share-export-card">
       <button wx:if="{{isOwner}}" class="share-col" open-type="share">

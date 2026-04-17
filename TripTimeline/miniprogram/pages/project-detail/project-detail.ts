@@ -273,14 +273,14 @@ Page({
       
       let locationsCount = 0;
       let photosCount = 0;
-      
+
       res.forEach(item => {
-        if (item.content_type === 'track') locationsCount++;
+        if (item.location || item.location_id) locationsCount++;
         if (item.content_type === 'photo') {
           photosCount++;
         }
       });
-      
+
       this.setData({
         'stats.locations': locationsCount,
         'stats.photos': photosCount

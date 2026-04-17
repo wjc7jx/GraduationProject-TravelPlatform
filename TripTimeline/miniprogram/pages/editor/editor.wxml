@@ -165,10 +165,8 @@
   <view class="toolbar-divider"></view>
   <view class="toolbar-item toolbar-item--with-icon" bindtap="insertImage">
     <app-icon class="toolbar-item-icon" name="camera" size="30rpx"></app-icon>
-    <text>照片</text>
   </view>
   <view class="toolbar-item toolbar-item--with-icon {{showAudioPanel ? 'active' : ''}}" bindtap="toggleAudioPanel">
     <app-icon class="toolbar-item-icon" name="microphone" size="30rpx"></app-icon>
-    <text>音频</text>
   </view>
 </view>

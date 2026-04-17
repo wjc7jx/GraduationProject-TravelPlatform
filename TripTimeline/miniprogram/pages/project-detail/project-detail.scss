@@ -32,27 +32,6 @@
     }
   }
 
-  .edit-btn {
-    position: absolute;
-    top: 64rpx;
-    right: 32rpx;
-    padding: 0 24rpx;
-    height: 72rpx;
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(8px);
-    border-radius: 36rpx;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-    
-    .edit-icon {
-      font-size: 28rpx;
-      color: #333;
-      font-weight: 500;
-    }
-  }
-
   .cover-image {
     width: 100%;
     height: 100%;
@@ -127,7 +106,7 @@
     }
 
     &.tertiary {
-      background: #f0ece2;
+      background: #DCD8D0;
       color: #2e2a25;
       border: 1px solid rgba(42, 75, 60, 0.12);
       .sub { color: #6f665b; }
@@ -204,13 +183,6 @@
 .stats-section {
   padding: 0 40rpx 40rpx;
 
-  .section-title {
-    font-size: 36rpx;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 24rpx;
-  }
-
   .stats-cards {
     display: flex;
     gap: 24rpx;
@@ -240,106 +212,49 @@
   }
 }
 
-// 杂志风悬浮发布菜单结构 (Floating Action Button)
-.fab-container {
+// 右下角悬浮按钮组
+.fab-group {
   position: fixed;
   z-index: 999;
   bottom: 64rpx;
   right: 40rpx;
-
-  .fab-backdrop {
-    position: fixed;
-    inset: 0;
-    // 采用与主题匹配的奶油色毛玻璃背景，凸显高级感
-    background: rgba(247, 245, 240, 0.85); 
-    backdrop-filter: blur(12px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .fab-menu {
-    position: absolute;
-    bottom: 140rpx;
-    right: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 32rpx;
-    z-index: 20;
-
-    .fab-item {
-      display: flex;
-      align-items: center;
-      gap: 24rpx;
-      opacity: 0;
-      transform: translateY(40rpx) scale(0.9);
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      pointer-events: none;
-
-      .fab-label {
-        font-size: 28rpx;
-        color: #2A4B3C; /* 品牌主色 */
-        font-weight: 500;
-        background: #fff;
-        padding: 16rpx 36rpx;
-        border-radius: 40rpx;
-        box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.08); /* 轻质阴影 */
-      }
-
-      .fab-icon-btn {
-        width: 104rpx;
-        height: 104rpx;
-        background: #fff;
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 44rpx;
-        box-shadow: 0 16rpx 40rpx rgba(42, 75, 60, 0.12);
-      }
-    }
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  align-items: center;
 
   .fab-trigger {
-    width: 112rpx;
-    height: 112rpx;
-    background: #2A4B3C;
+    width: 104rpx;
+    height: 104rpx;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 12rpx 40rpx rgba(42, 75, 60, 0.3);
-    position: relative;
-    z-index: 100;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s;
+    box-shadow: 0 12rpx 32rpx rgba(42, 75, 60, 0.2);
+    transition: transform 0.2s, background 0.3s;
 
-    .fab-cross {
-      width: 56rpx;
-      height: 56rpx;
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s;
-      filter: brightness(0) invert(1);
+    &:active {
+      transform: scale(0.92);
     }
   }
 
-  /* 激活状态 */
-  &.active {
-    .fab-backdrop {
-      opacity: 1;
-      pointer-events: auto;
+  .fab-manage {
+    background: #fff;
+    
+    .fab-text {
+      font-size: 28rpx;
+      color: #2e2a25;
+      font-weight: 500;
     }
-    .fab-menu .fab-item {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      pointer-events: auto;
-    }
-    .fab-trigger {
-      transform: scale(0.9);
-      background: #fff;
-      .fab-cross {
-        filter: none;
-        transform: rotate(135deg); /* 十字变 X 号 */
-      }
+  }
+
+  .fab-edit {
+    background: #2A4B3C;
+
+    .fab-cross {
+      width: 48rpx;
+      height: 48rpx;
+      filter: brightness(0) invert(1);
     }
   }
 }

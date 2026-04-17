@@ -6,9 +6,6 @@
     <view class="back-btn" bindtap="goBack">
       <app-icon class="back-icon"  name="backIcon" size="48rpx" color="#8A877E"></app-icon>
     </view>
-    <view wx:if="{{isOwner}}" class="edit-btn" bindtap="onManageProjectTap">
-      <view class="edit-icon">管理</view>
-    </view>
     <image class="cover-image" src="{{projectDetail.cover}}" mode="aspectFill"></image>
     <view class="overlay">
       <view class="project-info">
@@ -53,7 +50,6 @@
 
   <!-- 这里可以未来添加该项目下最新的几条日记预览 / 统计信息 -->
   <view class="stats-section">
-    <view class="section-title">旅行概览</view>
     <view class="stats-cards">
       <view class="stat-card">
         <text class="num">{{stats.locations}}</text>
@@ -70,10 +66,16 @@
     </view>
   </view>
 
-  <!-- 单一入口：直接进入统一 editor -->
-  <view wx:if="{{isOwner && !projectDetail.isArchived}}" class="fab-container">
-    <view class="fab-trigger" bindtap="goToEditor">
-      <app-icon class="fab-cross" name="edit" size="56rpx"></app-icon>
+  <!-- 右下角悬浮按钮组 -->
+  <view class="fab-group">
+    <!-- 管理按钮：始终在该组顶部显示 -->
+    <view wx:if="{{isOwner}}" class="fab-trigger fab-manage" bindtap="onManageProjectTap">
+      <view class="fab-text">管理</view>
+    </view>
+    
+    <!-- 编辑按钮：仅未归档时显示 -->
+    <view wx:if="{{isOwner && !projectDetail.isArchived}}" class="fab-trigger fab-edit" bindtap="goToEditor">
+      <app-icon class="fab-cross" name="edit" size="48rpx"></app-icon>
     </view>
   </view>
 

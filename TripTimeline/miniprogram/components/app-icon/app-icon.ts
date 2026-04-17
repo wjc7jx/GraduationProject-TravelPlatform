@@ -23,6 +23,7 @@ type IconKey =
   | 'backIcon'
   | 'enter'
   | 'plus'
+  | 'settings'
   | 'world';
 
 const ICON_MAP: Record<IconKey, string> = {
@@ -50,8 +51,8 @@ const ICON_MAP: Record<IconKey, string> = {
   world: '/assets/img/no-data.svg',
   backIcon: '/assets/img/back.svg',
   enter: '/assets/img/enter.svg',
-  plus: '/assets/img/plus.svg'
-
+  plus: '/assets/img/plus.svg',
+  settings: '/assets/img/settings.svg'
 };
 
 const SIZE_MAP: Record<string, string> = {

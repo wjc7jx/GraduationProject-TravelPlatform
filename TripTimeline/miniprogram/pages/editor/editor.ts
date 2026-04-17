@@ -82,6 +82,8 @@ Page({
     images: [] as string[], // 相对路径数组（用于提交，顺序即展示顺序）
     imagePreviews: [] as string[], // 绝对 URL 数组（用于展示/预览）
     isImageUploading: false,
+    activeImageIndex: -1,
+    isDraggingImage: false,
 
     // 音频
     audioFileName: '',
@@ -562,20 +564,8 @@ Page({
     if (index < 0 || index >= nextRels.length) return;
     nextRels.splice(index, 1);
     nextAbs.splice(index, 1);
-    this.setData({ images: nextRels, imagePreviews: nextAbs });
-  },
-
-  moveImageLeft(e: any) {
-    const index = Number(e.currentTarget.dataset.index);
-    if (!Number.isFinite(index) || index <= 0) return;
-    this.swapImage(index, index - 1);
-  },
-
-  moveImageRight(e: any) {
-    const index = Number(e.currentTarget.dataset.index);
-    const len = (this.data.images || []).length;
-    if (!Number.isFinite(index) || index < 0 || index >= len - 1) return;
-    this.swapImage(index, index + 1);
+    const nextActive = this.data.activeImageIndex === index ? -1 : this.data.activeImageIndex;
+    this.setData({ images: nextRels, imagePreviews: nextAbs, activeImageIndex: nextActive });
   },
 
   swapImage(a: number, b: number) {
@@ -585,6 +575,108 @@ Page({
     [nextRels[a], nextRels[b]] = [nextRels[b], nextRels[a]];
     [nextAbs[a], nextAbs[b]] = [nextAbs[b], nextAbs[a]];
     this.setData({ images: nextRels, imagePreviews: nextAbs });
+  },
+
+  clearActiveImage() {
+    if (this.data.activeImageIndex !== -1) {
+      this.setData({ activeImageIndex: -1 });
+    }
+  },
+
+  onImageItemTap(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isFinite(index)) return;
+    this.setData({ activeImageIndex: index });
+  },
+
+  // --- Drag sort (3 columns grid) ---
+  _imgDrag: {
+    rects: [] as Array<{ left: number; right: number; top: number; bottom: number }>,
+    currentIndex: -1,
+    lastRectsAt: 0
+  } as any,
+  _isRefreshingImageRects: false,
+
+  async refreshImageRects() {
+    if (this._isRefreshingImageRects) return;
+    this._isRefreshingImageRects = true;
+    try {
+      const rects = await new Promise<any[]>((resolve) => {
+        wx.createSelectorQuery()
+          .selectAll('.image-thumb-wrap')
+          .boundingClientRect()
+          .exec((res) => resolve(res?.[0] || []));
+      });
+      if (Array.isArray(rects) && rects.length) {
+        this._imgDrag.rects = rects.map((r: any) => ({
+          left: Number(r.left) || 0,
+          right: Number(r.right) || 0,
+          top: Number(r.top) || 0,
+          bottom: Number(r.bottom) || 0
+        }));
+        this._imgDrag.lastRectsAt = Date.now();
+      }
+    } finally {
+      this._isRefreshingImageRects = false;
+    }
+  },
+
+  hitTestImageIndex(x: number, y: number) {
+    const rects = this._imgDrag?.rects || [];
+    for (let i = 0; i < rects.length; i++) {
+      const r = rects[i];
+      if (!r) continue;
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        return i;
+      }
+    }
+    return -1;
+  },
+
+  async onImageItemLongPress(e: any) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (!Number.isFinite(index)) return;
+    if ((this.data.images || []).length <= 1) return;
+
+    this.setData({ activeImageIndex: index, isDraggingImage: true });
+
+    await this.refreshImageRects();
+    if (!Array.isArray(this._imgDrag?.rects) || this._imgDrag.rects.length <= 0) {
+      this.setData({ isDraggingImage: false });
+      return;
+    }
+    this._imgDrag.currentIndex = index;
+    this._imgDrag.lastRectsAt = Date.now();
+  },
+
+  onImageItemTouchMove(e: any) {
+    if (!this.data.isDraggingImage) return;
+    const touch = e.touches?.[0];
+    if (!touch) return;
+    const len = (this.data.images || []).length;
+    if (len <= 1) return;
+
+    const cur = this._imgDrag.currentIndex;
+    if (!Number.isFinite(cur) || cur < 0 || cur >= len) return;
+
+    // rects 可能因为滚动/交换而过期，拖动中轻量刷新一次（最多 9 张，成本可控）
+    if (Date.now() - (this._imgDrag?.lastRectsAt || 0) > 180) {
+      this.refreshImageRects();
+    }
+
+    const hitIndex = this.hitTestImageIndex(touch.clientX, touch.clientY);
+    if (hitIndex < 0 || hitIndex >= len) return; // 手指在 gap 上则不触发交换
+    if (hitIndex === cur) return;
+
+    this.swapImage(cur, hitIndex);
+    this._imgDrag.currentIndex = hitIndex;
+    this.setData({ activeImageIndex: hitIndex });
+    setTimeout(() => this.refreshImageRects(), 0);
+  },
+
+  onImageItemTouchEnd() {
+    if (!this.data.isDraggingImage) return;
+    this.setData({ isDraggingImage: false });
   },
 
   toggleAudioPanel() {

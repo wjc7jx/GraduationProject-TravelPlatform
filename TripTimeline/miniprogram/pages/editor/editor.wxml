@@ -59,25 +59,31 @@
 
       <view wx:if="{{images.length === 0}}" class="asset-empty-hint">可添加多张图片并调整顺序</view>
 
-      <view wx:if="{{images.length > 0}}" class="image-grid">
+      <view wx:if="{{images.length > 0}}" class="image-grid" bindtap="clearActiveImage">
         <view
           class="image-item"
           wx:for="{{imagePreviews}}"
           wx:key="*this"
           data-index="{{index}}"
+          catchtap="onImageItemTap"
+          bindlongpress="onImageItemLongPress"
+          catchtouchmove="onImageItemTouchMove"
+          catchtouchend="onImageItemTouchEnd"
+          catchtouchcancel="onImageItemTouchEnd"
         >
-          <image
-            class="image-thumb"
-            src="{{item}}"
-            mode="aspectFill"
-            lazy-load
-            bindtap="previewImage"
-            data-index="{{index}}"
-          ></image>
-          <view class="image-actions">
-            <view class="img-act" bindtap="moveImageLeft" data-index="{{index}}">左移</view>
-            <view class="img-act" bindtap="moveImageRight" data-index="{{index}}">右移</view>
-            <view class="img-act img-act--danger" bindtap="removeImage" data-index="{{index}}">删除</view>
+          <view class="image-thumb-wrap">
+            <image
+              class="image-thumb"
+              src="{{item}}"
+              mode="aspectFill"
+              lazy-load
+            ></image>
+            <view class="image-mask" wx:if="{{activeImageIndex === index}}">
+              <view class="mask-actions">
+                <view class="mask-btn mask-btn--danger" catchtap="removeImage" data-index="{{index}}">删除</view>
+                <view class="mask-hint">长按可拖动排序</view>
+              </view>
+            </view>
           </view>
         </view>
       </view>

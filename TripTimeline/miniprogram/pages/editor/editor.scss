@@ -314,36 +314,62 @@
       gap: 10rpx;
     }
 
-    .image-thumb {
+    .image-thumb-wrap {
+      position: relative;
       width: 100%;
       height: 200rpx;
       border-radius: 14rpx;
+      overflow: hidden;
       background: rgba(28, 28, 28, 0.04);
       border: 2rpx solid rgba(28, 28, 28, 0.08);
-      overflow: hidden;
     }
 
-    .image-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8rpx;
+    .image-thumb {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
-    .img-act {
-      padding: 10rpx 0;
-      border-radius: 12rpx;
-      background: rgba(42, 75, 60, 0.06);
-      border: 2rpx solid rgba(42, 75, 60, 0.1);
-      color: #2a4b3c;
-      font-size: 22rpx;
+    .image-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.48);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16rpx;
+      box-sizing: border-box;
+    }
+
+    .mask-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10rpx;
+      width: 100%;
+    }
+
+    .mask-btn {
+      width: 100%;
+      padding: 14rpx 0;
+      border-radius: 14rpx;
       text-align: center;
-      font-weight: 700;
+      font-size: 24rpx;
+      font-weight: 800;
+      border: 2rpx solid rgba(255, 255, 255, 0.22);
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
     }
 
-    .img-act--danger {
-      background: rgba(205, 102, 73, 0.08);
-      border-color: rgba(205, 102, 73, 0.2);
-      color: #b24f36;
+    .mask-btn--danger {
+      background: rgba(205, 102, 73, 0.88);
+      border-color: rgba(205, 102, 73, 0.9);
+    }
+
+    .mask-hint {
+      font-size: 20rpx;
+      color: rgba(255, 255, 255, 0.78);
+      letter-spacing: 1rpx;
     }
 
     .asset-section-title-icon {

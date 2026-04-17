@@ -42,33 +42,22 @@
       <view class="arrow">+</view>
     </view>
 
-    <!-- 小程序分享卡片 -->
-    <button wx:if="{{isOwner}}" class="action-card tertiary share-action" open-type="share">
-      <view class="icon">🔗</view>
-      <view class="text-group">
-        <text class="main">小程序分享</text>
-        <text class="sub">生成卡片，打开直达本项目</text>
+    <!-- 分享与导出（合并卡片）-->
+    <view class="action-card tertiary share-export-card">
+      <button wx:if="{{isOwner}}" class="share-col" open-type="share">
+        <view class="share-icon">🔗</view>
+        <text class="share-label">小程序分享</text>
+      </button>
+      <view wx:if="{{isOwner}}" class="share-divider"></view>
+      <view wx:if="{{isOwner}}" class="share-col" bindtap="onInternalShareTap">
+        <view class="share-icon">📱</view>
+        <text class="share-label">口令/二维码</text>
       </view>
-      <view class="arrow">↗</view>
-    </button>
-
-    <view wx:if="{{isOwner}}" class="action-card tertiary" bindtap="onInternalShareTap">
-      <view class="icon">📱</view>
-      <view class="text-group">
-        <text class="main">口令与二维码分享</text>
-        <text class="sub">仅支持小程序内访问</text>
+      <view wx:if="{{isOwner}}" class="share-divider"></view>
+      <view class="share-col" bindtap="onExportTap">
+        <view class="share-icon">📤</view>
+        <text class="share-label">导出纪念册</text>
       </view>
-      <view class="arrow">↗</view>
-    </view>
-
-    <!-- 导出纪念册 -->
-    <view class="action-card tertiary" bindtap="onExportTap">
-      <view class="icon">📤</view>
-      <view class="text-group">
-        <text class="main">导出纪念册</text>
-        <text class="sub">导出 PDF / HTML 文件</text>
-      </view>
-      <view class="arrow">↗</view>
     </view>
   </view>
 

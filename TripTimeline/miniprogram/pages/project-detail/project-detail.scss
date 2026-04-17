@@ -167,14 +167,42 @@
     }
   }
 
-  .share-action {
-    width: 100%;
-    margin: 0;
-    line-height: normal;
+  .share-export-card {
+    height: auto;
+    padding: 32rpx 24rpx;
+    flex-direction: row;
+    align-items: center;
   }
 
-  .share-action::after {
+  .share-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12rpx;
+    background: transparent;
     border: none;
+    padding: 0;
+    margin: 0;
+    line-height: normal;
+    &::after { border: none; }
+  }
+
+  .share-icon {
+    font-size: 48rpx;
+  }
+
+  .share-label {
+    font-size: 22rpx;
+    color: #6f665b;
+    text-align: center;
+  }
+
+  .share-divider {
+    width: 1px;
+    height: 64rpx;
+    background: rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
   }
 }
 

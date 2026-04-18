@@ -176,17 +176,8 @@
       </view>
     </view>
 
-    <!-- 隐私设置 -->
-    <view class="form-card privacy-block">
-      <view class="privacy-title">隐私设置</view>
-      <view class="privacy-summary">{{privacySummary}}</view>
-      <view class="privacy-whitelist-wrap">
-        记录隐私统一继承项目设置，如需调整请前往项目详情页修改。
-      </view>
-    </view>
-    
     <!-- 提交按钮（三态）预留底部间距给Toolbar -->
-    <view class="action-section" style="padding-bottom: env(safe-area-inset-bottom); margin-bottom: 120rpx;">
+    <view class="action-section">
       <view
         class="save-btn save-btn--{{submitStatus}} {{submitStatus === 'error' ? 'shake' : ''}} {{submitStatus === 'loading' ? 'disabled' : ''}}"
         bindtap="saveEntry"

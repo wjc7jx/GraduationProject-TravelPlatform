@@ -9,23 +9,6 @@ import {
 import { readAndParseExif } from '../../utils/exif';
 import { fetchProjectArchivedState, guardArchivedWrite } from '../../utils/projectArchive';
 
-type VisibilityValue = 1 | 2 | 3;
-type PrivacyMode = 'inherit';
-
-function normalizeVisibility(value: any): VisibilityValue {
-  const visibility = Number(value);
-  if (visibility === 2 || visibility === 3) {
-    return visibility;
-  }
-  return 1;
-}
-
-function visibilityLabel(visibility: VisibilityValue) {
-  if (visibility === 2) return '好友可见';
-  if (visibility === 3) return '公开';
-  return '私密';
-}
-
 Page({
 
   hasValidLocation(location: any) {
@@ -92,15 +75,7 @@ Page({
 
     // 文字内容
     title: '',
-    content: '',
-
-    // 隐私配置
-    privacyMode: 'inherit' as PrivacyMode,
-    visibilityOptions: ['私密（仅自己可见）', '好友可见（自动基于好友关系）', '公开（登录用户可见）'],
-    projectPrivacyVisibility: 1 as VisibilityValue,
-    privacyVisibility: 1 as VisibilityValue,
-    privacyVisibilityIndex: 0,
-    privacySummary: '当前继承项目策略：私密'
+    content: ''
   },
 
   onLoad(options: any) {
@@ -124,9 +99,6 @@ Page({
 
     if (this.data.isEditMode && this.data.projectId && this.data.contentId) {
       this.loadExistingContent(this.data.projectId, this.data.contentId);
-      this.loadContentPrivacy(this.data.projectId, this.data.contentId);
-    } else if (this.data.projectId) {
-      this.loadProjectPrivacy(this.data.projectId);
     }
 
     wx.onKeyboardHeightChange((res) => {
@@ -182,38 +154,6 @@ Page({
     } catch (error) {
       this.setData({ isProjectArchived: false });
     }
-  },
-
-  buildPrivacySummary(mode: PrivacyMode, visibility: VisibilityValue, inheritedLabel?: string) {
-    const label = inheritedLabel || visibilityLabel(visibility);
-    return `当前继承项目策略：${label}`;
-  },
-
-  async loadProjectPrivacy(projectId: string) {
-    try {
-      const rule = await request<any>({
-        url: api.project.privacy(projectId),
-        method: 'GET',
-        showLoading: false
-      });
-      const visibility = normalizeVisibility(rule?.visibility);
-      this.setData({
-        privacyMode: 'inherit',
-        projectPrivacyVisibility: visibility,
-        privacyVisibility: visibility,
-        privacyVisibilityIndex: visibility - 1,
-        privacySummary: this.buildPrivacySummary('inherit', visibility)
-      });
-    } catch (error) {
-      this.setData({
-        projectPrivacyVisibility: 1,
-        privacySummary: this.buildPrivacySummary('inherit', 1)
-      });
-    }
-  },
-
-  async loadContentPrivacy(projectId: string, contentId: string) {
-    await this.loadProjectPrivacy(projectId);
   },
 
   async loadExistingContent(projectId: string, contentId: string) {
@@ -301,25 +241,6 @@ Page({
 
   toggleLocation() {
     this.setData({ locationExpanded: !this.data.locationExpanded });
-  },
-
-  onPrivacyModeChange(e: WechatMiniprogram.BaseEvent) {
-    this.setData({
-      privacyMode: 'inherit',
-      privacyVisibility: this.data.projectPrivacyVisibility,
-      privacyVisibilityIndex: this.data.projectPrivacyVisibility - 1,
-      privacySummary: this.buildPrivacySummary('inherit', this.data.projectPrivacyVisibility)
-    });
-  },
-
-  onPrivacyVisibilityChange(e: any) {
-    const index = Number(e.detail.value);
-    const visibility = normalizeVisibility(index + 1);
-    this.setData({
-      privacyVisibility: visibility,
-      privacyVisibilityIndex: visibility - 1,
-      privacySummary: this.buildPrivacySummary(this.data.privacyMode, visibility)
-    });
   },
 
   onLocationSearchInput(e: WechatMiniprogram.Input) {
@@ -925,21 +846,13 @@ Page({
         requestData.location_id = this.data.existingLocationId;
       }
 
-      const saved = await request<any>({
+      await request<any>({
         url: this.data.isEditMode
           ? api.content.update(this.data.projectId, this.data.contentId)
           : api.content.create(this.data.projectId),
         method: this.data.isEditMode ? 'PUT' : 'POST',
         data: requestData
       });
-
-      const targetContentId = this.data.isEditMode
-        ? this.data.contentId
-        : `${saved?.content_id || ''}`;
-
-      if (!targetContentId) throw new Error('内容ID缺失，无法保存隐私配置');
-
-      // 内容级隐私已下线，记录统一继承项目隐私。
 
       this.setData({ submitStatus: 'success' });
       setTimeout(() => wx.navigateBack(), 1500);

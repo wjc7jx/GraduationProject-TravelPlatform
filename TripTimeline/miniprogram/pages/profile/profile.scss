@@ -8,196 +8,285 @@ page {
 .scrollarea {
   flex: 1;
   height: 0;
-  padding: 24rpx 24rpx calc(120rpx + env(safe-area-inset-bottom) + 24rpx);
+  padding: 0 0 calc(120rpx + env(safe-area-inset-bottom) + 24rpx);
   box-sizing: border-box;
 }
 
 .profile-hero {
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  box-shadow: 0 12rpx 36rpx rgba(42, 75, 60, 0.08);
+  padding: 32rpx 40rpx 40rpx;
+  box-sizing: border-box;
 }
 
-.hero-title {
-  font-size: 40rpx;
-  color: #2a4b3c;
+.hero-greeting {
+  font-size: 44rpx;
   font-weight: 700;
+  color: #1c1c1c;
+  letter-spacing: 0.5rpx;
 }
 
-.hero-subtitle {
-  margin-top: 10rpx;
-  font-size: 24rpx;
-  color: #6b736d;
+.hero-stat {
+  margin-top: 8rpx;
+  font-size: 28rpx;
+  font-weight: 400;
+  color: #8a877e;
 }
 
-.invite-btn {
-  margin-top: 20rpx;
-  background: #2a4b3c;
-  color: #fff;
-  font-size: 26rpx;
-  border-radius: 999rpx;
-  border: none;
-  line-height: 1;
-  padding: 22rpx 26rpx;
+.profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+  padding: 0 40rpx 40rpx;
+  box-sizing: border-box;
 }
 
-.invite-btn::after {
-  border: none;
+/* 邀请卡片：白底 + 描边，对齐设计稿 Invite Card */
+.invite-card {
+  background: #ffffff;
+  border-radius: 32rpx;
+  border: 1rpx solid #dcd8d0;
+  padding: 32rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
 }
 
-.invite-code-card {
-  margin-top: 18rpx;
-  padding: 20rpx;
-  border-radius: 16rpx;
-  background: #f5f8f6;
-  border: 1rpx solid #dce8e0;
+.invite-card-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1c1c1c;
 }
 
-.invite-code-label {
-  font-size: 24rpx;
-  color: #5f6f66;
+.invite-code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
 }
 
 .invite-code-value {
-  margin-top: 8rpx;
-  font-size: 40rpx;
-  color: #1f2b24;
-  letter-spacing: 4rpx;
+  flex: 1;
+  min-width: 0;
+  font-size: 56rpx;
   font-weight: 700;
+  color: #2a4b3c;
+  letter-spacing: 8rpx;
+  line-height: 1.15;
+  word-break: break-all;
+}
+
+.invite-code-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-shrink: 0;
+}
+
+.invite-icon-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: rgba(42, 75, 60, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invite-icon-btn.is-busy {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.invite-action-icon {
+  display: block;
 }
 
 .invite-code-expire {
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  color: #728078;
-}
-
-.invite-refresh-btn {
-  margin-top: 12rpx;
-  width: 240rpx;
-  background: #ffffff;
-  color: #2a4b3c;
-  border-radius: 999rpx;
   font-size: 24rpx;
-  border: 1rpx solid #d3dfd8;
-  line-height: 1;
-  padding: 18rpx 22rpx;
+  color: #8a877e;
+  line-height: 1.45;
 }
 
-.invite-refresh-btn::after {
+.share-invite-btn {
+  width: 100%;
+  height: 80rpx;
+  margin: 0;
+  padding: 0 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  border-radius: 20rpx;
+  background: rgba(42, 75, 60, 0.07);
+  border: none;
+  line-height: 1;
+}
+
+.share-invite-btn::after {
   border: none;
 }
 
+.share-invite-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2a4b3c;
+}
+
+.invite-input-block {
+  padding-top: 24rpx;
+  border-top: 1rpx solid #dcd8d0;
+}
+
+.invite-input-label {
+  font-size: 24rpx;
+  color: #8a877e;
+  margin-bottom: 12rpx;
+}
+
 .invite-input-row {
-  margin-top: 14rpx;
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 16rpx;
 }
 
 .invite-input {
   flex: 1;
   height: 72rpx;
-  border-radius: 12rpx;
-  background: #fff;
-  border: 1rpx solid #d9e3dd;
-  padding: 0 18rpx;
-  color: #1f2b24;
+  border-radius: 16rpx;
+  background: #e8e5df;
+  border: 1rpx solid #dcd8d0;
+  padding: 0 24rpx;
+  color: #1c1c1c;
   font-size: 26rpx;
+  box-sizing: border-box;
 }
 
 .invite-apply-btn {
   width: 140rpx;
   height: 72rpx;
-  border-radius: 12rpx;
+  border-radius: 16rpx;
   line-height: 72rpx;
   font-size: 26rpx;
-  color: #fff;
+  font-weight: 600;
+  color: #ffffff;
   background: #2a4b3c;
   padding: 0;
+  margin: 0;
+  border: none;
 }
 
 .invite-apply-btn::after {
   border: none;
 }
 
-.review-entry {
-  margin-top: 24rpx;
-  background: linear-gradient(135deg, #2a4b3c, #3b6a54);
-  border-radius: 20rpx;
-  padding: 24rpx;
+/* 年度回顾入口 */
+.year-review-card {
+  height: 128rpx;
+  padding: 0 32rpx;
+  border-radius: 32rpx;
+  background: #2a4b3c;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
-.entry-title {
-  color: #fff;
-  font-size: 32rpx;
+.year-review-left {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  min-width: 0;
+}
+
+.year-review-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+
+.year-review-title {
+  font-size: 30rpx;
   font-weight: 700;
+  color: #ffffff;
 }
 
-.entry-desc {
-  margin-top: 8rpx;
-  color: rgba(255, 255, 255, 0.9);
+.year-review-sub {
   font-size: 24rpx;
-  line-height: 1.5;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.67);
 }
 
-.friend-section {
-  margin-top: 24rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 12rpx 36rpx rgba(42, 75, 60, 0.05);
+.year-review-chevron {
+  font-size: 44rpx;
+  font-weight: 300;
+  color: #ffffff;
+  line-height: 1;
+  padding-bottom: 4rpx;
+}
+
+/* 旅伴 */
+.friends-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.friends-section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1c1c1c;
 }
 
 .friend-loading,
 .friend-empty {
-  color: #6b736d;
-  font-size: 24rpx;
-  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #8a877e;
+  padding: 8rpx 0;
 }
 
-.friend-item {
-  margin-top: 16rpx;
+.friend-card {
   display: flex;
   align-items: center;
+  gap: 24rpx;
+  min-height: 128rpx;
+  padding: 0 32rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  border: 1rpx solid #dcd8d0;
+  box-sizing: border-box;
 }
 
 .friend-avatar {
-  width: 72rpx;
-  height: 72rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 50%;
-  background: #e2e8e3;
+  background: rgba(200, 90, 61, 0.15);
+  flex-shrink: 0;
 }
 
 .friend-avatar-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2a4b3c;
+  color: #c85a3d;
   font-size: 30rpx;
   font-weight: 700;
 }
 
 .friend-info {
-  margin-left: 16rpx;
+  flex: 1;
+  min-width: 0;
 }
 
 .friend-name {
-  color: #1f2b24;
+  color: #1c1c1c;
   font-size: 28rpx;
   font-weight: 600;
 }
 
-.friend-id {
+.friend-meta {
   margin-top: 4rpx;
-  color: #728078;
-  font-size: 22rpx;
-}
-
-.section-title {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #2a4b3c;
-  margin-bottom: 16rpx;
+  color: #8a877e;
+  font-size: 24rpx;
 }

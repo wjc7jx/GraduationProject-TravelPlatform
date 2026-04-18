@@ -17,13 +17,13 @@ type IconKey =
   | 'eye'
   | 'visibility'
   | 'clock'
-  | 'folder'
   | 'search'
-  | 'globe'
   | 'backIcon'
   | 'enter'
   | 'plus'
   | 'settings'
+  | 'refresh'
+  | 'copy'
   | 'world';
 
 const ICON_MAP: Record<IconKey, string> = {
@@ -45,14 +45,14 @@ const ICON_MAP: Record<IconKey, string> = {
   eye: '/assets/img/visibility.svg',
   visibility: '/assets/img/visibility.svg',
   clock: '/assets/img/clock.svg',
-  folder: '/assets/img/no-data.svg',
   search: '/assets/img/search.svg',
-  globe: '/assets/img/no-data.svg',
-  world: '/assets/img/no-data.svg',
+  world: '/assets/img/world.svg',
   backIcon: '/assets/img/back.svg',
   enter: '/assets/img/enter.svg',
   plus: '/assets/img/plus.svg',
-  settings: '/assets/img/settings.svg'
+  settings: '/assets/img/settings.svg',
+  refresh: '/assets/img/refresh.svg',
+  copy: '/assets/img/copy.svg'
 };
 
 const SIZE_MAP: Record<string, string> = {

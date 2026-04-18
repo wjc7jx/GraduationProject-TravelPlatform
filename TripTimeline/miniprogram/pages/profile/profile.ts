@@ -10,6 +10,10 @@ Page({
     inviteCodeInput: '',
     creatingInviteCode: false,
     applyingInviteCode: false,
+    greetingTitle: '嗨，旅行者',
+    heroStatLine: '已记录 0 次旅行',
+    reviewYearTitle: '',
+    reviewSummaryLine: '在地图中按年份回顾足迹',
   },
 
   async onShow() {
@@ -18,12 +22,57 @@ Page({
       this.getTabBar().setData({ selected: 1 })
     }
 
-    await this.loadFriends()
+    await Promise.all([this.loadProfileStats(), this.loadFriends()])
     await this.ensureInviteCode()
     wx.showShareMenu({
       withShareTicket: true,
       menus: ['shareAppMessage'],
     })
+  },
+
+  async loadProfileStats() {
+    const token = wx.getStorageSync('token')
+    const year = new Date().getFullYear()
+    if (!token) {
+      this.setData({
+        greetingTitle: '嗨，旅行者',
+        heroStatLine: '已记录 0 次旅行',
+        reviewYearTitle: `${year} 年度回顾`,
+        reviewSummaryLine: '登录后查看足迹汇总',
+      })
+      return
+    }
+
+    const userInfo = wx.getStorageSync('userInfo') as { nickname?: string; nickName?: string } | undefined
+    const nick = userInfo?.nickname || userInfo?.nickName
+    const greetingTitle = nick ? `嗨，${nick}` : '嗨，旅行者'
+
+    try {
+      const list = await request<any[]>({
+        url: api.project.list,
+        method: 'GET',
+        showLoading: false,
+      })
+      const projects = list || []
+      const tripCount = projects.length
+      const totalFootprints = projects.reduce(
+        (sum, p) => sum + (Number(p.locationCount) || 0),
+        0
+      )
+      this.setData({
+        greetingTitle,
+        heroStatLine: `已记录 ${tripCount} 次旅行`,
+        reviewYearTitle: `${year} 年度回顾`,
+        reviewSummaryLine: `${totalFootprints} 个足迹 · ${tripCount} 次旅行`,
+      })
+    } catch {
+      this.setData({
+        greetingTitle,
+        heroStatLine: '已记录 0 次旅行',
+        reviewYearTitle: `${year} 年度回顾`,
+        reviewSummaryLine: '按年份汇总旅程与地图足迹',
+      })
+    }
   },
 
   async loadFriends() {
@@ -129,13 +178,36 @@ Page({
     })
   },
 
-  async onInviteTap() {
+  async onBeforeShareTap() {
     const token = wx.getStorageSync('token')
     if (!token) {
-      wx.showToast({ title: '请先登录后邀请好友', icon: 'none' })
+      wx.showToast({ title: '请先登录后再分享', icon: 'none' })
       return
     }
+    if (!this.data.inviteCode) {
+      await this.generateInviteCode({ showSuccessToast: false })
+    }
+  },
 
+  onCopyInviteCode() {
+    const code = String(this.data.inviteCode || '').trim()
+    if (!code) {
+      wx.showToast({ title: '暂无邀请码，请先刷新', icon: 'none' })
+      return
+    }
+    wx.setClipboardData({
+      data: code,
+      success: () => wx.showToast({ title: '已复制', icon: 'success' }),
+    })
+  },
+
+  async onRefreshInviteTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    if (this.data.creatingInviteCode) return
     await this.generateInviteCode({ showSuccessToast: true })
   },
 

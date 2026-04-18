@@ -125,7 +125,7 @@ page {
 }
 
 .invite-input {
-  flex: 1;
+  flex: 8;
   height: 72rpx;
   border-radius: 16rpx;
   background: #e8e5df;
@@ -137,7 +137,7 @@ page {
 }
 
 .invite-apply-btn {
-  width: 140rpx;
+  flex: 2;
   height: 72rpx;
   border-radius: 16rpx;
   line-height: 72rpx;

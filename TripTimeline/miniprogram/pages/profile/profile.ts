@@ -24,10 +24,6 @@ Page({
 
     await Promise.all([this.loadProfileStats(), this.loadFriends()])
     await this.ensureInviteCode()
-    wx.showShareMenu({
-      withShareTicket: true,
-      menus: ['shareAppMessage'],
-    })
   },
 
   async loadProfileStats() {
@@ -178,17 +174,6 @@ Page({
     })
   },
 
-  async onBeforeShareTap() {
-    const token = wx.getStorageSync('token')
-    if (!token) {
-      wx.showToast({ title: '请先登录后再分享', icon: 'none' })
-      return
-    }
-    if (!this.data.inviteCode) {
-      await this.generateInviteCode({ showSuccessToast: false })
-    }
-  },
-
   onCopyInviteCode() {
     const code = String(this.data.inviteCode || '').trim()
     if (!code) {
@@ -209,20 +194,5 @@ Page({
     }
     if (this.data.creatingInviteCode) return
     await this.generateInviteCode({ showSuccessToast: true })
-  },
-
-  onShareAppMessage() {
-    if (!this.data.inviteCode) {
-      return {
-        title: 'TripTimeline 旅行记忆',
-        path: '/pages/index/index',
-      }
-    }
-
-    return {
-      title: '输入邀请码，成为我的旅行好友',
-      path: `/pages/index/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}`,
-      imageUrl: '',
-    }
   },
 })

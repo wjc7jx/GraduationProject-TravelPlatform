@@ -1,5 +1,4 @@
 {
-  "enableShareAppMessage": true,
   "usingComponents": {
     "navigation-bar": "/components/navigation-bar/navigation-bar",
     "app-icon": "/components/app-icon/app-icon"

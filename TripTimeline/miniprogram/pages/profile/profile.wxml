@@ -23,11 +23,6 @@
       </view>
       <view wx:if="{{inviteCodeExpireAt}}" class="invite-code-expire">24 小时有效，过期时间：{{inviteCodeExpireAt}}</view>
 
-      <button class="share-invite-btn" open-type="share" bindtap="onBeforeShareTap">
-        <app-icon name="link" size="32rpx" color="#2A4B3C" custom-class="share-invite-icon"></app-icon>
-        <text class="share-invite-text">分享邀请（微信卡片）</text>
-      </button>
-
       <view class="invite-input-block">
         <view class="invite-input-label">输入好友邀请码</view>
         <view class="invite-input-row">

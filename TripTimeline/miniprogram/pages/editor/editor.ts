@@ -238,15 +238,12 @@ Page({
       const audioUrl = payload.audio?.url || '';
       const rawHtml = payload.content || '';
       const normalizedFromField = this.normalizeImages(payload.images);
-      const fallbackFromHtml = normalizedFromField.length ? [] : this.extractImagesFromHtml(rawHtml);
-      const normalized = normalizedFromField.length ? normalizedFromField : fallbackFromHtml;
-      const images = normalized.map((item) => item.rel);
-      const imagePreviews = normalized.map((item) => item.abs);
-      const sanitizedHtml = normalized.length ? this.sanitizeHtmlRemoveImages(rawHtml) : rawHtml;
+      const images = normalizedFromField.map((item) => item.rel);
+      const imagePreviews = normalizedFromField.map((item) => item.abs);
 
       this.setData({
         title: payload.title || '',
-        htmlContent: sanitizedHtml,
+        htmlContent: rawHtml,
         showAudioPanel: Boolean(audioUrl),
         date: Number.isNaN(recordTime.getTime()) ? this.data.date : `${recordTime.getFullYear()}-${pad(recordTime.getMonth() + 1)}-${pad(recordTime.getDate())}`,
         time: Number.isNaN(recordTime.getTime()) ? this.data.time : `${pad(recordTime.getHours())}:${pad(recordTime.getMinutes())}`,
@@ -471,22 +468,6 @@ Page({
     return [];
   },
 
-  extractImagesFromHtml(html: string): Array<{ rel: string; abs: string }> {
-    if (!html) return [];
-    const urls: string[] = [];
-    const re = /<img[^>]+src=(?:"([^">]+)"|'([^'>]+)'|([^>\s]+))/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(html))) {
-      const src = (m[1] || m[2] || m[3] || '').trim();
-      if (src) urls.push(src);
-    }
-    return this.normalizeImages(urls);
-  },
-
-  sanitizeHtmlRemoveImages(html: string): string {
-    return (html || '').replace(/<img[^>]*>/gi, '');
-  },
-
   async chooseImages() {
     if (this.data.isImageUploading) return;
     const remaining = 9 - (this.data.images?.length || 0);
@@ -543,16 +524,6 @@ Page({
           this.setData({ isImageUploading: false });
         }
       }
-    });
-  },
-
-  previewImage(e: any) {
-    const index = Number(e.currentTarget.dataset.index);
-    const urls = this.data.imagePreviews || [];
-    if (!urls.length || !Number.isFinite(index)) return;
-    wx.previewImage({
-      urls,
-      current: urls[Math.max(0, Math.min(index, urls.length - 1))]
     });
   },
 

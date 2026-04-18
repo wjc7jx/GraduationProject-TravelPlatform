@@ -52,10 +52,4 @@
   </block>
 </view>
 
-  <view class="log-section">
-    <view class="section-title">启动日志</view>
-    <block wx:for="{{logs}}" wx:key="timeStamp" wx:for-item="log">
-      <view class="log-item">{{index + 1}}. {{log.date}}</view>
-    </block>
-  </view>
 </scroll-view>

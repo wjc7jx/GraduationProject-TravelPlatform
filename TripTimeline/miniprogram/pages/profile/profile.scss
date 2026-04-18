@@ -195,28 +195,9 @@ page {
   font-size: 22rpx;
 }
 
-.log-section {
-  margin-top: 24rpx;
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 12rpx 36rpx rgba(42, 75, 60, 0.05);
-}
-
 .section-title {
   font-size: 28rpx;
   font-weight: 700;
   color: #2a4b3c;
   margin-bottom: 16rpx;
-}
-
-.log-item {
-  margin-top: 12rpx;
-  text-align: left;
-  color: #4f5a52;
-  font-size: 24rpx;
-}
-
-.log-item:last-child {
-  padding-bottom: env(safe-area-inset-bottom);
 }

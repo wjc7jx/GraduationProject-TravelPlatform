@@ -9,10 +9,6 @@ App<IAppOption>({
   globalData: {},
   onLaunch(options) {
     this.captureInviteCodeFromLaunch(options)
-    // 展示本地存储能力
-    const logs = wx.getStorageSync('logs') || []
-    logs.unshift(Date.now())
-    wx.setStorageSync('logs', logs)
 
     // 默认尝试默默登录，不强制阻断用户UI
     const token = wx.getStorageSync('token')

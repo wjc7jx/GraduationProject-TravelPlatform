@@ -1,10 +1,8 @@
-import { formatTime } from '../../utils/util'
 import { request } from '../../utils/request'
 import api from '../../utils/api'
 
 Page({
   data: {
-    logs: [] as Array<{ date: string; timeStamp: string }>,
     friends: [] as Array<{ user_id: number; nickname: string; avatar_url: string }>,
     isLoadingFriends: false,
     inviteCode: '',
@@ -20,23 +18,11 @@ Page({
       this.getTabBar().setData({ selected: 1 })
     }
 
-    this.loadLogs()
     await this.loadFriends()
     await this.ensureInviteCode()
     wx.showShareMenu({
       withShareTicket: true,
       menus: ['shareAppMessage'],
-    })
-  },
-
-  loadLogs() {
-    this.setData({
-      logs: (wx.getStorageSync('logs') || []).map((log: string) => {
-        return {
-          date: formatTime(new Date(log)),
-          timeStamp: log,
-        }
-      }),
     })
   },
 

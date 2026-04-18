@@ -34,15 +34,6 @@ Component({
     }
   },
   methods: {
-    getHasActiveFilter() {
-      return !!(
-        this.data.filterKeyword ||
-        this.data.filterTag ||
-        this.data.filterStartDate ||
-        this.data.filterEndDate
-      )
-    },
-
     applyCardStyles(projects: any[]) {
       const styles = ['card-large', 'card-medium right', 'card-medium left']
       return projects.map((project, index) => ({

@@ -30,9 +30,9 @@
             type="nickname"
             maxlength="50"
             placeholder="填写昵称"
-            value="{{profileNickname}}"
+            model:value="{{profileNickname}}"
             disabled="{{!hasToken}}"
-            bindinput="onProfileNicknameInput"
+            bindblur="onProfileNicknameBlur"
           />
         </view>
       </view>

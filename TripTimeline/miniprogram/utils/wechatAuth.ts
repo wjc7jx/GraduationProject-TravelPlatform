@@ -18,8 +18,9 @@ export function loginWithWechat(profile?: WechatLoginProfile): Promise<{ token: 
         }
         try {
           const body: Record<string, string> = { code: res.code }
-          if (profile?.nickname) {
-            body.nickname = profile.nickname
+          // 显式传入 nickname 时写入（含空字符串，会落库为「旅行者」）；未传该字段时不写，避免误改资料
+          if (profile != null && profile.nickname !== undefined && profile.nickname !== null) {
+            body.nickname = String(profile.nickname).trim() || '旅行者'
           }
           if (profile?.avatar_url) {
             body.avatar_url = profile.avatar_url

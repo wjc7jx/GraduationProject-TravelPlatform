@@ -168,7 +168,8 @@ Page({
     this.setData({ inviteCodeInput: value })
   },
 
-  onProfileNicknameInput(e: WechatMiniprogram.Input) {
+  onProfileNicknameBlur(e: WechatMiniprogram.Input) {
+    // type=nickname 常在失焦/微信昵称面板确认后才给出最终值，仅 bindinput 可能拿不到
     const v = String(e.detail?.value || '').slice(0, NICKNAME_MAX)
     this.setData({ profileNickname: v })
   },
@@ -214,11 +215,12 @@ Page({
     }
     if (this.data.savingProfile) return
 
-    const nick =
-      (this.data.profileNickname || '').trim().slice(0, NICKNAME_MAX) || '旅行者'
+    // 与 model:value 对齐：避免用户未失焦就点保存时仍读到旧昵称
+    const nickFromData = (this.data.profileNickname || '').trim().slice(0, NICKNAME_MAX)
+    const nick = nickFromData || '旅行者'
     const avatar_url = this.data.avatarUrlForApi || undefined
 
-    this.setData({ savingProfile: true })
+    this.setData({ savingProfile: true, profileNickname: nick })
     try {
       await loginWithWechat({ nickname: nick, avatar_url })
       wx.showToast({ title: '已保存', icon: 'success' })

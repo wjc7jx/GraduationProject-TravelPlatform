@@ -1,5 +1,5 @@
-import { baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
-import api from '../../utils/api';
+import { asAbsoluteAssetUrl } from '../../utils/request';
+import { uploadFileToQiniu } from '../../utils/qiniuUpload';
 
 type Phase = 'idle' | 'recording' | 'uploading' | 'ready';
 type InitPlayerOptions = {
@@ -385,28 +385,8 @@ Component({
     },
 
     _uploadFile(filePath: string): Promise<any> {
-      return new Promise((resolve, reject) => {
-        wx.uploadFile({
-          url: `${baseUrl}${api.upload}`,
-          filePath,
-          name: 'file',
-          header: { Authorization: `Bearer ${wx.getStorageSync('token')}` },
-          success(res) {
-            try {
-              if (res.statusCode < 200 || res.statusCode >= 300) {
-                reject(new Error(`Upload failed: ${res.statusCode}`));
-                return;
-              }
-              const parsed = JSON.parse(res.data);
-              const payload = parsed?.data !== undefined ? parsed.data : parsed;
-              resolve(payload);
-            } catch (err) {
-              reject(err);
-            }
-          },
-          fail(err) { reject(err); }
-        });
-      });
+      const filename = filePath.split('/').pop() || 'audio.mp3';
+      return uploadFileToQiniu(filePath, { purpose: 'audio', filename });
     }
   }
 });

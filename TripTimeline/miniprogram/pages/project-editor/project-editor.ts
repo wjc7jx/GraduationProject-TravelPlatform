@@ -1,5 +1,6 @@
-import { request, baseUrl, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/request'
+import { request, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/request'
 import api from '../../utils/api'
+import { uploadFileToQiniu } from '../../utils/qiniuUpload'
 
 type VisibilityValue = 1 | 2 | 3
 
@@ -140,34 +141,11 @@ Page({
     }
   },
 
-  // 调用封装后的原生 wx.uploadFile 接口
   uploadSingleImage(filePath: string): Promise<string> {
-    const token = wx.getStorageSync('token')
-    return new Promise((resolve, reject) => {
-      wx.uploadFile({
-        url: `${baseUrl}${api.upload}`,
-        filePath,
-        name: 'file',
-        header: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        success: (uploadRes) => {
-          if (uploadRes.statusCode === 201 || uploadRes.statusCode === 200) {
-            const parsed = JSON.parse(uploadRes.data)
-            const payload = parsed && typeof parsed === 'object' && parsed.data !== undefined
-              ? parsed.data
-              : parsed
-            if (!payload?.url) {
-              reject(new Error('图片地址解析失败'))
-              return
-            }
-            resolve(asAbsoluteAssetUrl(payload.url))
-            return
-          }
-          reject(new Error(`图片上传失败(${uploadRes.statusCode})`))
-        },
-        fail: () => reject(new Error('上传出现网络错误'))
-      })
+    const name = filePath.split('/').pop() || 'cover.jpg'
+    return uploadFileToQiniu(filePath, { purpose: 'image', filename: name }).then((payload) => {
+      if (!payload?.url) return Promise.reject(new Error('图片地址解析失败'))
+      return asAbsoluteAssetUrl(payload.url)
     })
   },
 

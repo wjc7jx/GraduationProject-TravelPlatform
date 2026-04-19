@@ -25,3 +25,18 @@ export function buildFileAccessMeta(req, file) {
     localPath: path.resolve(file.path)
   };
 }
+
+/** 对象存储等外链资源的访问元数据（无本地路径） */
+export function buildRemoteFileAccessMeta(fileUrl) {
+  let pathname = fileUrl;
+  try {
+    pathname = new URL(fileUrl).pathname || '/';
+  } catch {
+    pathname = '/';
+  }
+  return {
+    url: fileUrl,
+    relativeUrl: pathname.startsWith('/') ? pathname : `/${pathname}`,
+    localPath: null,
+  };
+}

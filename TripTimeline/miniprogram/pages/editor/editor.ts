@@ -1,4 +1,4 @@
-import { request, baseUrl, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/request';
+import { request, assetBaseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 import config from '../../utils/config';
 import {
@@ -7,6 +7,7 @@ import {
   TencentMapSuggestion
 } from '../../utils/tencentMap';
 import { readAndParseExif } from '../../utils/exif';
+import { uploadFileToQiniu } from '../../utils/qiniuUpload';
 import { fetchProjectArchivedState, guardArchivedWrite } from '../../utils/projectArchive';
 
 Page({
@@ -713,35 +714,9 @@ Page({
     };
   },
 
-  uploadFile(filePath: string, path: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      wx.uploadFile({
-        url: `${baseUrl}${path}`,
-        filePath,
-        name: 'file',
-        header: { Authorization: `Bearer ${wx.getStorageSync('token')}` },
-        success(res) {
-          try {
-            if (res.statusCode < 200 || res.statusCode >= 300) {
-              reject(new Error(`上传失败: ${res.statusCode}`));
-              return;
-            }
-            const parsed = JSON.parse(res.data);
-            const payload = parsed && typeof parsed === 'object' && parsed.data !== undefined
-              ? parsed.data
-              : parsed;
-            resolve(payload);
-          } catch (error) {
-            reject(error);
-          }
-        },
-        fail(err) { reject(err); }
-      });
-    });
-  },
-
   async uploadPhoto(filePath: string) {
-    return this.uploadFile(filePath, `${api.upload}/photo`);
+    const filename = filePath.split('/').pop() || 'photo.jpg';
+    return uploadFileToQiniu(filePath, { purpose: 'image', filename });
   },
 
   onTitleInput(e: any) {

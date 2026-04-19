@@ -34,4 +34,13 @@ export const env = {
   cors: {
     origin: process.env.CORS_ORIGIN || '*',
   },
+  /** local：经服务器 multer 上传；qiniu：仅走对象存储直传（需小程序已改造） */
+  storageDriver: (process.env.STORAGE_DRIVER || 'local').toLowerCase(),
+  qiniu: {
+    accessKey: process.env.QINIU_ACCESS_KEY || '',
+    secretKey: process.env.QINIU_SECRET_KEY || '',
+    bucket: process.env.QINIU_BUCKET || '',
+    zone: (process.env.QINIU_ZONE || 'z0').toLowerCase(),
+    publicBaseUrl: (process.env.QINIU_PUBLIC_BASE_URL || '').replace(/\/+$/, ''),
+  },
 };

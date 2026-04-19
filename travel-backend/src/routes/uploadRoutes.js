@@ -4,8 +4,17 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
-import { uploadFile, uploadAndParsePhoto, uploadAndParseTrajectory } from '../controllers/uploadController.js';
+import {
+  uploadFile,
+  uploadAndParsePhoto,
+  uploadAndParseTrajectory,
+  issueQiniuToken,
+  parsePhotoFromUrl,
+  parseTrajectoryFromUrl,
+} from '../controllers/uploadController.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { env } from '../config/env.js';
+import { isQiniuConfigured } from '../services/qiniuUploadToken.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,8 +38,18 @@ const upload = multer({ storage: storage });
 const router = Router();
 
 router.use(authMiddleware);
-router.post('/', upload.single('file'), uploadFile);
-router.post('/photo', upload.single('file'), uploadAndParsePhoto);
-router.post('/trajectory', upload.single('file'), uploadAndParseTrajectory);
+
+router.post('/qiniu-token', issueQiniuToken);
+router.post('/photo-parse', parsePhotoFromUrl);
+router.post('/trajectory-parse', parseTrajectoryFromUrl);
+
+const useLocalMulter = env.storageDriver !== 'qiniu';
+if (useLocalMulter) {
+  router.post('/', upload.single('file'), uploadFile);
+  router.post('/photo', upload.single('file'), uploadAndParsePhoto);
+  router.post('/trajectory', upload.single('file'), uploadAndParseTrajectory);
+} else if (!isQiniuConfigured()) {
+  console.warn('[upload] STORAGE_DRIVER=qiniu 但未完整配置 QINIU_*，上传接口将不可用');
+}
 
 export default router;

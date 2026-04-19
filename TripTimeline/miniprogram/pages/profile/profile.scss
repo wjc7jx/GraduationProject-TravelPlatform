@@ -423,6 +423,127 @@ page {
   box-sizing: border-box;
 }
 
+.friend-swipe-row {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24rpx;
+}
+
+.friend-swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 300rpx; /* 约 150px（常见机型近似） */
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.friend-swipe-btn {
+  width: 150rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: #ffffff;
+  user-select: none;
+}
+
+.friend-swipe-btn-remark {
+  background: #2a4b3c;
+}
+
+.friend-swipe-btn-delete {
+  background: #C85A3D;
+}
+
+.friend-swipe-card {
+  position: relative;
+  z-index: 1;
+  will-change: transform;
+  transition: transform 0.16s ease;
+}
+
+.friend-swipe-active.friend-swipe-card {
+  transition: none; /* 拖动时更跟手（offset 变化由 JS 驱动） */
+}
+
+.remark-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.remark-popup {
+  width: 100%;
+  max-width: 640rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 28rpx 28rpx 24rpx;
+  box-sizing: border-box;
+}
+
+.remark-title {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #1c1c1c;
+}
+
+.remark-input {
+  margin-top: 18rpx;
+  height: 84rpx;
+  border-radius: 16rpx;
+  border: 2rpx solid #dcd8d0;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  color: #1c1c1c;
+  background: #faf8f5;
+}
+
+.remark-actions {
+  margin-top: 22rpx;
+  display: flex;
+  gap: 18rpx;
+  justify-content: flex-end;
+}
+
+.remark-action-btn {
+  min-width: 160rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+
+.remark-cancel {
+  background: #ffffff;
+  border: 2rpx solid #dcd8d0;
+  color: #1c1c1c;
+}
+
+.remark-confirm {
+  background: #2a4b3c;
+  color: #ffffff;
+}
+
 .friend-avatar {
   width: 80rpx;
   height: 80rpx;

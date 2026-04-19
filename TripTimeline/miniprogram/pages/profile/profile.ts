@@ -5,11 +5,21 @@ import { loginWithWechat } from '../../utils/wechatAuth'
 import { uploadFileToQiniu } from '../../utils/qiniuUpload'
 
 const NICKNAME_MAX = 50
+const FRIEND_REMARK_MAX = 50
+const FRIEND_SWIPE_ACTION_WIDTH_PX = 150
 
 Page({
   data: {
-    friends: [] as Array<{ user_id: number; nickname: string; avatar_url: string }>,
+    friends: [] as Array<{ user_id: number; nickname: string; avatar_url: string; remark?: string }>,
     isLoadingFriends: false,
+    swipeOffsetX: 0,
+    swipeFriendId: 0,
+    isSwiping: false,
+    swipeStartX: 0,
+    swipeStartOffsetX: 0,
+    editingFriendId: 0,
+    remarkDraft: '',
+    remarkPopupVisible: false,
     inviteCode: '',
     inviteCodeExpireAt: '',
     inviteCodeInput: '',
@@ -26,6 +36,8 @@ Page({
     savingProfile: false,
     choosingAvatar: false,
   },
+
+  noop() {},
 
   hydrateUserProfile() {
     const token = wx.getStorageSync('token')
@@ -106,7 +118,7 @@ Page({
 
     this.setData({ isLoadingFriends: true })
     try {
-      const friends = await request<Array<{ user_id: number; nickname: string; avatar_url: string }>>({
+      const friends = await request<Array<{ user_id: number; nickname: string; avatar_url: string; remark?: string }>>({
         url: api.friend.list,
         method: 'GET',
         showLoading: false,
@@ -117,6 +129,151 @@ Page({
     } finally {
       this.setData({ isLoadingFriends: false })
     }
+  },
+
+  closeSwipe() {
+    if (this.data.swipeFriendId || this.data.swipeOffsetX) {
+      this.setData({ swipeFriendId: 0, swipeOffsetX: 0, isSwiping: false, swipeStartX: 0, swipeStartOffsetX: 0 })
+    }
+  },
+
+  onFriendTouchStart(e: WechatMiniprogram.TouchEvent) {
+    const friendId = Number((e.currentTarget?.dataset as any)?.friendId)
+    const touch = e.touches?.[0]
+    if (!touch || !Number.isFinite(friendId) || friendId <= 0) return
+
+    const { swipeFriendId } = this.data
+    if (swipeFriendId && swipeFriendId !== friendId) {
+      // 若另一条已打开，先切换目标
+      this.setData({ swipeFriendId: friendId, swipeOffsetX: 0 })
+    } else if (!swipeFriendId) {
+      this.setData({ swipeFriendId: friendId })
+    }
+
+    this.setData({
+      isSwiping: true,
+      swipeStartX: touch.clientX,
+      swipeStartOffsetX: this.data.swipeOffsetX,
+    })
+  },
+
+  onFriendTouchMove(e: WechatMiniprogram.TouchEvent) {
+    if (!this.data.isSwiping) return
+    const friendId = Number((e.currentTarget?.dataset as any)?.friendId)
+    if (!friendId || friendId !== this.data.swipeFriendId) return
+
+    const touch = e.touches?.[0]
+    if (!touch) return
+
+    const delta = this.data.swipeStartX - touch.clientX
+    let offset = this.data.swipeStartOffsetX + delta
+    if (offset < 0) offset = 0
+    if (offset > FRIEND_SWIPE_ACTION_WIDTH_PX) offset = FRIEND_SWIPE_ACTION_WIDTH_PX
+    this.setData({ swipeOffsetX: offset })
+  },
+
+  onFriendTouchEnd(e: WechatMiniprogram.TouchEvent) {
+    if (!this.data.isSwiping) return
+    const friendId = Number((e.currentTarget?.dataset as any)?.friendId)
+    if (!friendId || friendId !== this.data.swipeFriendId) {
+      this.setData({ isSwiping: false, swipeStartX: 0, swipeStartOffsetX: 0 })
+      return
+    }
+
+    const openThreshold = FRIEND_SWIPE_ACTION_WIDTH_PX * 0.35
+    const shouldOpen = this.data.swipeOffsetX >= openThreshold
+    this.setData({
+      swipeOffsetX: shouldOpen ? FRIEND_SWIPE_ACTION_WIDTH_PX : 0,
+      isSwiping: false,
+      swipeStartX: 0,
+      swipeStartOffsetX: 0,
+      swipeFriendId: shouldOpen ? friendId : 0,
+    })
+  },
+
+  openRemarkPopup(e: WechatMiniprogram.CustomEvent) {
+    const friendId = Number((e.currentTarget?.dataset as any)?.friendId)
+    if (!Number.isFinite(friendId) || friendId <= 0) return
+    const friend = (this.data.friends || []).find((x) => Number(x.user_id) === friendId)
+    const remark = String(friend?.remark || '')
+    this.setData({
+      remarkPopupVisible: true,
+      editingFriendId: friendId,
+      remarkDraft: remark,
+    })
+    this.closeSwipe()
+  },
+
+  onRemarkInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail?.value || '').slice(0, FRIEND_REMARK_MAX)
+    this.setData({ remarkDraft: value })
+  },
+
+  closeRemarkPopup() {
+    if (!this.data.remarkPopupVisible) return
+    this.setData({ remarkPopupVisible: false, editingFriendId: 0, remarkDraft: '' })
+  },
+
+  async saveRemark() {
+    const friendId = Number(this.data.editingFriendId)
+    if (!friendId) return
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    const remark = String(this.data.remarkDraft || '').trim().slice(0, FRIEND_REMARK_MAX)
+    try {
+      await request<any>({
+        url: api.friend.updateRemark(friendId),
+        method: 'PATCH',
+        data: { remark },
+        showLoading: true,
+        loadingText: '保存中...',
+      })
+      wx.showToast({ title: '备注已更新', icon: 'success' })
+      this.closeRemarkPopup()
+      await this.loadFriends()
+    } catch {
+      // toast 已在 request 内统一处理
+    }
+  },
+
+  async confirmDeleteFriend(e: WechatMiniprogram.CustomEvent) {
+    const friendId = Number((e.currentTarget?.dataset as any)?.friendId)
+    if (!Number.isFinite(friendId) || friendId <= 0) return
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+
+    const friend = (this.data.friends || []).find((x) => Number(x.user_id) === friendId)
+    const name = String(friend?.remark || friend?.nickname || `用户${friendId}`)
+    this.closeSwipe()
+
+    wx.showModal({
+      title: '删除旅伴',
+      content: `确定删除「${name}」吗？\n删除后将无法通过“好友可见”查看对方内容。`,
+      confirmText: '删除',
+      confirmColor: '#C85A3D',
+      cancelText: '取消',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await request<any>({
+            url: api.friend.remove(friendId),
+            method: 'DELETE',
+            showLoading: true,
+            loadingText: '删除中...',
+          })
+          wx.showToast({ title: '已删除', icon: 'success' })
+          await this.loadFriends()
+        } catch {
+          // toast 已在 request 内统一处理
+        }
+      },
+    })
   },
 
   async ensureInviteCode() {
@@ -216,8 +373,9 @@ Page({
     if (this.data.choosingAvatar) return
 
     // Prefer programmatic API if available to avoid native button chrome
-    if (typeof wx.chooseAvatar === 'function') {
-      wx.chooseAvatar({
+    const wxAny = wx as any
+    if (typeof wxAny.chooseAvatar === 'function') {
+      wxAny.chooseAvatar({
         success: (res: any) => {
           // res may contain avatarUrl
           const avatarUrl = res?.avatarUrl || res?.avatarUrlList?.[0]

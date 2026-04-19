@@ -16,6 +16,7 @@ export function asAbsoluteAssetUrl(url: string) {
 
 export interface RequestOptions extends Omit<WechatMiniprogram.RequestOption, 'url'> {
   url: string;
+  method?: WechatMiniprogram.RequestOption['method'] | 'PATCH';
   showLoading?: boolean;
   loadingText?: string;
   data?: any;

@@ -36,5 +36,7 @@ export default {
     acceptInvite: '/friends/invite/accept',
     createInviteCode: '/friends/invite-code',
     applyInviteCode: '/friends/invite-code/apply',
+    remove: (friendId: number | string) => `/friends/${friendId}`,
+    updateRemark: (friendId: number | string) => `/friends/${friendId}`,
   }
 };

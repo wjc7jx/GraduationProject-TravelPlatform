@@ -95,16 +95,43 @@
       <view wx:elif="{{!isLoadingFriends && friends.length === 0}}" class="friend-empty">还没有旅伴，先邀请一位吧</view>
       <block wx:else>
         <block wx:for="{{friends}}" wx:key="user_id">
-          <view class="friend-card">
-            <image wx:if="{{item.avatar_url}}" class="friend-avatar" src="{{item.avatar_url}}" mode="aspectFill"></image>
-            <view wx:else class="friend-avatar friend-avatar-fallback">友</view>
-            <view class="friend-info">
-              <view class="friend-name">{{item.nickname || ('用户' + item.user_id)}}</view>
-              <view class="friend-meta">ID {{item.user_id}}</view>
+          <view class="friend-swipe-row"
+            data-friend-id="{{item.user_id}}"
+            bindtouchstart="onFriendTouchStart"
+            bindtouchmove="onFriendTouchMove"
+            bindtouchend="onFriendTouchEnd"
+            bindtouchcancel="onFriendTouchEnd"
+          >
+            <view class="friend-swipe-actions">
+              <view class="friend-swipe-btn friend-swipe-btn-remark" data-friend-id="{{item.user_id}}" bindtap="openRemarkPopup">备注</view>
+              <view class="friend-swipe-btn friend-swipe-btn-delete" data-friend-id="{{item.user_id}}" bindtap="confirmDeleteFriend">删除</view>
+            </view>
+
+            <view class="friend-card friend-swipe-card {{swipeFriendId === item.user_id ? 'friend-swipe-active' : ''}}"
+              style="transform: translateX(-{{swipeFriendId === item.user_id ? swipeOffsetX : 0}}px);"
+              catchtap="closeSwipe"
+            >
+              <image wx:if="{{item.avatar_url}}" class="friend-avatar" src="{{item.avatar_url}}" mode="aspectFill"></image>
+              <view wx:else class="friend-avatar friend-avatar-fallback">友</view>
+              <view class="friend-info">
+                <view class="friend-name">{{(item.remark && item.remark.trim()) ? item.remark : (item.nickname || ('用户' + item.user_id))}}</view>
+                <view class="friend-meta">{{item.nickname ? item.nickname : ('ID ' + item.user_id)}}</view>
+              </view>
             </view>
           </view>
         </block>
       </block>
+    </view>
+
+    <view wx:if="{{remarkPopupVisible}}" class="remark-mask" catchtap="closeRemarkPopup">
+      <view class="remark-popup" catchtap="noop">
+        <view class="remark-title">设置备注</view>
+        <input class="remark-input" value="{{remarkDraft}}" maxlength="50" placeholder="例如：同学 / 旅伴昵称" bindinput="onRemarkInput" />
+        <view class="remark-actions">
+          <view class="remark-action-btn remark-cancel" bindtap="closeRemarkPopup">取消</view>
+          <view class="remark-action-btn remark-confirm" bindtap="saveRemark">保存</view>
+        </view>
+      </view>
     </view>
   </view>
 </scroll-view>

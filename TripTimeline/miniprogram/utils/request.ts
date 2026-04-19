@@ -6,6 +6,11 @@ export const assetBaseUrl = config.baseUrl.replace(/\/api\/?$/, '') || config.ba
 export function asAbsoluteAssetUrl(url: string) {
   if (!url) return '';
   if (/^https?:\/\//i.test(url)) return url;
+  // 历史或配置错误：裸域名 CDN，如 xxx.clouddn.com/uploads/xxx.jpg（无协议）
+  if (!url.startsWith('/') && /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}\//i.test(url)) {
+    const sch = config.qiniuCdnScheme === 'http' ? 'http' : 'https';
+    return `${sch}://${url}`;
+  }
   return `${assetBaseUrl}${url.startsWith('/') ? url : `/${url}`}`;
 }
 

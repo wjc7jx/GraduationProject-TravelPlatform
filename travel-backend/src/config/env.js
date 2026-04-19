@@ -7,6 +7,23 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+/** 裸域名补协议：可用 QINIU_PUBLIC_SCHEME=http|https（默认 https），或直接写完整 QINIU_PUBLIC_BASE_URL=http://... */
+function normalizeQiniuPublicBaseUrl(raw, schemeForBareHost) {
+  let s = String(raw || '').trim().replace(/\/+$/, '');
+  if (!s) return '';
+  if (!/^https?:\/\//i.test(s)) {
+    const sc = schemeForBareHost === 'http' ? 'http' : 'https';
+    s = `${sc}://${s}`;
+  }
+  return s;
+}
+
+function inferQiniuPublicUrlScheme(publicBaseUrl) {
+  if (!publicBaseUrl) return 'https';
+  if (/^http:\/\//i.test(publicBaseUrl)) return 'http';
+  return 'https';
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 3000,
@@ -36,11 +53,23 @@ export const env = {
   },
   /** local：经服务器 multer 上传；qiniu：仅走对象存储直传（需小程序已改造） */
   storageDriver: (process.env.STORAGE_DRIVER || 'local').toLowerCase(),
-  qiniu: {
-    accessKey: process.env.QINIU_ACCESS_KEY || '',
-    secretKey: process.env.QINIU_SECRET_KEY || '',
-    bucket: process.env.QINIU_BUCKET || '',
-    zone: (process.env.QINIU_ZONE || 'z0').toLowerCase(),
-    publicBaseUrl: (process.env.QINIU_PUBLIC_BASE_URL || '').replace(/\/+$/, ''),
-  },
+  qiniu: (() => {
+    const bareScheme =
+      String(process.env.QINIU_PUBLIC_SCHEME || 'https').toLowerCase() === 'http'
+        ? 'http'
+        : 'https';
+    const publicBaseUrl = normalizeQiniuPublicBaseUrl(
+      process.env.QINIU_PUBLIC_BASE_URL || '',
+      bareScheme
+    );
+    return {
+      accessKey: process.env.QINIU_ACCESS_KEY || '',
+      secretKey: process.env.QINIU_SECRET_KEY || '',
+      bucket: process.env.QINIU_BUCKET || '',
+      zone: (process.env.QINIU_ZONE || 'z0').toLowerCase(),
+      publicBaseUrl,
+      /** 与外链 URL 协议一致，供裸域名 URL 规范化 */
+      publicUrlScheme: inferQiniuPublicUrlScheme(publicBaseUrl),
+    };
+  })(),
 };

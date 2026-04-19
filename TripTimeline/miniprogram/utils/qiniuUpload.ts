@@ -4,7 +4,7 @@
  * 【微信小程序后台 — 服务器域名】请配置：
  * - uploadFile 合法域名：与 QINIU_ZONE 对应的上传域名，例如华东 z0 填 https://up.qiniup.com ；
  *   z1: https://up-z1.qiniup.com ，z2: https://up-z2.qiniup.com ，na0: https://up-na0.qiniup.com ，as0: https://up-as0.qiniup.com
- * - downloadFile 合法域名：QINIU_PUBLIC_BASE_URL 的域名（含自定义 CDN 域名），用于 <image> / 下载等
+ * - downloadFile 合法域名：与 QINIU_PUBLIC_BASE_URL 协议一致（http 或 https），填 CDN 主机名
  * - request 合法域名：原有业务 API 域名不变
  */
 import { request } from './request';

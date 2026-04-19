@@ -1,6 +1,18 @@
 import path from 'path';
 import { env } from '../config/env.js';
 
+/** 无协议但为主机名/路径的 CDN 地址，补协议（与 QINIU_PUBLIC_BASE_URL / QINIU_PUBLIC_SCHEME 一致） */
+export function normalizeExternalMediaUrl(raw) {
+  const t = String(raw || '').trim();
+  if (!t) return '';
+  if (/^https?:\/\//i.test(t)) return t;
+  if (!t.startsWith('/') && /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}\//i.test(t)) {
+    const sch = env.qiniu.publicUrlScheme === 'http' ? 'http' : 'https';
+    return `${sch}://${t}`;
+  }
+  return t;
+}
+
 function trimTrailingSlash(input) {
   return (input || '').replace(/\/+$/, '');
 }

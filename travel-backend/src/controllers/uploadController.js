@@ -1,7 +1,7 @@
 import { parseImageExif, parseImageExifFromBuffer, parseTrajectory, parseTrajectoryFromString } from '../utils/parser.js';
 import path from 'path';
 import { sendSuccess } from '../utils/response.js';
-import { buildFileAccessMeta, buildRemoteFileAccessMeta } from '../utils/fileAccess.js';
+import { buildFileAccessMeta, buildRemoteFileAccessMeta, normalizeExternalMediaUrl } from '../utils/fileAccess.js';
 import { env } from '../config/env.js';
 import { createQiniuUploadParams, isQiniuConfigured } from '../services/qiniuUploadToken.js';
 
@@ -104,11 +104,12 @@ function assertFileUrlAllowedForParse(fileUrl) {
     err.status = 503;
     throw err;
   }
+  const canonical = normalizeExternalMediaUrl(fileUrl);
   let allowedOrigin;
   let actualOrigin;
   try {
-    allowedOrigin = new URL(base.startsWith('http') ? base : `https://${base}`).origin;
-    actualOrigin = new URL(fileUrl).origin;
+    allowedOrigin = new URL(base).origin;
+    actualOrigin = new URL(canonical).origin;
   } catch {
     const err = new Error('无效的 fileUrl');
     err.status = 400;
@@ -140,7 +141,7 @@ export async function parsePhotoFromUrl(req, res, next) {
       err.status = 503;
       throw err;
     }
-    const fileUrl = String(req.body?.fileUrl || '').trim();
+    const fileUrl = normalizeExternalMediaUrl(String(req.body?.fileUrl || '').trim());
     if (!fileUrl) {
       const err = new Error('请提供 fileUrl');
       err.status = 400;
@@ -170,7 +171,7 @@ export async function parseTrajectoryFromUrl(req, res, next) {
       err.status = 503;
       throw err;
     }
-    const fileUrl = String(req.body?.fileUrl || '').trim();
+    const fileUrl = normalizeExternalMediaUrl(String(req.body?.fileUrl || '').trim());
     if (!fileUrl) {
       const err = new Error('请提供 fileUrl');
       err.status = 400;

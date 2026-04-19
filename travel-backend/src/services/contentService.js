@@ -17,7 +17,6 @@ export async function listContents(projectId, userId, options = {}) {
   const contents = await Content.findAll({
     where: { 
       project_id: projectId,
-      is_deleted: 0
     },
     include: [{
       model: Location,
@@ -75,7 +74,6 @@ export async function getContentOrThrow(projectId, contentId, userId) {
     where: {
       content_id: contentId,
       project_id: projectId,
-      is_deleted: 0
     }
   });
   if (!content) {
@@ -105,8 +103,5 @@ export async function deleteContent(projectId, contentId, userId) {
   const project = await getProjectOrThrow(projectId, userId);
   ensureProjectEditable(project);
   const content = await getContentOrThrow(projectId, contentId, userId);
-  return content.update({
-    is_deleted: 1,
-    deleted_at: new Date()
-  });
+  await content.destroy();
 }

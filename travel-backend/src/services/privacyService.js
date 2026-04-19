@@ -73,7 +73,6 @@ async function ensureProjectOwner(projectId, userId) {
     where: {
       project_id: projectId,
       user_id: userId,
-      is_deleted: 0,
     },
   });
   if (!project) {

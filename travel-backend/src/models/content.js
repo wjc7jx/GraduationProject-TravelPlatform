@@ -35,15 +35,6 @@ export function initContent(sequelize) {
         allowNull: false,
         defaultValue: 0,
       },
-      is_deleted: {
-        type: DataTypes.TINYINT,
-        allowNull: false,
-        defaultValue: 0,
-      },
-      deleted_at: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
     },
     {
       sequelize,
@@ -57,7 +48,6 @@ export function initContent(sequelize) {
         { fields: ['project_id'] },
         { fields: ['project_id', 'record_time'] },
         { fields: ['location_id'] },
-        { fields: ['is_deleted'] },
       ],
     }
   );

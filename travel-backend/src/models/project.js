@@ -52,15 +52,6 @@ export function initProject(sequelize) {
         allowNull: false,
         defaultValue: 0,
       },
-      is_deleted: {
-        type: DataTypes.TINYINT,
-        allowNull: false,
-        defaultValue: 0,
-      },
-      deleted_at: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
     },
     {
       sequelize,
@@ -74,7 +65,7 @@ export function initProject(sequelize) {
         { fields: ['user_id'] },
         { fields: ['user_id', 'updated_at'] },
         { fields: ['user_id', 'is_pinned', 'pinned_at'] },
-        { fields: ['is_archived', 'is_deleted'] },
+        { fields: ['user_id', 'is_archived'] },
       ],
     }
   );

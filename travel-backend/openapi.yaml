@@ -543,14 +543,6 @@ components:
           type: integer
           format: int32
           example: 0
-        is_deleted:
-          type: integer
-          format: int32
-          example: 0
-        deleted_at:
-          type: string
-          format: date-time
-          nullable: true
         created_at:
           type: string
           format: date-time
@@ -563,7 +555,6 @@ components:
         - title
         - start_date
         - is_archived
-        - is_deleted
         - created_at
         - updated_at
 
@@ -630,14 +621,6 @@ components:
         sort_order:
           type: integer
           format: int32
-        is_deleted:
-          type: integer
-          format: int32
-          example: 0
-        deleted_at:
-          type: string
-          format: date-time
-          nullable: true
         created_at:
           type: string
           format: date-time
@@ -651,7 +634,6 @@ components:
         - content_data
         - record_time
         - sort_order
-        - is_deleted
         - created_at
         - updated_at
 

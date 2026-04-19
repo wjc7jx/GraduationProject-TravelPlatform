@@ -208,7 +208,6 @@ export async function buildExportData(projectId, userId, options = {}) {
   const contents = await Content.findAll({
     where: {
       project_id: project.project_id,
-      is_deleted: 0,
     },
     include: [
       {

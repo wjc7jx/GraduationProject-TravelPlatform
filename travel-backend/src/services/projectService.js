@@ -1,4 +1,4 @@
-import { Content, Location, Project, sequelize } from '../models/index.js';
+import { Content, Location, Permission, Project, sequelize } from '../models/index.js';
 import { Op } from 'sequelize';
 import {
   canView,
@@ -12,7 +12,6 @@ import { getActiveProjectShare } from './projectShareService.js';
 export async function listProjects(userId, filters = {}) {
   const where = {
     user_id: userId,
-    is_deleted: 0,
   };
 
   const keyword = (filters.keyword || '').trim();
@@ -72,7 +71,6 @@ export async function listProjects(userId, filters = {}) {
             WHERE
               content.project_id = Project.project_id
               AND content.location_id IS NOT NULL
-              AND content.is_deleted = 0
           )`),
           'locationCount'
         ]
@@ -108,7 +106,6 @@ export async function getProjectById(projectId, userId, options = {}) {
   const project = await Project.findOne({
     where: {
       project_id: pid,
-      is_deleted: 0,
     },
   });
   if (!project) {
@@ -144,7 +141,6 @@ export async function getProjectOrThrow(projectId, userId) {
     where: { 
       project_id: projectId, 
       user_id: userId,
-      is_deleted: 0
     } 
   });
   if (!project) {
@@ -198,9 +194,16 @@ export async function updateProject(projectId, userId, payload) {
 
 export async function deleteProject(projectId, userId) {
   const project = await getProjectOrThrow(projectId, userId);
-  return project.update({ 
-    is_deleted: 1,
-    deleted_at: new Date()
+  const pid = Number(project.project_id);
+  await sequelize.transaction(async (t) => {
+    await Permission.destroy({
+      where: {
+        target_type: 'project',
+        target_id: pid,
+      },
+      transaction: t,
+    });
+    await project.destroy({ transaction: t });
   });
 }
 
@@ -225,15 +228,11 @@ export async function getTimelineMapOverview(userId) {
   const projects = await Project.findAll({
     where: {
       user_id: userId,
-      is_deleted: 0,
     },
     order: [['start_date', 'DESC'], ['created_at', 'DESC']],
   });
 
   const contents = await Content.findAll({
-    where: {
-      is_deleted: 0,
-    },
     include: [
       {
         model: Project,
@@ -241,7 +240,6 @@ export async function getTimelineMapOverview(userId) {
         attributes: ['project_id', 'title', 'start_date', 'end_date', 'cover_image'],
         where: {
           user_id: userId,
-          is_deleted: 0,
         },
         required: true,
       },

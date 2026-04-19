@@ -51,18 +51,15 @@ CREATE TABLE `projects` (
   `is_pinned` TINYINT NOT NULL DEFAULT 0 COMMENT '是否置顶：1是，0否',
   `pinned_at` DATETIME DEFAULT NULL COMMENT '置顶时间',
   `is_archived` TINYINT NOT NULL DEFAULT 0 COMMENT '是否归档：1是，0否',
-  `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '软删除标记：1已删，0未删',
-  `deleted_at` DATETIME DEFAULT NULL COMMENT '软删除时间',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`project_id`),
   KEY `idx_projects_user_id` (`user_id`),
   KEY `idx_projects_user_updated` (`user_id`, `updated_at`),
   KEY `idx_projects_user_pinned` (`user_id`, `is_pinned`, `pinned_at`),
-  KEY `idx_projects_archived_deleted` (`is_archived`, `is_deleted`),
+  KEY `idx_projects_user_archived` (`user_id`, `is_archived`),
   CONSTRAINT `fk_projects_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `chk_projects_is_archived` CHECK (`is_archived` IN (0,1)),
-  CONSTRAINT `chk_projects_is_deleted` CHECK (`is_deleted` IN (0,1)),
   CONSTRAINT `chk_projects_date_range` CHECK (`end_date` IS NULL OR `end_date` >= `start_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='旅行项目表';
 
@@ -91,18 +88,14 @@ CREATE TABLE `contents` (
   `record_time` DATETIME NOT NULL COMMENT '记录时间（时间轴核心）',
   `location_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '位置ID',
   `sort_order` INT NOT NULL DEFAULT 0 COMMENT '手动排序权重',
-  `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '软删除标记：1已删，0未删',
-  `deleted_at` DATETIME DEFAULT NULL COMMENT '软删除时间',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`content_id`),
   KEY `idx_contents_project_id` (`project_id`),
   KEY `idx_contents_project_record_time` (`project_id`, `record_time`),
   KEY `idx_contents_location_id` (`location_id`),
-  KEY `idx_contents_deleted` (`is_deleted`),
   CONSTRAINT `fk_contents_project_id` FOREIGN KEY (`project_id`) REFERENCES `projects` (`project_id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_contents_location_id` FOREIGN KEY (`location_id`) REFERENCES `locations` (`location_id`) ON DELETE SET NULL ON UPDATE RESTRICT,
-  CONSTRAINT `chk_contents_is_deleted` CHECK (`is_deleted` IN (0,1)),
   CONSTRAINT `chk_contents_sort_order` CHECK (`sort_order` >= 0),
   CONSTRAINT `chk_contents_content_data_json` CHECK (JSON_VALID(`content_data`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='多媒体内容表';
@@ -144,6 +137,4 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- 可选说明：
 -- 1) permissions 为多态关联，target_id 无法直接加外键到两张表。
 --    需在应用层根据 target_type 校验 target_id 是否存在。
--- 2) 若你计划用 Sequelize 的 paranoid 机制，可保留 deleted_at，
---    并在模型中启用 paranoid=true。
 -- ============================================================

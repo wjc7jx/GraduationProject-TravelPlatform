@@ -28,7 +28,6 @@ async function ensureProjectOwner(projectId, userId) {
     where: {
       project_id: pid,
       user_id: uid,
-      is_deleted: 0,
     },
   });
 

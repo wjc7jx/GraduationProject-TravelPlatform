@@ -1,5 +1,10 @@
 import { request } from '../../utils/request'
 import api from '../../utils/api'
+import { asAbsoluteAssetUrl } from '../../utils/request'
+import { loginWithWechat } from '../../utils/wechatAuth'
+import { uploadFileToQiniu } from '../../utils/qiniuUpload'
+
+const NICKNAME_MAX = 50
 
 Page({
   data: {
@@ -14,14 +19,35 @@ Page({
     heroStatLine: '已记录 0 次旅行',
     reviewYearTitle: '',
     reviewSummaryLine: '在地图中按年份回顾足迹',
+    hasToken: false,
+    profileNickname: '',
+    avatarDisplaySrc: '',
+    avatarUrlForApi: '',
+    savingProfile: false,
+    choosingAvatar: false,
+  },
+
+  hydrateUserProfile() {
+    const token = wx.getStorageSync('token')
+    const userInfo = wx.getStorageSync('userInfo') as
+      | { nickname?: string; nickName?: string; avatar_url?: string }
+      | undefined
+    const rawNick = userInfo?.nickname || userInfo?.nickName || ''
+    const rawAvatar = String(userInfo?.avatar_url || '').trim()
+    this.setData({
+      hasToken: !!token,
+      profileNickname: rawNick,
+      avatarUrlForApi: rawAvatar,
+      avatarDisplaySrc: rawAvatar ? asAbsoluteAssetUrl(rawAvatar) : '',
+    })
   },
 
   async onShow() {
-    // 修复底部 tabbar 的红点/选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
 
+    this.hydrateUserProfile()
     await Promise.all([this.loadProfileStats(), this.loadFriends()])
     await this.ensureInviteCode()
   },
@@ -140,6 +166,69 @@ Page({
   onInviteCodeInput(e: WechatMiniprogram.CustomEvent) {
     const value = String(e.detail?.value || '').replace(/\s+/g, '').toUpperCase()
     this.setData({ inviteCodeInput: value })
+  },
+
+  onProfileNicknameInput(e: WechatMiniprogram.Input) {
+    const v = String(e.detail?.value || '').slice(0, NICKNAME_MAX)
+    this.setData({ profileNickname: v })
+  },
+
+  async onChooseAvatar(e: WechatMiniprogram.CustomEvent) {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    const avatarPath = (e.detail as { avatarUrl?: string })?.avatarUrl
+    if (!avatarPath) return
+    if (this.data.choosingAvatar) return
+    this.setData({ choosingAvatar: true })
+    wx.showLoading({ title: '上传头像...', mask: true })
+    try {
+      const uploaded = await uploadFileToQiniu(avatarPath, {
+        purpose: 'image',
+        filename: 'avatar.jpg',
+      })
+      const url = String(uploaded?.url || '').trim()
+      if (!url) {
+        throw new Error('empty url')
+      }
+      this.setData({
+        avatarUrlForApi: url,
+        avatarDisplaySrc: asAbsoluteAssetUrl(url),
+      })
+      wx.showToast({ title: '头像已选好，请保存', icon: 'none' })
+    } catch {
+      wx.showToast({ title: '头像上传失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+      this.setData({ choosingAvatar: false })
+    }
+  },
+
+  async onSaveProfileTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    if (this.data.savingProfile) return
+
+    const nick =
+      (this.data.profileNickname || '').trim().slice(0, NICKNAME_MAX) || '旅行者'
+    const avatar_url = this.data.avatarUrlForApi || undefined
+
+    this.setData({ savingProfile: true })
+    try {
+      await loginWithWechat({ nickname: nick, avatar_url })
+      wx.showToast({ title: '已保存', icon: 'success' })
+      this.hydrateUserProfile()
+      await Promise.all([this.loadProfileStats(), this.loadFriends()])
+    } catch {
+      // 错误提示由 request 统一处理
+    } finally {
+      this.setData({ savingProfile: false })
+    }
   },
 
   async onApplyInviteCodeTap() {

@@ -5,7 +5,7 @@ interface IAppOption {
     userInfo?: WechatMiniprogram.UserInfo,
   }
   userInfoReadyCallback?: WechatMiniprogram.GetUserInfoSuccessCallback,
-  doWechatLogin: () => Promise<any>,
+  doWechatLogin: (profile?: { nickname?: string; avatar_url?: string }) => Promise<any>,
   tryApplyPendingInviteCode: () => Promise<void>,
   captureInviteCodeFromLaunch: (options: WechatMiniprogram.App.LaunchShowOption | undefined) => void,
   parseClipboardShareCommand: (text: string) => { projectId: string; shareId: string } | null,

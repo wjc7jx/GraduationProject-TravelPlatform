@@ -1,6 +1,7 @@
 // app.ts
-import { request } from './utils/request'
 import api from './utils/api'
+import { loginWithWechat, type WechatLoginProfile } from './utils/wechatAuth'
+import { request } from './utils/request'
 
 const PENDING_INVITE_CODE_KEY = 'pending_friend_invite_code'
 const LAST_HANDLED_SHARE_KEY = 'last_handled_share_command'
@@ -104,38 +105,10 @@ App<IAppOption>({
     }
   },
 
-  doWechatLogin(): Promise<any> {
-    return new Promise((resolve, reject) => {
-      wx.login({
-        success: async (res) => {
-          if (res.code) {
-            try {
-              const data: any = await request({
-                url: '/auth/login',
-                method: 'POST',
-                data: {
-                  code: res.code
-                }
-              })
-              if (data.token) {
-                wx.setStorageSync('token', data.token)
-                wx.setStorageSync('userInfo', data.user)
-                this.tryApplyPendingInviteCode()
-                console.log('登录成功，Token已保存')
-                resolve(data)
-              } else {
-                reject(new Error('未获取到token'))
-              }
-            } catch (error) {
-              console.error('后台微信快速登录请求失败:', error)
-              reject(error)
-            }
-          } else {
-            reject(new Error('wx.login 失败'))
-          }
-        },
-        fail: reject
-      })
+  doWechatLogin(profile?: WechatLoginProfile): Promise<{ token: string; user: any }> {
+    return loginWithWechat(profile).then((data) => {
+      console.log('登录成功，Token已保存')
+      return data
     })
-  }
+  },
 })

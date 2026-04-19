@@ -121,6 +121,7 @@ CREATE TABLE `friendships` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '关系ID',
   `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
   `friend_id` BIGINT UNSIGNED NOT NULL COMMENT '好友用户ID',
+  `remark` VARCHAR(50) DEFAULT NULL COMMENT '本方备注',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_friendships_pair` (`user_id`, `friend_id`),

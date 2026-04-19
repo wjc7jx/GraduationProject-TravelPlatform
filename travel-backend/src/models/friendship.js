@@ -18,6 +18,10 @@ export function initFriendship(sequelize) {
         type: DataTypes.BIGINT.UNSIGNED,
         allowNull: false,
       },
+      remark: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
     },
     {
       sequelize,

@@ -65,11 +65,17 @@ export async function listFriends(userId) {
     order: [['created_at', 'DESC']],
   });
 
-  const friendIds = Array.from(new Set(
-    links
-      .map((item) => Number(item.friend_id))
-      .filter((item) => Number.isFinite(item) && item > 0)
-  ));
+  const friendLinkRows = links
+    .map((item) => {
+      const raw = typeof item?.toJSON === 'function' ? item.toJSON() : item;
+      return {
+        friend_id: Number(raw?.friend_id),
+        remark: raw?.remark == null ? null : String(raw.remark),
+      };
+    })
+    .filter((item) => Number.isFinite(item.friend_id) && item.friend_id > 0);
+
+  const friendIds = Array.from(new Set(friendLinkRows.map((item) => item.friend_id)));
 
   if (!friendIds.length) return [];
 
@@ -84,7 +90,95 @@ export async function listFriends(userId) {
   });
 
   const userMap = new Map(users.map((item) => [Number(item.user_id), toUserBrief(item)]));
-  return friendIds.map((id) => userMap.get(id)).filter(Boolean);
+  const remarkMap = new Map(friendLinkRows.map((item) => [item.friend_id, item.remark]));
+  return friendIds
+    .map((id) => {
+      const brief = userMap.get(id);
+      if (!brief) return null;
+      return {
+        ...brief,
+        remark: remarkMap.get(id) || '',
+      };
+    })
+    .filter(Boolean);
+}
+
+export async function updateFriendRemark(currentUserId, friendId, remarkInput) {
+  const uid = Number(currentUserId);
+  const fid = Number(friendId);
+  if (!Number.isFinite(uid) || uid <= 0) {
+    const err = new Error('当前用户ID无效');
+    err.status = 400;
+    throw err;
+  }
+  if (!Number.isFinite(fid) || fid <= 0) {
+    const err = new Error('好友ID无效');
+    err.status = 400;
+    throw err;
+  }
+  if (uid === fid) {
+    const err = new Error('不能备注自己');
+    err.status = 400;
+    throw err;
+  }
+
+  const remark = String(remarkInput ?? '').trim();
+  if (remark.length > 50) {
+    const err = new Error('备注长度不能超过 50');
+    err.status = 400;
+    throw err;
+  }
+
+  const link = await Friendship.findOne({
+    where: { user_id: uid, friend_id: fid },
+  });
+  if (!link) {
+    const err = new Error('不是好友关系，无法设置备注');
+    err.status = 404;
+    throw err;
+  }
+
+  await link.update({ remark: remark ? remark : null });
+  return { friend_id: fid, remark };
+}
+
+export async function removeFriend(currentUserId, friendId) {
+  const uid = Number(currentUserId);
+  const fid = Number(friendId);
+  if (!Number.isFinite(uid) || uid <= 0) {
+    const err = new Error('当前用户ID无效');
+    err.status = 400;
+    throw err;
+  }
+  if (!Number.isFinite(fid) || fid <= 0) {
+    const err = new Error('好友ID无效');
+    err.status = 400;
+    throw err;
+  }
+  if (uid === fid) {
+    const err = new Error('不能删除自己');
+    err.status = 400;
+    throw err;
+  }
+
+  return await sequelize.transaction(async (transaction) => {
+    const aToB = await Friendship.destroy({
+      where: { user_id: uid, friend_id: fid },
+      transaction,
+    });
+    const bToA = await Friendship.destroy({
+      where: { user_id: fid, friend_id: uid },
+      transaction,
+    });
+
+    if (!aToB && !bToA) {
+      const err = new Error('不是好友关系');
+      err.status = 404;
+      throw err;
+    }
+
+    return { removed: true };
+  });
 }
 
 export async function acceptInvite(inviterUserId, currentUserId) {

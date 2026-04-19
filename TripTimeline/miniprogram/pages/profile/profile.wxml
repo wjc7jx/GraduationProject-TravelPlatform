@@ -12,16 +12,14 @@
       <view class="user-profile-hint">点击头像使用微信头像；昵称用于问候与旅伴展示（需你主动选择，无法静默读取）。</view>
 
       <view class="user-profile-row">
-        <button
+        <view
           class="profile-avatar-btn"
-          open-type="chooseAvatar"
-          bindchooseavatar="onChooseAvatar"
+          bindtap="onChooseAvatarTap"
           disabled="{{!hasToken}}"
-          hover-class="none"
         >
           <image wx:if="{{avatarDisplaySrc}}" class="profile-avatar-img" src="{{avatarDisplaySrc}}" mode="aspectFill"></image>
           <view wx:else class="profile-avatar-placeholder">我</view>
-        </button>
+        </view>
 
         <view class="user-profile-fields">
           <view class="profile-field-label">昵称</view>

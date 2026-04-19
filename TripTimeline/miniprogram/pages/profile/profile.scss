@@ -41,47 +41,79 @@ page {
 
 /* 个人资料 */
 .user-profile-card {
-  background: #ffffff;
-  border-radius: 32rpx;
-  border: 1rpx solid #dcd8d0;
-  padding: 32rpx;
+  background: #faf8f5;
+  border-radius: 20rpx;
+  border: 2rpx solid #dcd8d0;
+  padding: 40rpx 32rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 32rpx;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 4rpx #f7f5f0, 6rpx 8rpx 24rpx rgba(42, 75, 60, 0.04);
+}
+
+.user-profile-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 48rpx;
+  width: 64rpx;
+  height: 12rpx;
+  background: #C85A3D;
+  border-radius: 0 0 8rpx 8rpx;
+  opacity: 0.9;
 }
 
 .user-profile-card-title {
-  font-size: 28rpx;
-  font-weight: 700;
+  font-size: 32rpx;
+  font-weight: 800;
   color: #1c1c1c;
+  letter-spacing: 4rpx;
+  border-bottom: 4rpx solid #1c1c1c;
+  padding-bottom: 8rpx;
+  display: inline-block;
+  align-self: flex-start;
+  text-transform: uppercase;
 }
 
 .user-profile-hint {
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #8a877e;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .user-profile-row {
   display: flex;
-  align-items: flex-start;
-  gap: 28rpx;
+  align-items: center; /* 改为垂直居中，使头像与表单更平衡 */
+  gap: 32rpx; /* 缩小间距，视觉上更紧凑 */
+  margin-top: 20rpx;
 }
 
+/* 拍立得/老证件相片风格 */
 .profile-avatar-btn {
   flex-shrink: 0;
-  width: 128rpx;
-  height: 128rpx;
-  padding: 0;
+  width: 150rpx;
+  height: 150rpx;
+  padding: 0 !important;
   margin: 0;
-  border: none;
-  border-radius: 50%;
-  overflow: hidden;
-  background: rgba(42, 75, 60, 0.1);
+  overflow: hidden; /* 确保微信返回的方形头像被圆形裁切 */
+  box-sizing: border-box; /* 保证宽高包含边框与内边距，避免椭圆 */
+  background: #ffffff;
+  border: 2rpx solid #dcd8d0;
+  border-radius: 9999rpx; /* 改为圆形（用大值覆盖可能的非方形计算） */
+  box-shadow: 2rpx 6rpx 14rpx rgba(28, 28, 28, 0.06);
   display: flex;
+  line-height: 0; /* 避免按钮内联元素影响高度 */
   align-items: center;
   justify-content: center;
+  transform: rotate(-2deg);
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.profile-avatar-btn:active {
+  transform: rotate(0deg) scale(0.96);
 }
 
 .profile-avatar-btn::after {
@@ -89,26 +121,37 @@ page {
 }
 
 .profile-avatar-btn[disabled] {
-  opacity: 0.45;
+  opacity: 0.6;
+  filter: grayscale(100%);
 }
 
 .profile-avatar-img {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999rpx;
   display: block;
+  background: #e8e5df;
+  object-fit: cover; /* 填满并裁切，避免拉伸 */
 }
 
 .profile-avatar-placeholder {
-  width: 128rpx;
-  height: 128rpx;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
+  background: repeating-linear-gradient(
+    45deg,
+    #f7f5f0,
+    #f7f5f0 8rpx,
+    #e8e5df 8rpx,
+    #e8e5df 16rpx
+  );
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
+  font-size: 44rpx;
   font-weight: 700;
-  color: #2a4b3c;
+  color: #8a877e;
+  font-family: serif;
 }
 
 .user-profile-fields {
@@ -116,38 +159,63 @@ page {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 8rpx;
+  padding-bottom: 10rpx; /* 微调以对齐头像视觉底部 */
 }
 
 .profile-field-label {
-  font-size: 24rpx;
-  color: #8a877e;
+  font-size: 20rpx;
+  color: #C85A3D;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+  margin-bottom: 6rpx;
 }
 
+/* 纸质档案填空线段风格 */
 .profile-nickname-input {
-  width: 100%;
+  width: 80%;
   height: 72rpx;
-  border-radius: 16rpx;
-  background: #e8e5df;
-  border: 1rpx solid #dcd8d0;
-  padding: 0 24rpx;
+  background: transparent;
+  border: none;
+  border-bottom: 3rpx dashed #8a877e;
+  border-radius: 0;
+  padding: 0 6rpx;
   box-sizing: border-box;
-  font-size: 28rpx;
+  font-size: 34rpx;
+  font-weight: 600;
   color: #1c1c1c;
+  transition: all 0.2s ease;
+  max-width: 520rpx; /* 限制输入宽度，避免超出布局 */
 }
 
+.profile-nickname-input:focus {
+  border-bottom-color: #2a4b3c;
+  border-bottom-style: solid;
+  background: linear-gradient(to top, rgba(42, 75, 60, 0.04) 0%, transparent 40%);
+}
+
+/* 实体印章/车票风格按钮 */
 .profile-save-btn {
   width: 100%;
-  height: 80rpx;
-  margin: 8rpx 0 0;
+  height: 88rpx;
+  margin: 16rpx 0 0;
   padding: 0;
-  border: none;
+  border: 2rpx solid #1c1c1c;
   border-radius: 16rpx;
-  line-height: 80rpx;
+  line-height: 84rpx;
   font-size: 28rpx;
-  font-weight: 600;
-  color: #ffffff;
-  background: #2a4b3c;
+  font-weight: 800;
+  letter-spacing: 4rpx;
+  color: #1c1c1c;
+  background: #ffffff;
+  box-shadow: 4rpx 4rpx 0 #1c1c1c;
+  transition: all 0.15s ease;
+}
+
+.profile-save-btn:active {
+  transform: translate(2rpx, 2rpx);
+  box-shadow: 2rpx 2rpx 0 #1c1c1c;
 }
 
 .profile-save-btn::after {
@@ -155,7 +223,11 @@ page {
 }
 
 .profile-save-btn[disabled] {
-  opacity: 0.45;
+  opacity: 0.5;
+  background: #e8e5df;
+  box-shadow: 6rpx 6rpx 0 #8a877e;
+  border-color: #8a877e;
+  color: #8a877e;
 }
 
 /* 邀请卡片：白底 + 描边，对齐设计稿 Invite Card */

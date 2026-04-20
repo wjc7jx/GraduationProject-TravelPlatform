@@ -99,7 +99,7 @@ async function upsertRule(targetType, targetId, rule) {
 
   return normalizeRule(permission.toJSON());
 }
-
+//TODO: 讲解下Permission怎么运行的？
 export async function getProjectRule(projectId) {
   const permission = await Permission.findOne({
     where: {

@@ -7,6 +7,12 @@ const DEFAULT_SHARE_EXPIRES_HOURS = 7 * 24;
 const MAX_SHARE_EXPIRES_HOURS = 90 * 24;
 const VISIBILITY_PRIVATE = 1;
 
+/**
+ * 将 Sequelize 实例或普通对象转换成分享记录返回结构。
+ *
+ * @param {Object} row - Sequelize 结果行对象
+ * @returns {SharePayload}
+ */
 function toSharePayload(row) {
   const raw = typeof row?.toJSON === 'function' ? row.toJSON() : row;
   return {
@@ -20,7 +26,14 @@ function toSharePayload(row) {
     created_at: raw.created_at,
   };
 }
-
+/**
+ * 确认指定用户是否为项目拥有者。
+ *
+ * @param {number|string} projectId
+ * @param {number|string} userId
+ * @throws {Error} 若项目不存在或用户不是拥有者，则抛出带 status 的错误
+ * @returns {Promise<Object>} Project 实例
+ */
 async function ensureProjectOwner(projectId, userId) {
   const pid = Number(projectId);
   const uid = Number(userId);
@@ -38,7 +51,16 @@ async function ensureProjectOwner(projectId, userId) {
   }
   return project;
 }
-
+/**
+ * 创建项目分享链接记录。
+ *
+ * @param {number|string} projectId
+ * @param {number|string} creatorUserId
+ * @param {Object} [payload={}]
+ * @param {number} [payload.expires_in_hours] 分享链接有效小时数
+ * @throws {Error} 参数校验失败或项目不可分享时抛出
+ * @returns {Promise<SharePayload>}
+ */
 export async function createProjectShare(projectId, creatorUserId, payload = {}) {
   const pid = Number(projectId);
   const creatorId = Number(creatorUserId);
@@ -48,7 +70,7 @@ export async function createProjectShare(projectId, creatorUserId, payload = {})
     err.status = 400;
     throw err;
   }
-
+  // TODO: 如果只是确定用户的权限，现在却有返回值project。但是这里执行了，也没做处理呀？？它能正常运行吗？
   await ensureProjectOwner(pid, creatorId);
   const projectRule = await getProjectRule(pid);
   if (Number(projectRule.visibility) === VISIBILITY_PRIVATE) {
@@ -76,7 +98,13 @@ export async function createProjectShare(projectId, creatorUserId, payload = {})
 
   return toSharePayload(share);
 }
-
+/**
+ * 获取指定项目的分享记录列表。
+ *
+ * @param {number|string} projectId
+ * @param {number|string} userId
+ * @returns {Promise<SharePayload[]>}
+ */
 export async function listProjectShares(projectId, userId) {
   const pid = Number(projectId);
   const uid = Number(userId);
@@ -93,7 +121,15 @@ export async function listProjectShares(projectId, userId) {
 
   return rows.map((row) => toSharePayload(row));
 }
-
+/**
+ * 撤销指定项目分享链接。
+ *
+ * @param {number|string} projectId
+ * @param {string} shareId
+ * @param {number|string} userId
+ * @throws {Error} 分享记录不存在时抛出
+ * @returns {Promise<SharePayload>}
+ */
 export async function revokeProjectShare(projectId, shareId, userId) {
   const pid = Number(projectId);
   const uid = Number(userId);
@@ -122,7 +158,14 @@ export async function revokeProjectShare(projectId, shareId, userId) {
 
   return toSharePayload(share);
 }
-
+/**
+ * 获取有效的分享记录，检查是否已撤销或过期。
+ *
+ * @param {number|string} projectId
+ * @param {string} shareId
+ * @throws {Error} 分享不存在、已撤销或已过期时抛出
+ * @returns {Promise<Object>} ProjectShare 实例
+ */
 export async function getActiveProjectShare(projectId, shareId) {
   const pid = Number(projectId);
   const sid = String(shareId || '').trim();
@@ -160,7 +203,13 @@ export async function getActiveProjectShare(projectId, shareId) {
 
   return share;
 }
-
+/**
+ * 访问分享链接时增加浏览计数。
+ *
+ * @param {number|string} projectId
+ * @param {string} shareId
+ * @returns {Promise<SharePayload>}
+ */
 export async function visitProjectShare(projectId, shareId) {
   const share = await getActiveProjectShare(projectId, shareId);
   await share.update({
@@ -170,12 +219,27 @@ export async function visitProjectShare(projectId, shareId) {
   return toSharePayload(share);
 }
 
+/**
+ * 构造小程序分享链接。
+ *
+ * @param {number|string} projectId
+ * @param {string} shareId
+ * @returns {string}
+ */
 export function buildMiniProgramShareLink(projectId, shareId) {
   const pid = Number(projectId);
   const sid = String(shareId || '').trim();
   return `TripTimeline://share?projectId=${encodeURIComponent(String(pid))}&shareId=${encodeURIComponent(sid)}`;
 }
-
+/**
+ * 生成项目分享二维码。
+ *
+ * @param {number|string} projectId
+ * @param {string} shareId
+ * @param {number|string} userId
+ * @throws {Error} 校验失败时抛出
+ * @returns {Promise<Buffer>}
+ */
 export async function generateProjectShareQrcode(projectId, shareId, userId) {
   const pid = Number(projectId);
   const uid = Number(userId);

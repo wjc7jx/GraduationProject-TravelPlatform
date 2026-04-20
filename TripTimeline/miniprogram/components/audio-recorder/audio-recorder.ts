@@ -26,6 +26,11 @@ Component({
     value: {
       type: Object,
       value: null
+    },
+    /** 只读模式：仅展示播放器，隐藏录音、选择文件、删除、更换等操作 */
+    readonly: {
+      type: Boolean,
+      value: false
     }
   },
 

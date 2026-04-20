@@ -25,9 +25,9 @@
         <image wx:for="{{images}}" wx:key="*this" class="detail-image" src="{{item}}" mode="widthFix"></image>
       </view>
 
-      <view wx:if="{{audioUrl}}" class="audio-block">
+      <view wx:if="{{audioUrl}}" class="audio-block" catchtap="noop">
         <view class="section-title">音频</view>
-        <audio src="{{audioUrl}}" controls></audio>
+        <audio-recorder value="{{audioValue}}" readonly="{{true}}"></audio-recorder>
       </view>
 
       <view wx:if="{{!isProjectArchived}}" class="edit-btn" bindtap="goToEdit">编辑当前记录</view>

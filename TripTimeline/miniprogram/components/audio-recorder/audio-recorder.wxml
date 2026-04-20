@@ -2,7 +2,7 @@
 <view class="ar-container">
 
   <!-- ════ IDLE ════ -->
-  <view wx:if="{{phase === 'idle'}}" class="ar-idle">
+  <view wx:if="{{phase === 'idle' && !readonly}}" class="ar-idle">
     <view class="ar-idle-actions">
       <view class="ar-idle-btn ar-idle-btn--rec" bindtap="startRecord">
         <app-icon class="ar-idle-btn-icon" name="microphone" size="44rpx"></app-icon>
@@ -68,11 +68,11 @@
           <text class="ar-time-label">{{durationDisplay}}</text>
         </view>
       </view>
-      <view class="ar-delete-btn" bindtap="removeAudio">
+      <view wx:if="{{!readonly}}" class="ar-delete-btn" bindtap="removeAudio">
         <app-icon class="ar-delete-icon" name="close" size="22rpx"></app-icon>
       </view>
     </view>
-    <view class="ar-change-row">
+    <view wx:if="{{!readonly}}" class="ar-change-row">
       <view class="ar-change-btn" bindtap="changeAudio">更换音频</view>
     </view>
   </view>

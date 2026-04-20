@@ -18,7 +18,8 @@ Page({
     locationName: '',
     locationAddress: '',
     images: [] as string[],
-    audioUrl: ''
+    audioUrl: '',
+    audioValue: { url: '', name: '' } as { url: string; name: string }
   },
 
   onLoad(options: any) {
@@ -76,6 +77,10 @@ Page({
         audio: '音频'
       };
 
+      const rawAudioUrl: string = payload.audio?.url || '';
+      const audioUrl = rawAudioUrl ? this.asAbsoluteUrl(rawAudioUrl) : '';
+      const audioName: string = payload.audio?.name || (rawAudioUrl ? '音频文件' : '');
+
       this.setData({
         loading: false,
         typeLabel: typeLabelMap[target.content_type] || '记录',
@@ -86,7 +91,8 @@ Page({
         locationName: locationText.name || location.name || '',
         locationAddress: locationText.address || location.address || '',
         images,
-        audioUrl: payload.audio?.url ? this.asAbsoluteUrl(payload.audio.url) : ''
+        audioUrl,
+        audioValue: rawAudioUrl ? { url: rawAudioUrl, name: audioName } : { url: '', name: '' }
       });
     } catch (e) {
       this.setData({ loading: false });
@@ -126,6 +132,10 @@ Page({
       return;
     }
     this.lastTapAt = now;
+  },
+
+  noop() {
+    // 用于阻止音频播放器等子区域的点击冒泡到卡片触发双击进入编辑
   },
 
   goToEdit() {

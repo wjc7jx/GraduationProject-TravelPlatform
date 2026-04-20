@@ -137,6 +137,7 @@ export async function getProjectById(projectId, userId, options = {}) {
 }
 
 export async function getProjectOrThrow(projectId, userId) {
+  // TODO: findOne返回的数据是什么？
   const project = await Project.findOne({ 
     where: { 
       project_id: projectId, 

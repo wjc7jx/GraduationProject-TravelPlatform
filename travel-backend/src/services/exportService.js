@@ -68,51 +68,77 @@ function fmtDateTime(value) {
     hour12: false,
   });
 }
+/**
+ * 生成本地图片文件的候选路径。
+ *
+ * @param {string} imageRef 图片引用，可能是 "/uploads/..."、"uploads/..." 或本地绝对路径
+ * @returns {string[]} 本地磁盘候选路径数组
+ */
+function getLocalImageCandidates(imageRef) {
+  if (!imageRef || typeof imageRef !== 'string') return [];
 
-async function toDataUriIfLocalImage(imageRef) {
-  if (!imageRef || typeof imageRef !== 'string') return null;
-  if (imageRef.startsWith('data:')) return imageRef;
-  if (/^https?:\/\//i.test(imageRef)) return imageRef;
-
-  let localCandidates = [];
   if (imageRef.startsWith('/uploads/')) {
     const relative = imageRef.replace(/^\//, '');
-    localCandidates = [
+    return [
       path.join(PROJECT_ROOT, relative),
       path.join(WORKSPACE_ROOT, relative),
     ];
-  } else if (imageRef.startsWith('uploads/')) {
-    localCandidates = [
+  }
+
+  if (imageRef.startsWith('uploads/')) {
+    return [
       path.join(PROJECT_ROOT, imageRef),
       path.join(WORKSPACE_ROOT, imageRef),
     ];
-  } else if (path.isAbsolute(imageRef)) {
-    localCandidates = [imageRef];
   }
 
-  if (!localCandidates.length) return imageRef;
+  if (path.isAbsolute(imageRef)) {
+    return [imageRef];
+  }
 
-  for (const localPath of localCandidates) {
-    const ext = path.extname(localPath).toLowerCase();
-    const mimeMap = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.webp': 'image/webp',
-      '.gif': 'image/gif',
-    };
-    const mime = mimeMap[ext];
-    if (!mime) continue;
+  return [];
+}
+/**
+ * 如果 imageRef 指向本地图片文件，则读取文件并转换为 data URI；
+ * 如果是 data URI 或远程 URL，则直接返回原始引用。
+ *
+ * @param {string} imageRef 图片引用
+ * @returns {Promise<string|null>} 转换后的 data URI，或原始 imageRef；输入无效时返回 null
+ */
+async function toDataUriIfLocalImage(imageRef) {
+  // 检查输入是否有效
+  if (!imageRef || typeof imageRef !== 'string') return null;
+  // 如果是data URI或外部链接，直接返回
+  else if (imageRef.startsWith('data:')) return imageRef;
+  else if (/^https?:\/\//i.test(imageRef)) return imageRef;
+  
+  // 尝试读取本地文件并转换为data URI
+  else {
+    const localCandidates = getLocalImageCandidates(imageRef);
+    if (!localCandidates.length) return imageRef;
 
-    try {
-      const fileBuffer = await fs.readFile(localPath);
-      return `data:${mime};base64,${fileBuffer.toString('base64')}`;
-    } catch {
-      // 尝试下一个候选路径
+    for (const localPath of localCandidates) {
+      const ext = path.extname(localPath).toLowerCase();
+      const mimeMap = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+      };
+      const mime = mimeMap[ext];
+      if (!mime) continue;
+
+      try {
+        const fileBuffer = await fs.readFile(localPath);
+        return `data:${mime};base64,${fileBuffer.toString('base64')}`;
+      } catch {
+        // 尝试下一个候选路径
+      }
     }
-  }
 
-  return imageRef;
+    return imageRef;
+  }
 }
 
 function pickPhotoSources(contentData) {
@@ -176,7 +202,7 @@ async function normalizeContentItem(item) {
 
   return normalized;
 }
-
+//TODO: 此方法是否可以简化？
 export async function buildExportData(projectId, userId, options = {}) {
   const {
     visibilityScope = 'all',
@@ -187,6 +213,7 @@ export async function buildExportData(projectId, userId, options = {}) {
 
   const project = await getProjectOrThrow(projectId, userId);
   const scope = String(visibilityScope || 'all');
+  // TODO:需要再阅读下visibility_scope的相关实现和定义，这里我不知道share是什么范围，为什么share范围必须提供viewer_user_id，以及为什么all范围仅允许项目所有者导出
   if (!['all', 'public', 'share'].includes(scope)) {
     const err = new Error('visibility_scope 仅支持 all/public/share');
     err.status = 400;
@@ -202,7 +229,7 @@ export async function buildExportData(projectId, userId, options = {}) {
     err.status = 400;
     throw err;
   }
-
+  //TODO:为什么这里会转化为json？难道是因为数据库存的是json字符串对象吗？
   const projectJson = project.toJSON();
   const renderCoverImage = await toDataUriIfLocalImage(projectJson.cover_image || '');
   const contents = await Content.findAll({
@@ -222,18 +249,18 @@ export async function buildExportData(projectId, userId, options = {}) {
       ['content_id', 'ASC'],
     ],
   });
-
+  // TODO:这部分筛选逻辑，目前前端没有做这些功能。现在执行是否会消耗性能？是否可以先禁用，提升速度？
   const includeSet = new Set(normalizeArrayNumber(includeContentIds));
   const excludeSet = new Set(normalizeArrayNumber(excludeContentIds));
 
   const projectRule = await getProjectRule(project.project_id);
-  const normalizedRule = projectRule;
+  const normalizedRule = projectRule; //TODO: 这一步有什么用？
 
   const filteredRaw = [];
   for (const item of contents) {
     if (includeSet.size > 0 && !includeSet.has(Number(item.content_id))) continue;
     if (excludeSet.has(Number(item.content_id))) continue;
-
+    // TODO: 没有明白使用它的必要性，我设想的是项目拥有者选择导出了，那么直接导出即可，无需在意隐私规则（它是分享时才需要关注的）
     const shouldKeep = await shouldKeepByExportScope(normalizedRule, {
       visibilityScope: scope,
       requesterUserId: userId,
@@ -250,10 +277,11 @@ export async function buildExportData(projectId, userId, options = {}) {
     // 顺序 await 避免大量并发读取本地图片导致导出卡顿
     const privacyViewerId = scope === 'all' ? userId : viewerUserId;
     const viewerLevel = await getViewerLevel(normalizedRule, project.user_id, privacyViewerId);
+    // TODO:sanitizeLocation是脱敏地址，目前我想的是直接导出html文件，无法区分访问者的身份，所以此处不必做地址脱敏。（只在分享时才有必要做）
     const normalized = await normalizeContentItem(sanitizeLocation(item, viewerLevel));
     normalizedContents.push(normalized);
   }
-
+  //TODO: 这部分逻辑时什么？做的必要性是什么？
   const sections = [];
   const sectionMap = new Map();
   normalizedContents.forEach((item) => {
@@ -341,20 +369,24 @@ function renderContentCard(item) {
 }
 
 export function renderMemorialHtml(payload) {
+  //TODO:为什么会存在sections按日期分组的内容块数组（每个 section 包含多条 content 记录）的概念
   const { project, sections, totalCount, visibilityScope } = payload;
   const coverImage = project.render_cover_image || project.cover_image || '';
   const tags = Array.isArray(project.tags) ? project.tags : [];
   const description = project.description || project.subtitle || '';
+  // TODO: 下面这一句的处理逻辑（js代码层面）
   const scopeLabel = { all: '全部', public: '公开', share: '分享' }[visibilityScope] || visibilityScope;
+  // TODO: 这里想到nodejs端没有写ts，这是不是不太好？
+  // TODO：下面处理是什么意思？
   const generatedAt = new Date().toLocaleString('zh-CN', {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
-
+  // 生成目录
   const toc = sections
     .map((section, index) => `<li><a href="#day-${index + 1}">${escapeHtml(section.title)}<span class="toc-count">（${section.items.length}）</span></a></li>`)
     .join('');
-
+  //TODO：解释
   const sectionsHtml = sections
     .map(
       (section, index) => `
@@ -370,7 +402,7 @@ export function renderMemorialHtml(payload) {
       </section>`,
     )
     .join('\n');
-
+  // TODO:这部分HTML模板应该单独存放和实现。同时可以引入一些模板引擎来优化书写（目前是字符串，难以读写）；这里需要思考最优方案，（我想到一个可以内部直接写html文件，然后读取为字符串并使用）
   return `<!doctype html>
 <html lang="zh-CN">
 <head>

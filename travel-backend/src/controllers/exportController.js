@@ -72,7 +72,7 @@ export async function exportProjectHtml(req, res, next) {
       );
       return;
     }
-
+    // TODO:这部分处理逻辑是什么？目前我设想的是直接导出html文件，暂不支持显示为一个网页页面，简化。
     // 兼容旧逻辑: download=0 返回 JSON
     if (mode === 'json' || String(req.query.download || '1') === '0') {
       sendSuccess(res, { filename, html, stats: { total_count: payload.totalCount } }, '生成网页纪念册成功');

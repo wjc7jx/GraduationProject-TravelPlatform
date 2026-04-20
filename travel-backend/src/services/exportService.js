@@ -4,6 +4,14 @@ import { fileURLToPath } from 'url';
 import { Content, Location } from '../models/index.js';
 import { getProjectOrThrow } from './projectService.js';
 import { env } from '../config/env.js';
+import { renderMemorialHtml as renderMemorialHtmlImpl } from './export/memorialTemplate.js';
+import {
+  formatCoords,
+  formatDateline,
+  formatWeekday,
+  escapeHtml,
+} from './export/memorialComponents.js';
+import { sanitizeAndEmbedImages } from './export/htmlSanitizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,15 +24,6 @@ function slugify(input) {
     .toLowerCase()
     .replace(/[^a-z0-9\u4e00-\u9fa5]+/gi, '-')
     .replace(/^-+|-+$/g, '') || 'travel-project';
-}
-
-function escapeHtml(input) {
-  return String(input ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function fmtDate(value) {
@@ -51,77 +50,108 @@ function fmtDateTime(value) {
     hour12: false,
   });
 }
-/**
- * 生成本地图片文件的候选路径。
- *
- * @param {string} imageRef 图片引用，可能是 "/uploads/..."、"uploads/..." 或本地绝对路径
- * @returns {string[]} 本地磁盘候选路径数组
- */
-function getLocalImageCandidates(imageRef) {
-  if (!imageRef || typeof imageRef !== 'string') return [];
 
-  if (imageRef.startsWith('/uploads/')) {
-    const relative = imageRef.replace(/^\//, '');
+function fmtTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+const IMAGE_MIME = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.bmp': 'image/bmp',
+  '.svg': 'image/svg+xml',
+};
+
+const AUDIO_MIME = {
+  '.mp3': 'audio/mpeg',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.oga': 'audio/ogg',
+  '.opus': 'audio/ogg',
+  '.flac': 'audio/flac',
+  '.amr': 'audio/amr',
+  '.silk': 'audio/silk',
+};
+
+/**
+ * 生成本地资源文件的候选磁盘路径。
+ *
+ * @param {string} ref 引用，可能是 "/uploads/..."、"uploads/..." 或本地绝对路径
+ * @returns {string[]}
+ */
+function getLocalCandidates(ref) {
+  if (!ref || typeof ref !== 'string') return [];
+
+  if (ref.startsWith('/uploads/')) {
+    const relative = ref.replace(/^\//, '');
     return [
       path.join(PROJECT_ROOT, relative),
       path.join(WORKSPACE_ROOT, relative),
     ];
   }
 
-  if (imageRef.startsWith('uploads/')) {
+  if (ref.startsWith('uploads/')) {
     return [
-      path.join(PROJECT_ROOT, imageRef),
-      path.join(WORKSPACE_ROOT, imageRef),
+      path.join(PROJECT_ROOT, ref),
+      path.join(WORKSPACE_ROOT, ref),
     ];
   }
 
-  if (path.isAbsolute(imageRef)) {
-    return [imageRef];
-  }
-
+  if (path.isAbsolute(ref)) return [ref];
   return [];
 }
+
 /**
- * 如果 imageRef 指向本地图片文件，则读取文件并转换为 data URI；
- * 如果是 data URI 或远程 URL，则直接返回原始引用。
- *
- * @param {string} imageRef 图片引用
- * @returns {Promise<string|null>} 转换后的 data URI，或原始 imageRef；输入无效时返回 null
+ * 把本地资源转 data URI；data URI / 远程 URL 原样返回；找不到则返回原 ref。
  */
-async function toDataUriIfLocalImage(imageRef) {
-  // 检查输入是否有效
-  if (!imageRef || typeof imageRef !== 'string') return null;
-  // 如果是data URI或外部链接，直接返回
-  else if (imageRef.startsWith('data:')) return imageRef;
-  else if (/^https?:\/\//i.test(imageRef)) return imageRef;
-  
-  // 尝试读取本地文件并转换为data URI
-  else {
-    const localCandidates = getLocalImageCandidates(imageRef);
-    if (!localCandidates.length) return imageRef;
+async function toDataUriIfLocal(ref, mimeMap) {
+  if (!ref || typeof ref !== 'string') return null;
+  if (ref.startsWith('data:')) return ref;
+  if (/^https?:\/\//i.test(ref)) return ref;
 
-    for (const localPath of localCandidates) {
-      const ext = path.extname(localPath).toLowerCase();
-      const mimeMap = {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.webp': 'image/webp',
-        '.gif': 'image/gif',
-      };
-      const mime = mimeMap[ext];
-      if (!mime) continue;
+  const localCandidates = getLocalCandidates(ref);
+  if (!localCandidates.length) return ref;
 
-      try {
-        const fileBuffer = await fs.readFile(localPath);
-        return `data:${mime};base64,${fileBuffer.toString('base64')}`;
-      } catch {
-        // 尝试下一个候选路径
-      }
+  for (const localPath of localCandidates) {
+    const ext = path.extname(localPath).toLowerCase();
+    const mime = mimeMap[ext];
+    if (!mime) continue;
+
+    try {
+      const fileBuffer = await fs.readFile(localPath);
+      return `data:${mime};base64,${fileBuffer.toString('base64')}`;
+    } catch {
+      // 尝试下一个候选路径
     }
-
-    return imageRef;
   }
+
+  return ref;
+}
+
+/**
+ * 兼容旧调用：图片转 data URI
+ */
+async function toDataUriIfLocalImage(ref) {
+  return toDataUriIfLocal(ref, IMAGE_MIME);
+}
+
+/**
+ * 音频转 data URI
+ */
+async function toDataUriIfLocalAudio(ref) {
+  return toDataUriIfLocal(ref, AUDIO_MIME);
 }
 
 function pickPhotoSources(contentData) {
@@ -139,68 +169,108 @@ function pickPhotoSources(contentData) {
   return single ? [single] : [];
 }
 
+/**
+ * 异步逐个转 data URI 并去掉空值
+ */
+async function resolveImages(srcs) {
+  const out = [];
+  for (const src of srcs) {
+    const uri = await toDataUriIfLocalImage(src);
+    if (uri) out.push(uri);
+  }
+  return out;
+}
+
 async function normalizeContentItem(item) {
   const json = typeof item?.toJSON === 'function' ? item.toJSON() : item;
   if (!json || typeof json !== 'object') {
-    return {
-      record_time_text: '',
-      day_key: '',
-    };
+    return { day_key: '', day_dateline: '', day_weekday: '' };
   }
+
   const contentData = json.content_data || {};
+  const recordTime = json.record_time || json.created_at;
+  const recordDate = recordTime ? new Date(recordTime) : null;
+  const validDate = recordDate && !Number.isNaN(recordDate.getTime());
+
   const normalized = {
     ...json,
-    record_time_text: fmtDateTime(json.record_time || json.created_at),
-    day_key: fmtDate(json.record_time || json.created_at),
+    record_time_text: fmtDateTime(recordTime),
+    render_time_text: fmtTime(recordTime),
+    day_key: fmtDate(recordTime),
+    day_dateline: validDate ? formatDateline(recordDate) : '',
+    day_weekday: validDate ? formatWeekday(recordDate) : '',
   };
 
+  // 通用：标题
+  normalized.render_title = (contentData.title || '').trim();
+
+  // 通用：地点（优先关联 location 表，回退 content_data.location_text）
+  const loc = json.location;
+  const locText = contentData.location_text || {};
+  const placeName = (loc?.name || locText.name || '').trim();
+  const placeAddress = (loc?.address || locText.address || '').trim();
+  normalized.render_place_text = [placeName, placeAddress].filter(Boolean).join(' · ');
+  normalized.render_coords = loc ? formatCoords(loc.latitude, loc.longitude) : '';
+
+  // 通用：富文本正文 — 关键修复：清洗后保留 HTML
+  if (contentData.content && typeof contentData.content === 'string') {
+    normalized.render_body_html = await sanitizeAndEmbedImages(
+      contentData.content,
+      toDataUriIfLocalImage
+    );
+  } else if (contentData.text && typeof contentData.text === 'string') {
+    // 兜底：text 字段做最简纯文本 → 段落
+    const escaped = escapeHtml(contentData.text)
+      .split(/\n{2,}/)
+      .map((p) => `<p>${p.replace(/\n/g, '<br />')}</p>`)
+      .join('');
+    normalized.render_body_html = escaped;
+  } else {
+    normalized.render_body_html = '';
+  }
+
+  // 类型相关
   if (json.content_type === 'photo') {
     const sources = pickPhotoSources(contentData);
-    const resolved = [];
-    for (const src of sources) {
-      const uri = await toDataUriIfLocalImage(src);
-      if (uri) resolved.push(uri);
+    normalized.render_photo_srcs = await resolveImages(sources);
+    normalized.render_photo_caption = (contentData.caption || '').trim();
+    if (!normalized.render_title && contentData.caption) {
+      normalized.render_title = String(contentData.caption).trim();
     }
-    normalized.render_photo_srcs = resolved;
-    normalized.render_photo_caption = contentData.caption || contentData.title || '';
-  }
-
-  if (json.content_type === 'note') {
-    normalized.render_note_title = contentData.title || '旅行笔记';
-    normalized.render_note_text = contentData.text || contentData.content || '';
+  } else if (json.content_type === 'note') {
     const noteSources = pickPhotoSources(contentData);
-    const noteImages = [];
-    for (const src of noteSources) {
-      const uri = await toDataUriIfLocalImage(src);
-      if (uri) noteImages.push(uri);
-    }
-    normalized.render_note_images = noteImages;
-  }
-
-  if (json.content_type === 'audio') {
-    normalized.render_audio_title = contentData.title || '语音片段';
-    normalized.render_audio_url = contentData.url || contentData.file_url || '';
-    normalized.render_audio_duration = contentData.duration || '';
+    normalized.render_photo_srcs = await resolveImages(noteSources);
+    normalized.render_photo_caption = '';
+    if (!normalized.render_title) normalized.render_title = '旅行笔记';
+  } else if (json.content_type === 'audio') {
+    const audio = contentData.audio || {};
+    const audioUrl = audio.url || contentData.url || contentData.file_url || '';
+    const resolvedAudio = audioUrl ? await toDataUriIfLocalAudio(audioUrl) : '';
+    normalized.render_audio = audioUrl
+      ? {
+          url: resolvedAudio,
+          name: audio.name || contentData.title || '语音片段',
+          duration: audio.duration || contentData.duration || '',
+        }
+      : null;
+    // 音频条目也允许带配图
+    const audioImageSources = pickPhotoSources(contentData);
+    normalized.render_photo_srcs = await resolveImages(audioImageSources);
+    normalized.render_photo_caption = '';
+    if (!normalized.render_title) normalized.render_title = '语音片段';
   }
 
   return normalized;
 }
+
 export async function buildExportData(projectId, userId) {
   const project = await getProjectOrThrow(projectId, userId);
   const projectJson = project.toJSON();
-  const renderCoverImage = await toDataUriIfLocalImage(projectJson.cover_image || '');
+  const coverResolved = await toDataUriIfLocalImage(projectJson.cover_image || '');
 
   const contents = await Content.findAll({
-    where: {
-      project_id: project.project_id,
-    },
-    include: [
-      {
-        model: Location,
-        as: 'location',
-        required: false,
-      },
-    ],
+    where: { project_id: project.project_id },
+    include: [{ model: Location, as: 'location', required: false }],
     order: [
       ['record_time', 'ASC'],
       ['sort_order', 'ASC'],
@@ -210,7 +280,7 @@ export async function buildExportData(projectId, userId) {
 
   const normalizedContents = [];
   for (const item of contents) {
-    // 顺序 await 避免大量并发读取本地图片导致导出卡顿
+    // 顺序 await 避免大量并发读取本地文件导致导出卡顿
     const normalized = await normalizeContentItem(item);
     normalizedContents.push(normalized);
   }
@@ -218,385 +288,21 @@ export async function buildExportData(projectId, userId) {
   return {
     project: {
       ...projectJson,
-      render_cover_image: renderCoverImage,
+      cover_image_resolved: coverResolved,
+      // 兼容老调用（renderMemorialHtml 内部也会读）
+      render_cover_image: coverResolved,
+      start_date_text: fmtDate(projectJson.start_date),
+      end_date_text: fmtDate(projectJson.end_date),
     },
     contents: normalizedContents,
     totalCount: normalizedContents.length,
   };
 }
 
-function renderImageGrid(srcs) {
-  if (!srcs || !srcs.length) return '';
-  if (srcs.length === 1) {
-    return `<div class="img-grid img-grid-1"><img src="${escapeHtml(srcs[0])}" alt="旅行照片" /></div>`;
-  }
-  if (srcs.length === 2) {
-    return `<div class="img-grid img-grid-2">${srcs.map((s) => `<img src="${escapeHtml(s)}" alt="旅行照片" />`).join('')}</div>`;
-  }
-  return `<div class="img-grid img-grid-n">${srcs.map((s) => `<img src="${escapeHtml(s)}" alt="旅行照片" />`).join('')}</div>`;
-}
-
-function renderContentCard(item) {
-  const locationText = item.location
-    ? `${item.location.name || ''} ${item.location.address || ''}`.trim()
-    : '';
-
-  const timePart = item.record_time_text ? `<span class="meta-time">${escapeHtml(item.record_time_text)}</span>` : '';
-  const locPart = locationText ? `<span class="meta-loc">${escapeHtml(locationText)}</span>` : '';
-  const metaHtml = [timePart, locPart].filter(Boolean).join('<span class="meta-dot"> · </span>');
-
-  if (item.content_type === 'photo') {
-    const srcs = item.render_photo_srcs || [];
-    return `
-      <article class="card photo-card">
-        <div class="meta">${metaHtml}</div>
-        ${renderImageGrid(srcs)}
-        ${item.render_photo_caption ? `<p class="caption">${escapeHtml(item.render_photo_caption)}</p>` : ''}
-      </article>`;
-  }
-
-  if (item.content_type === 'note') {
-    const noteImages = item.render_note_images || [];
-    return `
-      <article class="card note-card">
-        <div class="meta">${metaHtml}</div>
-        <h3 class="note-title">${escapeHtml(item.render_note_title || '旅行笔记')}</h3>
-        <div class="note-body">${escapeHtml(item.render_note_text || '').replace(/\n/g, '<br />')}</div>
-        ${noteImages.length ? renderImageGrid(noteImages) : ''}
-      </article>`;
-  }
-
-  if (item.content_type === 'audio') {
-    return `
-      <article class="card audio-card">
-        <div class="meta">${metaHtml}</div>
-        <h3 class="audio-title">${escapeHtml(item.render_audio_title || '语音片段')}</h3>
-        <p class="audio-duration">时长：${escapeHtml(item.render_audio_duration || '未知')}</p>
-        ${item.render_audio_url ? `<p class="hint">音频地址：${escapeHtml(item.render_audio_url)}</p>` : ''}
-      </article>`;
-  }
-
-  return `
-    <article class="card">
-      <div class="meta">${metaHtml}</div>
-      <h3>未识别内容类型</h3>
-      <pre>${escapeHtml(JSON.stringify(item.content_data || {}, null, 2))}</pre>
-    </article>`;
-}
-
-export function renderMemorialHtml(payload) {
-  const { project, contents, totalCount } = payload;
-  const coverImage = project.render_cover_image || project.cover_image || '';
-  const tags = Array.isArray(project.tags) ? project.tags : [];
-  const description = project.description || project.subtitle || '';
-  const generatedAt = new Date().toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  });
-
-  const cardsHtml = contents.map((item) => renderContentCard(item)).join('\n');
-  // TODO:这部分HTML模板应该单独存放和实现。同时可以引入一些模板引擎来优化书写（目前是字符串，难以读写）；这里需要思考最优方案，（我想到一个可以内部直接写html文件，然后读取为字符串并使用）
-  return `<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(project.title)} · 旅行纪念册</title>
-  <style>
-    :root {
-      --bg: #f5f2ec;
-      --panel: #fffaf3;
-      --ink: #1d1b1a;
-      --ink-secondary: #3d3832;
-      --muted: #6a6259;
-      --brand: #0f766e;
-      --brand-light: #14b8a6;
-      --brand-bg: rgba(15,118,110,0.06);
-      --line: #d8cfc4;
-      --paper: #fffdf8;
-      --shadow-sm: 0 2px 8px rgba(31,27,23,0.06);
-      --shadow-md: 0 8px 24px rgba(31,27,23,0.10);
-      --shadow-lg: 0 18px 50px rgba(32,43,53,0.18);
-      --radius-sm: 8px;
-      --radius-md: 14px;
-      --radius-lg: 20px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: "Noto Serif SC", "Source Han Serif SC", "PingFang SC", "Microsoft YaHei", serif;
-      color: var(--ink);
-      background: var(--bg);
-      line-height: 1.8;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ---- layout ---- */
-    .wrap {
-      width: min(960px, 90vw);
-      margin: 0 auto;
-      padding: 32px 0 80px;
-    }
-
-    /* ---- cover ---- */
-    .cover {
-      position: relative;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-lg);
-      min-height: 260px;
-    }
-    .cover-bg {
-      position: absolute; inset: 0;
-      background: linear-gradient(160deg, #0f766e 0%, #0c546d 50%, #1e3a5f 100%);
-    }
-    .cover-img {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      opacity: 0.35;
-    }
-    .cover-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.50) 100%);
-    }
-    .cover-content {
-      position: relative;
-      z-index: 1;
-      padding: 48px 44px 40px;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      min-height: 280px;
-    }
-    .cover h1 {
-      font-size: clamp(28px, 5vw, 44px);
-      line-height: 1.2;
-      font-weight: 700;
-      margin-bottom: 10px;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.3);
-    }
-    .cover .subtitle {
-      opacity: 0.90;
-      font-size: 15px;
-      line-height: 1.6;
-    }
-    .cover .tags {
-      margin-top: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .cover .tag {
-      display: inline-block;
-      padding: 3px 12px;
-      background: rgba(255,255,255,0.18);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 20px;
-      font-size: 12px;
-      backdrop-filter: blur(4px);
-    }
-    .cover .stats-row {
-      margin-top: 16px;
-      font-size: 13px;
-      opacity: 0.8;
-    }
-
-    /* ---- entries container ---- */
-    .entries {
-      margin-top: 28px;
-    }
-
-    /* ---- cards container ---- */
-    .cards {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    /* ---- card base ---- */
-    .card {
-      background: var(--paper);
-      border-radius: var(--radius-md);
-      border: 1px solid #e6ddd2;
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
-      break-inside: avoid;
-      transition: box-shadow 0.25s, transform 0.25s;
-    }
-    .card:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-    }
-
-    /* ---- meta line ---- */
-    .meta {
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0;
-    }
-    .meta-time::before {
-      content: "\\1F552 ";
-      font-size: 12px;
-    }
-    .meta-loc::before {
-      content: "\\1F4CD ";
-      font-size: 12px;
-    }
-    .meta-dot {
-      color: #c4b9ad;
-      margin: 0 2px;
-    }
-
-    /* ---- photo card ---- */
-    .photo-card .caption {
-      margin: 10px 0 0;
-      font-size: 14px;
-      color: var(--ink-secondary);
-    }
-
-    /* ---- image grid ---- */
-    .img-grid { border-radius: var(--radius-sm); overflow: hidden; }
-    .img-grid img {
-      display: block;
-      width: 100%;
-      object-fit: cover;
-      border-radius: var(--radius-sm);
-    }
-    .img-grid-1 img {
-      max-height: 480px;
-    }
-    .img-grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-    .img-grid-2 img {
-      aspect-ratio: 4 / 3;
-    }
-    .img-grid-n {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-    }
-    .img-grid-n img {
-      aspect-ratio: 1;
-    }
-
-    /* ---- note card ---- */
-    .note-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: var(--ink);
-    }
-    .note-body {
-      font-size: 15px;
-      color: var(--ink-secondary);
-      line-height: 1.9;
-      border-left: 3px solid var(--brand);
-      padding-left: 14px;
-    }
-    .note-card .img-grid {
-      margin-top: 14px;
-    }
-
-    /* ---- audio card ---- */
-    .audio-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .audio-duration {
-      font-size: 14px;
-      color: var(--muted);
-    }
-    .hint {
-      margin-top: 6px;
-      font-size: 12px;
-      color: #6f675d;
-      word-break: break-all;
-    }
-
-    /* ---- footer ---- */
-    .footer {
-      margin-top: 48px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
-      padding: 20px 0;
-      border-top: 1px solid var(--line);
-    }
-    .footer-brand {
-      color: var(--brand);
-      font-weight: 600;
-    }
-
-    /* ---- print / PDF ---- */
-    .print-head { display: none; }
-
-    @page {
-      size: A4;
-      margin: 18mm 14mm;
-    }
-    @media print {
-      body { background: #fff; }
-      .wrap { width: 100%; padding: 0; }
-      .cover { box-shadow: none; border-radius: var(--radius-md); }
-      .print-head {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 12px;
-        color: #5d564e;
-        font-size: 11px;
-        border-bottom: 1px solid #d9d1c5;
-        padding-bottom: 6px;
-      }
-      .card { box-shadow: none; border: 1px solid #e0d8ce; }
-      .card:hover { box-shadow: none; transform: none; }
-      .cards { gap: 12px; }
-      .img-grid-1 img { max-height: 360px; }
-    }
-  </style>
-</head>
-<body>
-  <main class="wrap">
-    <div class="print-head">
-      <span>${escapeHtml(project.title || '旅行纪念册')}</span>
-      <span>${escapeHtml(fmtDate(project.start_date))} - ${escapeHtml(fmtDate(project.end_date) || '进行中')}</span>
-    </div>
-
-    <section class="cover">
-      <div class="cover-bg"></div>
-      ${coverImage ? `<img class="cover-img" src="${escapeHtml(coverImage)}" alt="" />` : ''}
-      <div class="cover-overlay"></div>
-      <div class="cover-content">
-        <h1>${escapeHtml(project.title || '我的旅行项目')}</h1>
-        ${description ? `<p class="subtitle">${escapeHtml(description)}</p>` : ''}
-        <p class="subtitle">${escapeHtml(fmtDate(project.start_date))} - ${escapeHtml(fmtDate(project.end_date) || '进行中')}</p>
-        ${tags.length ? `<div class="tags">${tags.map((t) => `<span class="tag">${escapeHtml(typeof t === 'string' ? t : t.name || '')}</span>`).join('')}</div>` : ''}
-        <p class="stats-row">共 ${totalCount} 条记录</p>
-      </div>
-    </section>
-
-    <section class="entries">
-      <div class="cards">
-        ${cardsHtml}
-      </div>
-    </section>
-
-    <footer class="footer">
-      <span class="footer-brand">TripTimeline</span> 旅行纪念册 · 导出于 ${escapeHtml(generatedAt)}
-    </footer>
-  </main>
-</body>
-</html>`;
-}
+/**
+ * 重新导出新模板的 renderMemorialHtml，保持外部调用兼容性。
+ */
+export const renderMemorialHtml = renderMemorialHtmlImpl;
 
 export async function generateProjectHtmlExport(projectId, userId) {
   const payload = await buildExportData(projectId, userId);
@@ -652,31 +358,37 @@ export async function generateProjectPdfExport(projectId, userId) {
 
       if (resourceWaitTimeoutMs > 0) {
         await page.evaluate(async (maxWaitMs) => {
-          const images = Array.from(document.images || []);
-          if (!images.length) return;
+          const waitImages = (async () => {
+            const images = Array.from(document.images || []);
+            if (!images.length) return;
 
-          const settleImage = (img) => {
-            if (img.complete) return Promise.resolve();
+            const settleImage = (img) => {
+              if (img.complete) return Promise.resolve();
+              return new Promise((resolve) => {
+                let done = false;
+                const finish = () => {
+                  if (done) return;
+                  done = true;
+                  img.removeEventListener('load', finish);
+                  img.removeEventListener('error', finish);
+                  resolve();
+                };
+                img.addEventListener('load', finish, { once: true });
+                img.addEventListener('error', finish, { once: true });
+                setTimeout(finish, Math.max(2000, Math.floor(maxWaitMs * 0.5)));
+              });
+            };
 
-            return new Promise((resolve) => {
-              let done = false;
-              const finish = () => {
-                if (done) return;
-                done = true;
-                img.removeEventListener('load', finish);
-                img.removeEventListener('error', finish);
-                resolve();
-              };
+            await Promise.all(images.map(settleImage));
+          })();
 
-              img.addEventListener('load', finish, { once: true });
-              img.addEventListener('error', finish, { once: true });
-
-              setTimeout(finish, Math.max(2000, Math.floor(maxWaitMs * 0.5)));
-            });
-          };
+          // 等 Web Fonts 全部就绪，避免 PDF 里 Fraunces / Cormorant 回退到衬线默认
+          const waitFonts = (document.fonts && typeof document.fonts.ready?.then === 'function')
+            ? document.fonts.ready
+            : Promise.resolve();
 
           await Promise.race([
-            Promise.all(images.map((img) => settleImage(img))),
+            Promise.all([waitImages, waitFonts]),
             new Promise((resolve) => setTimeout(resolve, maxWaitMs)),
           ]);
         }, resourceWaitTimeoutMs);
@@ -687,11 +399,11 @@ export async function generateProjectPdfExport(projectId, userId) {
         format: 'A4',
         printBackground: true,
         displayHeaderFooter: true,
-        headerTemplate: `<div style="font-size:8px;width:100%;padding:0 14mm;display:flex;justify-content:space-between;color:#999;">
+        headerTemplate: `<div style="font-size:8px;width:100%;padding:0 14mm;display:flex;justify-content:space-between;color:#999;font-family:serif;">
           <span>${projectTitle}</span>
-          <span>TripTimeline</span>
+          <span>TripTimeline · Dispatches</span>
         </div>`,
-        footerTemplate: `<div style="font-size:8px;width:100%;text-align:center;color:#999;">
+        footerTemplate: `<div style="font-size:8px;width:100%;text-align:center;color:#999;font-family:serif;">
           <span class="pageNumber"></span> / <span class="totalPages"></span>
         </div>`,
         margin: {

@@ -29,6 +29,7 @@
     "puppeteer": "^24.8.2",
     "qiniu": "^7.15.1",
     "qrcode": "^1.5.4",
+    "sanitize-html": "^2.17.3",
     "sequelize": "^6.37.1",
     "uuid": "^13.0.0"
   },

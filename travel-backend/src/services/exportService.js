@@ -4,12 +4,6 @@ import { fileURLToPath } from 'url';
 import { Content, Location } from '../models/index.js';
 import { getProjectOrThrow } from './projectService.js';
 import { env } from '../config/env.js';
-import {
-  getProjectRule,
-  getViewerLevel,
-  sanitizeLocation,
-  shouldKeepByExportScope,
-} from './privacyService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,17 +25,6 @@ function escapeHtml(input) {
     .replace(/>/g, '&gt;')
     .replace(/\"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function normalizeArrayNumber(input) {
-  if (!input) return [];
-  if (Array.isArray(input)) {
-    return input.map(Number).filter((item) => Number.isFinite(item));
-  }
-  return String(input)
-    .split(',')
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item));
 }
 
 function fmtDate(value) {
@@ -202,36 +185,11 @@ async function normalizeContentItem(item) {
 
   return normalized;
 }
-//TODO: 此方法是否可以简化？
-export async function buildExportData(projectId, userId, options = {}) {
-  const {
-    visibilityScope = 'all',
-    viewerUserId = null,
-    includeContentIds = [],
-    excludeContentIds = [],
-  } = options;
-
+export async function buildExportData(projectId, userId) {
   const project = await getProjectOrThrow(projectId, userId);
-  const scope = String(visibilityScope || 'all');
-  // TODO:需要再阅读下visibility_scope的相关实现和定义，这里我不知道share是什么范围，为什么share范围必须提供viewer_user_id，以及为什么all范围仅允许项目所有者导出
-  if (!['all', 'public', 'share'].includes(scope)) {
-    const err = new Error('visibility_scope 仅支持 all/public/share');
-    err.status = 400;
-    throw err;
-  }
-  if (scope === 'all' && Number(project.user_id) !== Number(userId)) {
-    const err = new Error('all 范围仅允许项目所有者导出');
-    err.status = 403;
-    throw err;
-  }
-  if (scope === 'share' && !Number.isFinite(Number(viewerUserId))) {
-    const err = new Error('share 范围必须提供 viewer_user_id');
-    err.status = 400;
-    throw err;
-  }
-  //TODO:为什么这里会转化为json？难道是因为数据库存的是json字符串对象吗？
   const projectJson = project.toJSON();
   const renderCoverImage = await toDataUriIfLocalImage(projectJson.cover_image || '');
+
   const contents = await Content.findAll({
     where: {
       project_id: project.project_id,
@@ -249,63 +207,21 @@ export async function buildExportData(projectId, userId, options = {}) {
       ['content_id', 'ASC'],
     ],
   });
-  // TODO:这部分筛选逻辑，目前前端没有做这些功能。现在执行是否会消耗性能？是否可以先禁用，提升速度？
-  const includeSet = new Set(normalizeArrayNumber(includeContentIds));
-  const excludeSet = new Set(normalizeArrayNumber(excludeContentIds));
-
-  const projectRule = await getProjectRule(project.project_id);
-  const normalizedRule = projectRule; //TODO: 这一步有什么用？
-
-  const filteredRaw = [];
-  for (const item of contents) {
-    if (includeSet.size > 0 && !includeSet.has(Number(item.content_id))) continue;
-    if (excludeSet.has(Number(item.content_id))) continue;
-    // TODO: 没有明白使用它的必要性，我设想的是项目拥有者选择导出了，那么直接导出即可，无需在意隐私规则（它是分享时才需要关注的）
-    const shouldKeep = await shouldKeepByExportScope(normalizedRule, {
-      visibilityScope: scope,
-      requesterUserId: userId,
-      ownerUserId: project.user_id,
-      viewerUserId,
-    });
-    if (shouldKeep) {
-      filteredRaw.push(item);
-    }
-  }
 
   const normalizedContents = [];
-  for (const item of filteredRaw) {
+  for (const item of contents) {
     // 顺序 await 避免大量并发读取本地图片导致导出卡顿
-    const privacyViewerId = scope === 'all' ? userId : viewerUserId;
-    const viewerLevel = await getViewerLevel(normalizedRule, project.user_id, privacyViewerId);
-    // TODO:sanitizeLocation是脱敏地址，目前我想的是直接导出html文件，无法区分访问者的身份，所以此处不必做地址脱敏。（只在分享时才有必要做）
-    const normalized = await normalizeContentItem(sanitizeLocation(item, viewerLevel));
+    const normalized = await normalizeContentItem(item);
     normalizedContents.push(normalized);
   }
-  //TODO: 这部分逻辑时什么？做的必要性是什么？
-  const sections = [];
-  const sectionMap = new Map();
-  normalizedContents.forEach((item) => {
-    const key = item.day_key || '未分组日期';
-    if (!sectionMap.has(key)) {
-      const block = {
-        key,
-        title: key,
-        items: [],
-      };
-      sectionMap.set(key, block);
-      sections.push(block);
-    }
-    sectionMap.get(key).items.push(item);
-  });
 
   return {
     project: {
       ...projectJson,
       render_cover_image: renderCoverImage,
     },
-    sections,
+    contents: normalizedContents,
     totalCount: normalizedContents.length,
-    visibilityScope: scope,
   };
 }
 
@@ -369,39 +285,16 @@ function renderContentCard(item) {
 }
 
 export function renderMemorialHtml(payload) {
-  //TODO:为什么会存在sections按日期分组的内容块数组（每个 section 包含多条 content 记录）的概念
-  const { project, sections, totalCount, visibilityScope } = payload;
+  const { project, contents, totalCount } = payload;
   const coverImage = project.render_cover_image || project.cover_image || '';
   const tags = Array.isArray(project.tags) ? project.tags : [];
   const description = project.description || project.subtitle || '';
-  // TODO: 下面这一句的处理逻辑（js代码层面）
-  const scopeLabel = { all: '全部', public: '公开', share: '分享' }[visibilityScope] || visibilityScope;
-  // TODO: 这里想到nodejs端没有写ts，这是不是不太好？
-  // TODO：下面处理是什么意思？
   const generatedAt = new Date().toLocaleString('zh-CN', {
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
-  // 生成目录
-  const toc = sections
-    .map((section, index) => `<li><a href="#day-${index + 1}">${escapeHtml(section.title)}<span class="toc-count">（${section.items.length}）</span></a></li>`)
-    .join('');
-  //TODO：解释
-  const sectionsHtml = sections
-    .map(
-      (section, index) => `
-      <section class="day-section" id="day-${index + 1}">
-        <div class="day-header">
-          <span class="day-dot"></span>
-          <h2>${escapeHtml(section.title)}</h2>
-          <span class="day-count">${section.items.length} 条记录</span>
-        </div>
-        <div class="cards">
-          ${section.items.map((item) => renderContentCard(item)).join('\n')}
-        </div>
-      </section>`,
-    )
-    .join('\n');
+
+  const cardsHtml = contents.map((item) => renderContentCard(item)).join('\n');
   // TODO:这部分HTML模板应该单独存放和实现。同时可以引入一些模板引擎来优化书写（目前是字符串，难以读写）；这里需要思考最优方案，（我想到一个可以内部直接写html文件，然后读取为字符串并使用）
   return `<!doctype html>
 <html lang="zh-CN">
@@ -510,95 +403,9 @@ export function renderMemorialHtml(payload) {
       opacity: 0.8;
     }
 
-    /* ---- toc panel ---- */
-    .panel {
-      margin-top: 24px;
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-md);
-      padding: 24px 28px;
-      box-shadow: var(--shadow-sm);
-    }
-    .panel h2 {
-      font-size: 18px;
-      margin-bottom: 14px;
-      color: var(--ink-secondary);
-    }
-    .toc {
-      list-style: none;
-      padding: 0;
-      columns: 2;
-      column-gap: 28px;
-    }
-    .toc li {
-      break-inside: avoid;
-      padding: 4px 0;
-    }
-    .toc a {
-      color: var(--brand);
-      text-decoration: none;
-      font-size: 14px;
-      transition: color 0.2s;
-    }
-    .toc a:hover { color: var(--brand-light); }
-    .toc-count {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    /* ---- timeline backbone ---- */
-    .timeline {
-      position: relative;
-      margin-top: 36px;
-      padding-left: 32px;
-    }
-    .timeline::before {
-      content: "";
-      position: absolute;
-      left: 9px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: linear-gradient(180deg, var(--brand) 0%, var(--line) 100%);
-      border-radius: 2px;
-    }
-
-    /* ---- day section ---- */
-    .day-section {
-      position: relative;
-      margin-top: 0;
-      padding-top: 28px;
-      break-inside: avoid;
-    }
-    .day-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      position: relative;
-    }
-    .day-dot {
-      position: absolute;
-      left: -32px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--brand);
-      border: 3px solid var(--bg);
-      box-shadow: 0 0 0 2px var(--brand);
-      flex-shrink: 0;
-    }
-    .day-header h2 {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--ink);
-    }
-    .day-count {
-      font-size: 12px;
-      color: var(--muted);
-      background: var(--brand-bg);
-      padding: 2px 10px;
-      border-radius: 12px;
+    /* ---- entries container ---- */
+    .entries {
+      margin-top: 28px;
     }
 
     /* ---- cards container ---- */
@@ -750,13 +557,9 @@ export function renderMemorialHtml(payload) {
         border-bottom: 1px solid #d9d1c5;
         padding-bottom: 6px;
       }
-      .timeline::before { background: var(--line); }
       .card { box-shadow: none; border: 1px solid #e0d8ce; }
       .card:hover { box-shadow: none; transform: none; }
-      .toc { columns: 1; }
       .cards { gap: 12px; }
-      .day-section { break-inside: avoid; }
-      .day-section + .day-section { break-before: auto; }
       .img-grid-1 img { max-height: 360px; }
     }
   </style>
@@ -777,19 +580,15 @@ export function renderMemorialHtml(payload) {
         ${description ? `<p class="subtitle">${escapeHtml(description)}</p>` : ''}
         <p class="subtitle">${escapeHtml(fmtDate(project.start_date))} - ${escapeHtml(fmtDate(project.end_date) || '进行中')}</p>
         ${tags.length ? `<div class="tags">${tags.map((t) => `<span class="tag">${escapeHtml(typeof t === 'string' ? t : t.name || '')}</span>`).join('')}</div>` : ''}
-        <p class="stats-row">共 ${totalCount} 条记录 · ${sections.length} 天 · ${scopeLabel}导出</p>
+        <p class="stats-row">共 ${totalCount} 条记录</p>
       </div>
     </section>
 
-    ${sections.length > 1 ? `
-    <section class="panel">
-      <h2>目录</h2>
-      <ol class="toc">${toc}</ol>
-    </section>` : ''}
-
-    <div class="timeline">
-      ${sectionsHtml}
-    </div>
+    <section class="entries">
+      <div class="cards">
+        ${cardsHtml}
+      </div>
+    </section>
 
     <footer class="footer">
       <span class="footer-brand">TripTimeline</span> 旅行纪念册 · 导出于 ${escapeHtml(generatedAt)}
@@ -799,15 +598,15 @@ export function renderMemorialHtml(payload) {
 </html>`;
 }
 
-export async function generateProjectHtmlExport(projectId, userId, options = {}) {
-  const payload = await buildExportData(projectId, userId, options);
+export async function generateProjectHtmlExport(projectId, userId) {
+  const payload = await buildExportData(projectId, userId);
   const html = renderMemorialHtml(payload);
   const filename = `${slugify(payload.project.title)}-memorial.html`;
   return { html, filename, payload };
 }
 
-export async function generateProjectPdfExport(projectId, userId, options = {}) {
-  const { html, payload } = await generateProjectHtmlExport(projectId, userId, options);
+export async function generateProjectPdfExport(projectId, userId) {
+  const { html, payload } = await generateProjectHtmlExport(projectId, userId);
 
   let puppeteer;
   try {

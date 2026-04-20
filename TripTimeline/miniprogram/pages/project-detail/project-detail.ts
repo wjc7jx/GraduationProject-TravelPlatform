@@ -1,7 +1,6 @@
 import { request, baseUrl, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 
-type ExportScope = 'all' | 'public';
 const VISIBILITY_PRIVATE = 1;
 
 /** PDF 由服务端 Puppeteer 生成，耗时长；downloadFile 在开发者工具/localhost 下易出现 ENOENT，故用 request arraybuffer + writeFile */
@@ -548,36 +547,29 @@ Page({
             return;
           }
           if (tapIndex === 1) {
-            await this.exportPdf('all');
+            await this.exportPdf();
             return;
           }
           if (tapIndex === 2) {
-            await this.exportHtml('all');
+            await this.exportHtml();
           }
         } else {
           if (tapIndex === 0) {
-            await this.exportPdf('all');
+            await this.exportPdf();
             return;
           }
           if (tapIndex === 1) {
-            await this.exportHtml('all');
+            await this.exportHtml();
           }
         }
       }
     });
   },
 
-  buildExportUrl(format: 'pdf' | 'html', scope: ExportScope) {
+  buildExportUrl(format: 'pdf' | 'html') {
     const projectId = this.data.projectId as string;
     const path = format === 'pdf' ? api.project.exportPdf(projectId) : api.project.exportHtml(projectId);
-    return `${baseUrl}${path}?visibility_scope=${scope}`;
-  },
-
-  buildHtmlShareUrl(scope: ExportScope) {
-    const token = wx.getStorageSync('token');
-    const base = `${this.buildExportUrl('html', scope)}&mode=inline`;
-    if (!token) return base;
-    return `${base}&access_token=${encodeURIComponent(token)}`;
+    return `${baseUrl}${path}`;
   },
 
   getAuthHeader(): Record<string, string> {
@@ -586,8 +578,8 @@ Page({
     return { Authorization: `Bearer ${token}` };
   },
 
-  async exportPdf(scope: ExportScope) {
-    const url = this.buildExportUrl('pdf', scope);
+  async exportPdf() {
+    const url = this.buildExportUrl('pdf');
     wx.showLoading({ title: '正在生成 PDF，请稍候…', mask: true });
 
     try {
@@ -630,32 +622,13 @@ Page({
     }
   },
 
-  async exportHtml(scope: ExportScope) {
-    const projectId = this.data.projectId as string;
-    wx.showLoading({ title: '正在生成HTML...', mask: true });
+  async exportHtml() {
+    const url = this.buildExportUrl('html');
+    wx.showLoading({ title: '正在生成 HTML…', mask: true });
+
     try {
-      const token = wx.getStorageSync('token');
-      const payload = await request<any>({
-        url: api.project.exportHtml(projectId),
-        method: 'GET',
-        data: {
-          visibility_scope: scope,
-          mode: 'url',
-          access_token: token || ''
-        },
-        showLoading: false
-      });
-
-      const filename = payload?.filename || `memorial-${Date.now()}.html`;
-      const downloadUrl = payload?.download_url || payload?.url;
-      const previewUrl = payload?.preview_url || this.buildHtmlShareUrl(scope);
-
-      if (!downloadUrl) {
-        throw new Error('未获取到下载地址');
-      }
-
       const filePath = await saveRemoteBinaryToUserData(
-        downloadUrl,
+        url,
         this.getAuthHeader(),
         'html',
         EXPORT_BINARY_TIMEOUT_MS
@@ -664,18 +637,11 @@ Page({
       wx.hideLoading();
       wx.showModal({
         title: 'HTML导出成功',
-        content: `HTML文件已保存：${filename}。可复制在线预览链接在浏览器打开。`,
-        confirmText: '复制预览链接',
-        cancelText: '打开文件',
-        success: (res) => {
-          if (res.confirm) {
-            wx.setClipboardData({
-              data: previewUrl,
-              success: () => wx.showToast({ title: '链接已复制', icon: 'success' })
-            });
-            return;
-          }
-
+        content: '文件已保存，是否立即打开预览？',
+        confirmText: '打开',
+        cancelText: '稍后',
+        success: (modalRes) => {
+          if (!modalRes.confirm) return;
           wx.openDocument({
             filePath,
             showMenu: true,
@@ -687,7 +653,14 @@ Page({
       });
     } catch (err) {
       wx.hideLoading();
-      wx.showToast({ title: 'HTML导出失败', icon: 'none' });
+      const msg = err && typeof err === 'object' && 'message' in err
+        ? String((err as Error).message)
+        : '';
+      wx.showToast({
+        title: msg && msg.length < 20 ? msg : 'HTML导出失败',
+        icon: 'none',
+        duration: 2500
+      });
       console.error('HTML export failed:', err);
     }
   }

@@ -180,55 +180,18 @@ paths:
           schema:
             type: integer
             format: int64
-        - name: visibility_scope
-          in: query
-          required: false
-          description: Export visibility scope. all=all content, public=visibility 3 only, share=visibility 3 plus whitelist for viewer_user_id.
-          schema:
-            type: string
-            enum:
-              - all
-              - public
-              - share
-            default: all
-        - name: viewer_user_id
-          in: query
-          required: false
-          description: Required when visibility_scope=share to evaluate whitelist visibility.
-          schema:
-            type: integer
-            format: int64
-        - name: include_content_ids
-          in: query
-          required: false
-          description: Comma-separated content IDs to include.
-          schema:
-            type: string
-            example: 1,2,3
-        - name: exclude_content_ids
-          in: query
-          required: false
-          description: Comma-separated content IDs to exclude.
-          schema:
-            type: string
-            example: 4,5
-        - name: download
-          in: query
-          required: false
-          description: 1 to return downloadable HTML file; other values return JSON payload with html string.
-          schema:
-            type: string
-            default: '1'
       responses:
         '200':
-          description: Exported HTML file or JSON payload
+          description: Exported HTML file
+          headers:
+            X-Export-Count:
+              schema:
+                type: string
+              description: Number of content records included in export.
           content:
             text/html:
               schema:
                 type: string
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiSuccessResponse'
         '401':
           description: Unauthorized or invalid token
           content:
@@ -264,34 +227,6 @@ paths:
           schema:
             type: integer
             format: int64
-        - name: visibility_scope
-          in: query
-          required: false
-          schema:
-            type: string
-            enum:
-              - all
-              - public
-              - share
-            default: all
-        - name: viewer_user_id
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int64
-        - name: include_content_ids
-          in: query
-          required: false
-          schema:
-            type: string
-            example: 1,2,3
-        - name: exclude_content_ids
-          in: query
-          required: false
-          schema:
-            type: string
-            example: 4,5
       responses:
         '200':
           description: Exported PDF file

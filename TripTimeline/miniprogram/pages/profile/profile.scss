@@ -567,9 +567,32 @@ page {
 }
 
 .friend-name {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  min-width: 0;
+}
+
+.friend-name-text {
+  flex: 1;
+  min-width: 0;
   color: #1c1c1c;
   font-size: 28rpx;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-name-remark {
+  max-width: 320rpx;
+  color: #2a4b3c;
+  font-size: 24rpx;
+  font-weight: 600;
+  opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .friend-meta {
@@ -577,3 +600,4 @@ page {
   color: #8a877e;
   font-size: 24rpx;
 }
+

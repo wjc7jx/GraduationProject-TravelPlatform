@@ -114,8 +114,12 @@
               <image wx:if="{{item.avatar_url}}" class="friend-avatar" src="{{item.avatar_url}}" mode="aspectFill"></image>
               <view wx:else class="friend-avatar friend-avatar-fallback">友</view>
               <view class="friend-info">
-                <view class="friend-name">{{(item.remark && item.remark.trim()) ? item.remark : (item.nickname || ('用户' + item.user_id))}}</view>
-                <view class="friend-meta">{{item.nickname ? item.nickname : ('ID ' + item.user_id)}}</view>
+                <view class="friend-name">
+                  <text class="friend-name-text">{{item.nickname || ('用户' + item.user_id)}}</text>
+                  <text wx:if="{{item.remark}}" class="friend-name-remark">{{item.remark}}</text>
+                  
+                </view>
+                <view class="friend-meta">ID {{item.user_id}}</view>
               </view>
             </view>
           </view>

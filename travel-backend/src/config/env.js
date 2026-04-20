@@ -32,6 +32,12 @@ export const env = {
     puppeteerExecutablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '',
     pdfNavigationTimeoutMs: Number(process.env.PDF_NAVIGATION_TIMEOUT_MS) || 30000,
     pdfResourceWaitTimeoutMs: Number(process.env.PDF_RESOURCE_WAIT_TIMEOUT_MS) || 12000,
+    /** PDF 导出时是否把远程（对象存储）资源预取为 data URI。默认开启。 */
+    pdfInlineRemote: String(process.env.PDF_INLINE_REMOTE ?? 'true').toLowerCase() !== 'false',
+    /** 单个远程资源抓取超时（毫秒） */
+    pdfInlineRemoteFetchTimeoutMs: Number(process.env.PDF_INLINE_REMOTE_FETCH_TIMEOUT_MS) || 15000,
+    /** 单个远程资源最大体积（字节，默认 15MB） */
+    pdfInlineRemoteMaxBytes: Number(process.env.PDF_INLINE_REMOTE_MAX_BYTES) || 15 * 1024 * 1024,
   },
   db: {
     host: process.env.DB_HOST || '10.238.184.74',

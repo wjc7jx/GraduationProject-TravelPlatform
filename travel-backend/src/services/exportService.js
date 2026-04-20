@@ -12,6 +12,7 @@ import {
   escapeHtml,
 } from './export/memorialComponents.js';
 import { sanitizeAndEmbedImages } from './export/htmlSanitizer.js';
+import { fetchAsDataUri } from './export/remoteAssets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -114,19 +115,50 @@ function getLocalCandidates(ref) {
 }
 
 /**
- * 把本地资源转 data URI；data URI / 远程 URL 原样返回；找不到则返回原 ref。
+ * 解析一条资源引用为浏览器可直接使用的 src。
+ *
+ * - data URI / 非字符串：原样返回（或 null）
+ * - 本地 /uploads/... 或绝对路径：读盘后转 data URI
+ * - http(s)：默认原样返回；当 opts.fetchRemote=true 时调用 fetchAsDataUri 抓取入内联
+ *
+ * @param {string} ref
+ * @param {object} opts
+ * @param {Record<string,string>} opts.mimeMap 扩展名到 MIME 的映射（本地路径用）
+ * @param {'image'|'audio'} [opts.kind='image'] 远程资源类型（用于 fetchAsDataUri）
+ * @param {boolean} [opts.fetchRemote=false] 是否把远程 URL 也抓成 data URI
+ * @param {number} [opts.fetchTimeoutMs]
+ * @param {number} [opts.fetchMaxBytes]
+ * @returns {Promise<string|null>}
  */
-async function toDataUriIfLocal(ref, mimeMap) {
+async function resolveAsset(ref, opts) {
   if (!ref || typeof ref !== 'string') return null;
   if (ref.startsWith('data:')) return ref;
-  if (/^https?:\/\//i.test(ref)) return ref;
+
+  const {
+    mimeMap,
+    kind = 'image',
+    fetchRemote = false,
+    fetchTimeoutMs,
+    fetchMaxBytes,
+  } = opts || {};
+
+  if (/^https?:\/\//i.test(ref)) {
+    if (!fetchRemote) return ref;
+    const inlined = await fetchAsDataUri(ref, {
+      kind,
+      timeoutMs: fetchTimeoutMs,
+      maxBytes: fetchMaxBytes,
+    });
+    // 抓取失败时回落到原始 URL，不阻塞主流程
+    return inlined || ref;
+  }
 
   const localCandidates = getLocalCandidates(ref);
   if (!localCandidates.length) return ref;
 
   for (const localPath of localCandidates) {
     const ext = path.extname(localPath).toLowerCase();
-    const mime = mimeMap[ext];
+    const mime = mimeMap?.[ext];
     if (!mime) continue;
 
     try {
@@ -141,17 +173,26 @@ async function toDataUriIfLocal(ref, mimeMap) {
 }
 
 /**
- * 兼容旧调用：图片转 data URI
+ * 构造一对 (image, audio) 资源解析器，供同一次导出过程里复用。
+ * 把 inlineRemote 等开关闭包到 resolver 里，传给 normalizeContentItem 使用。
  */
-async function toDataUriIfLocalImage(ref) {
-  return toDataUriIfLocal(ref, IMAGE_MIME);
-}
-
-/**
- * 音频转 data URI
- */
-async function toDataUriIfLocalAudio(ref) {
-  return toDataUriIfLocal(ref, AUDIO_MIME);
+function createAssetResolvers({ inlineRemote, fetchTimeoutMs, fetchMaxBytes }) {
+  const common = {
+    fetchRemote: !!inlineRemote,
+    fetchTimeoutMs,
+    fetchMaxBytes,
+  };
+  const imageResolver = (ref) => resolveAsset(ref, {
+    ...common,
+    mimeMap: IMAGE_MIME,
+    kind: 'image',
+  });
+  const audioResolver = (ref) => resolveAsset(ref, {
+    ...common,
+    mimeMap: AUDIO_MIME,
+    kind: 'audio',
+  });
+  return { imageResolver, audioResolver };
 }
 
 function pickPhotoSources(contentData) {
@@ -169,19 +210,16 @@ function pickPhotoSources(contentData) {
   return single ? [single] : [];
 }
 
-/**
- * 异步逐个转 data URI 并去掉空值
- */
-async function resolveImages(srcs) {
+async function resolveImages(srcs, imageResolver) {
   const out = [];
   for (const src of srcs) {
-    const uri = await toDataUriIfLocalImage(src);
+    const uri = await imageResolver(src);
     if (uri) out.push(uri);
   }
   return out;
 }
 
-async function normalizeContentItem(item) {
+async function normalizeContentItem(item, { imageResolver, audioResolver }) {
   const json = typeof item?.toJSON === 'function' ? item.toJSON() : item;
   if (!json || typeof json !== 'object') {
     return { day_key: '', day_dateline: '', day_weekday: '' };
@@ -212,11 +250,11 @@ async function normalizeContentItem(item) {
   normalized.render_place_text = [placeName, placeAddress].filter(Boolean).join(' · ');
   normalized.render_coords = loc ? formatCoords(loc.latitude, loc.longitude) : '';
 
-  // 通用：富文本正文 — 关键修复：清洗后保留 HTML
+  // 通用：富文本正文 — 关键修复：清洗后保留 HTML，并把内嵌 <img src> 按 resolver 重写
   if (contentData.content && typeof contentData.content === 'string') {
     normalized.render_body_html = await sanitizeAndEmbedImages(
       contentData.content,
-      toDataUriIfLocalImage
+      imageResolver
     );
   } else if (contentData.text && typeof contentData.text === 'string') {
     // 兜底：text 字段做最简纯文本 → 段落
@@ -232,20 +270,20 @@ async function normalizeContentItem(item) {
   // 类型相关
   if (json.content_type === 'photo') {
     const sources = pickPhotoSources(contentData);
-    normalized.render_photo_srcs = await resolveImages(sources);
+    normalized.render_photo_srcs = await resolveImages(sources, imageResolver);
     normalized.render_photo_caption = (contentData.caption || '').trim();
     if (!normalized.render_title && contentData.caption) {
       normalized.render_title = String(contentData.caption).trim();
     }
   } else if (json.content_type === 'note') {
     const noteSources = pickPhotoSources(contentData);
-    normalized.render_photo_srcs = await resolveImages(noteSources);
+    normalized.render_photo_srcs = await resolveImages(noteSources, imageResolver);
     normalized.render_photo_caption = '';
     if (!normalized.render_title) normalized.render_title = '旅行笔记';
   } else if (json.content_type === 'audio') {
     const audio = contentData.audio || {};
     const audioUrl = audio.url || contentData.url || contentData.file_url || '';
-    const resolvedAudio = audioUrl ? await toDataUriIfLocalAudio(audioUrl) : '';
+    const resolvedAudio = audioUrl ? await audioResolver(audioUrl) : '';
     normalized.render_audio = audioUrl
       ? {
           url: resolvedAudio,
@@ -255,7 +293,7 @@ async function normalizeContentItem(item) {
       : null;
     // 音频条目也允许带配图
     const audioImageSources = pickPhotoSources(contentData);
-    normalized.render_photo_srcs = await resolveImages(audioImageSources);
+    normalized.render_photo_srcs = await resolveImages(audioImageSources, imageResolver);
     normalized.render_photo_caption = '';
     if (!normalized.render_title) normalized.render_title = '语音片段';
   }
@@ -263,10 +301,33 @@ async function normalizeContentItem(item) {
   return normalized;
 }
 
-export async function buildExportData(projectId, userId) {
+/**
+ * 构造导出用的规范化数据。
+ *
+ * @param {number|string} projectId
+ * @param {number|string} userId
+ * @param {object} [options]
+ * @param {boolean} [options.inlineRemote=false] 是否把远程（对象存储）资源预取为 data URI。
+ *   PDF 导出路径强烈建议开启，避免 headless 浏览器渲染时资源未加载完就被截图。
+ * @param {number} [options.fetchTimeoutMs] 单个远程资源抓取超时
+ * @param {number} [options.fetchMaxBytes] 单个远程资源最大体积
+ */
+export async function buildExportData(projectId, userId, options = {}) {
+  const {
+    inlineRemote = false,
+    fetchTimeoutMs,
+    fetchMaxBytes,
+  } = options;
+
+  const { imageResolver, audioResolver } = createAssetResolvers({
+    inlineRemote,
+    fetchTimeoutMs,
+    fetchMaxBytes,
+  });
+
   const project = await getProjectOrThrow(projectId, userId);
   const projectJson = project.toJSON();
-  const coverResolved = await toDataUriIfLocalImage(projectJson.cover_image || '');
+  const coverResolved = await imageResolver(projectJson.cover_image || '');
 
   const contents = await Content.findAll({
     where: { project_id: project.project_id },
@@ -280,8 +341,8 @@ export async function buildExportData(projectId, userId) {
 
   const normalizedContents = [];
   for (const item of contents) {
-    // 顺序 await 避免大量并发读取本地文件导致导出卡顿
-    const normalized = await normalizeContentItem(item);
+    // 顺序 await 避免大量并发读盘/请求 CDN 时把服务端打爆
+    const normalized = await normalizeContentItem(item, { imageResolver, audioResolver });
     normalizedContents.push(normalized);
   }
 
@@ -289,7 +350,7 @@ export async function buildExportData(projectId, userId) {
     project: {
       ...projectJson,
       cover_image_resolved: coverResolved,
-      // 兼容老调用（renderMemorialHtml 内部也会读）
+      // 兼容老调用
       render_cover_image: coverResolved,
       start_date_text: fmtDate(projectJson.start_date),
       end_date_text: fmtDate(projectJson.end_date),
@@ -305,14 +366,21 @@ export async function buildExportData(projectId, userId) {
 export const renderMemorialHtml = renderMemorialHtmlImpl;
 
 export async function generateProjectHtmlExport(projectId, userId) {
-  const payload = await buildExportData(projectId, userId);
+  // HTML 下载场景：保留远程 URL，文件体积更小；用户浏览器打开时再取。
+  const payload = await buildExportData(projectId, userId, { inlineRemote: false });
   const html = renderMemorialHtml(payload);
   const filename = `${slugify(payload.project.title)}-memorial.html`;
   return { html, filename, payload };
 }
 
 export async function generateProjectPdfExport(projectId, userId) {
-  const { html, payload } = await generateProjectHtmlExport(projectId, userId);
+  // PDF 场景：把对象存储资源预取成 data URI，避免 headless Chrome 渲染竞速。
+  const payload = await buildExportData(projectId, userId, {
+    inlineRemote: env.export.pdfInlineRemote,
+    fetchTimeoutMs: env.export.pdfInlineRemoteFetchTimeoutMs,
+    fetchMaxBytes: env.export.pdfInlineRemoteMaxBytes,
+  });
+  const html = renderMemorialHtml(payload);
 
   let puppeteer;
   try {
@@ -350,7 +418,8 @@ export async function generateProjectPdfExport(projectId, userId) {
 
     let pdfBytes;
     try {
-      // `networkidle0` 容易被慢速外链图片拖住；改为 DOM 就绪后做有限等待。
+      // 资源已在服务端预取为 data URI，可直接 domcontentloaded 后继续；
+      // 页面内再做一层 images + fonts ready 的有限等待做安全网。
       await page.setContent(html, {
         waitUntil: 'domcontentloaded',
         timeout: navigationTimeoutMs,

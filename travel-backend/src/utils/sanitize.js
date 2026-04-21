@@ -120,6 +120,26 @@ export async function sanitizeAndEmbedImages(rawHtml, imageResolver) {
   return rewriteImageSources(cleaned, imageResolver);
 }
 
+/**
+ * 把富文本 HTML 抽取为纯文本，供内容安全接口送检使用。
+ * 去除所有标签，保留可见文字；连续空白合并为单个空格。
+ *
+ * @param {string} rawHtml 原始或已清洗的 HTML
+ * @returns {string}
+ */
+export function extractPlainTextFromHtml(rawHtml) {
+  if (!rawHtml || typeof rawHtml !== 'string') return '';
+  const stripped = sanitizeHtml(rawHtml, {
+    allowedTags: [],
+    allowedAttributes: {},
+    textFilter: (text) => text,
+  });
+  return stripped
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // ============================================================
 // 以下为保存路径（而非导出路径）使用的通用输入净化工具
 // ============================================================

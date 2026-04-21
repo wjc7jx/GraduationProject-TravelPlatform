@@ -1,4 +1,4 @@
-import { Content, Location } from '../models/index.js';
+import { Content, Location, User } from '../models/index.js';
 import { getProjectById, getProjectOrThrow } from './projectService.js';
 import { filterViewableContents } from './privacyService.js';
 import {
@@ -6,7 +6,10 @@ import {
   sanitizePlainText,
   sanitizeResourceUrl,
   sanitizeResourceUrlList,
+  extractPlainTextFromHtml,
 } from '../utils/sanitize.js';
+import { checkTextContent, AUDIT_SCENE } from './wechatContentSecurity.js';
+import { logContentAudit } from '../utils/auditLogger.js';
 
 const ALLOWED_CONTENT_TYPES = new Set(['photo', 'note', 'audio']);
 const MAX_RICH_HTML_LENGTH = 64 * 1024;
@@ -79,6 +82,80 @@ function assertContentType(contentType) {
   }
 }
 
+/**
+ * 把 content_data 里所有可读文本拼成一条，供微信 msgSecCheck 送检。
+ */
+function collectAuditText(contentData) {
+  if (!contentData || typeof contentData !== 'object') return { title: '', body: '' };
+  const title = (contentData.title || contentData.caption || '').trim();
+  const bodyParts = [];
+  if (contentData.content) bodyParts.push(extractPlainTextFromHtml(contentData.content));
+  if (contentData.location_text) {
+    if (contentData.location_text.name) bodyParts.push(contentData.location_text.name);
+    if (contentData.location_text.address) bodyParts.push(contentData.location_text.address);
+  }
+  if (contentData.audio?.name) bodyParts.push(contentData.audio.name);
+  return {
+    title,
+    body: bodyParts.filter(Boolean).join(' \n ').trim(),
+  };
+}
+
+/**
+ * 异步内容送检：命中/接口异常均写审计日志，永远不抛。
+ */
+function queueContentAudit({ content, userId, action }) {
+  const contentData = content.content_data || {};
+  const { title, body } = collectAuditText(contentData);
+  const combined = [title, body].filter(Boolean).join(' \n ').trim();
+  if (!combined) return;
+
+  setImmediate(async () => {
+    try {
+      const user = await User.findByPk(userId, { attributes: ['openid'] }).catch(() => null);
+      const openid = user?.openid || '';
+      const result = await checkTextContent({
+        content: body || title,
+        title,
+        openid,
+        scene: AUDIT_SCENE.SOCIAL_LOG,
+      });
+      if (result.pass) return;
+      logContentAudit({
+        event: 'content_sec_check',
+        hit: result.reason === 'risky' || result.reason === 'review',
+        reason: result.reason,
+        userId,
+        openid,
+        resource: {
+          type: 'content',
+          id: content.content_id,
+          action,
+          project_id: content.project_id,
+        },
+        scene: AUDIT_SCENE.SOCIAL_LOG,
+        text: combined,
+        detail: result.raw,
+      });
+    } catch (err) {
+      logContentAudit({
+        event: 'content_sec_check',
+        hit: false,
+        reason: 'exception',
+        userId,
+        resource: {
+          type: 'content',
+          id: content.content_id,
+          action,
+          project_id: content.project_id,
+        },
+        text: combined,
+        detail: { message: String(err?.message || err) },
+      });
+    }
+  });
+}
+
 export async function listContents(projectId, userId, options = {}) {
   const project = await getProjectById(projectId, userId, {
     shareId: options.shareId,
@@ -130,7 +207,7 @@ export async function createContent(projectId, userId, payload) {
     location_id = newLoc.location_id;
   }
 
-  return Content.create({
+  const created = await Content.create({
     project_id: project.project_id,
     content_type,
     content_data: normalizedData,
@@ -138,6 +215,9 @@ export async function createContent(projectId, userId, payload) {
     location_id: location_id || null,
     sort_order: sort_order || 0,
   });
+
+  queueContentAudit({ content: created, userId, action: 'create' });
+  return created;
 }
 
 export async function getContentOrThrow(projectId, contentId, userId) {
@@ -170,13 +250,18 @@ export async function updateContent(projectId, contentId, userId, payload) {
     ? normalizeContentData(content_data)
     : content.content_data;
 
-  return content.update({
+  const updated = await content.update({
     content_type: content_type !== undefined ? content_type : content.content_type,
     content_data: nextContentData,
     record_time: record_time !== undefined ? record_time : content.record_time,
     location_id: location_id !== undefined ? location_id : content.location_id,
     sort_order: sort_order !== undefined ? sort_order : content.sort_order,
   });
+
+  if (content_data !== undefined) {
+    queueContentAudit({ content: updated, userId, action: 'update' });
+  }
+  return updated;
 }
 
 export async function deleteContent(projectId, contentId, userId) {

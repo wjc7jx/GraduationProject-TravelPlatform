@@ -1,4 +1,4 @@
-import { Content, Location, Permission, Project, sequelize } from '../models/index.js';
+import { Content, Location, Permission, Project, User, sequelize } from '../models/index.js';
 import { Op } from 'sequelize';
 import {
   canView,
@@ -9,6 +9,8 @@ import {
 } from './privacyService.js';
 import { getActiveProjectShare } from './projectShareService.js';
 import { sanitizePlainText, sanitizeResourceUrl } from '../utils/sanitize.js';
+import { checkTextContent, AUDIT_SCENE } from './wechatContentSecurity.js';
+import { logContentAudit } from '../utils/auditLogger.js';
 
 /** 把以逗号分隔的 tags 字符串清洗为统一格式。 */
 function normalizeTags(input) {
@@ -26,6 +28,60 @@ function normalizeCoverImage(input) {
   if (input === undefined) return undefined;
   if (input === null || input === '') return '';
   return sanitizeResourceUrl(input, { allowEmpty: true });
+}
+
+/**
+ * 项目文本内容送检：命中/出错一律写审计日志，永远不抛。
+ */
+function queueProjectAudit({ project, userId, action }) {
+  const title = (project.title || '').trim();
+  const subtitle = (project.subtitle || '').trim();
+  const tags = (project.tags || '').trim();
+  const combined = [title, subtitle, tags].filter(Boolean).join(' \n ').trim();
+  if (!combined) return;
+
+  setImmediate(async () => {
+    try {
+      const user = await User.findByPk(userId, { attributes: ['openid'] }).catch(() => null);
+      const openid = user?.openid || '';
+      const result = await checkTextContent({
+        content: [subtitle, tags].filter(Boolean).join(' \n ') || title,
+        title,
+        openid,
+        scene: AUDIT_SCENE.PROFILE,
+      });
+      if (result.pass) return;
+      logContentAudit({
+        event: 'content_sec_check',
+        hit: result.reason === 'risky' || result.reason === 'review',
+        reason: result.reason,
+        userId,
+        openid,
+        resource: {
+          type: 'project',
+          id: project.project_id,
+          action,
+        },
+        scene: AUDIT_SCENE.PROFILE,
+        text: combined,
+        detail: result.raw,
+      });
+    } catch (err) {
+      logContentAudit({
+        event: 'content_sec_check',
+        hit: false,
+        reason: 'exception',
+        userId,
+        resource: {
+          type: 'project',
+          id: project.project_id,
+          action,
+        },
+        text: combined,
+        detail: { message: String(err?.message || err) },
+      });
+    }
+  });
 }
 
 export async function listProjects(userId, filters = {}) {
@@ -114,7 +170,7 @@ export async function createProject(userId, payload) {
     throw err;
   }
 
-  return Project.create({
+  const created = await Project.create({
     user_id: userId,
     title: cleanTitle,
     subtitle: sanitizePlainText(subtitle, { maxLength: 200 }) || null,
@@ -123,6 +179,9 @@ export async function createProject(userId, payload) {
     end_date,
     tags: normalizeTags(tags) || null,
   });
+
+  queueProjectAudit({ project: created, userId, action: 'create' });
+  return created;
 }
 
 export async function getProjectById(projectId, userId, options = {}) {
@@ -232,7 +291,7 @@ export async function updateProject(projectId, userId, payload) {
     ? (normalizeTags(tags) || null)
     : project.tags;
 
-  return project.update({
+  const updated = await project.update({
     title: nextTitle,
     subtitle: nextSubtitle,
     cover_image: nextCover,
@@ -241,6 +300,12 @@ export async function updateProject(projectId, userId, payload) {
     tags: nextTags,
     is_archived: nextArchived !== undefined ? nextArchived : project.is_archived,
   });
+
+  const textTouched = title !== undefined || subtitle !== undefined || tags !== undefined;
+  if (textTouched) {
+    queueProjectAudit({ project: updated, userId, action: 'update' });
+  }
+  return updated;
 }
 
 export async function deleteProject(projectId, userId) {

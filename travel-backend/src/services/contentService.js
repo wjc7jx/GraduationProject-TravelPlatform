@@ -1,11 +1,80 @@
 import { Content, Location } from '../models/index.js';
 import { getProjectById, getProjectOrThrow } from './projectService.js';
 import { filterViewableContents } from './privacyService.js';
+import {
+  sanitizeRichText,
+  sanitizePlainText,
+  sanitizeResourceUrl,
+  sanitizeResourceUrlList,
+} from '../utils/sanitize.js';
+
+const ALLOWED_CONTENT_TYPES = new Set(['photo', 'note', 'audio']);
+const MAX_RICH_HTML_LENGTH = 64 * 1024;
 
 function ensureProjectEditable(project) {
   if (Number(project.is_archived) === 1) {
     const err = new Error('项目已归档，不能修改内容，请先取消归档');
     err.status = 403;
+    throw err;
+  }
+}
+
+/**
+ * 规范化 content_data：清洗富文本、校验资源 URL、过滤控制字符并限制长度。
+ * 只保留白名单字段，防止恶意客户端塞入未预期的 JSON 键。
+ */
+function normalizeContentData(input) {
+  const data = (input && typeof input === 'object' && !Array.isArray(input)) ? input : {};
+  const out = {};
+
+  const title = sanitizePlainText(data.title, { maxLength: 120 });
+  if (title) out.title = title;
+
+  const caption = sanitizePlainText(data.caption, { maxLength: 120 });
+  if (caption) out.caption = caption;
+
+  if (data.content !== undefined && data.content !== null) {
+    const raw = typeof data.content === 'string' ? data.content : '';
+    const cleaned = sanitizeRichText(raw);
+    if (cleaned.length > MAX_RICH_HTML_LENGTH) {
+      const err = new Error(`富文本正文超过最大长度 ${MAX_RICH_HTML_LENGTH} 字符`);
+      err.status = 400;
+      throw err;
+    }
+    out.content = cleaned;
+  }
+
+  if (data.location_text && typeof data.location_text === 'object') {
+    const name = sanitizePlainText(data.location_text.name, { maxLength: 200 });
+    const address = sanitizePlainText(data.location_text.address, { maxLength: 200 });
+    if (name || address) {
+      out.location_text = {};
+      if (name) out.location_text.name = name;
+      if (address) out.location_text.address = address;
+    }
+  }
+
+  if (Array.isArray(data.images) && data.images.length) {
+    const images = sanitizeResourceUrlList(data.images, 9);
+    if (images.length) out.images = images;
+  }
+
+  if (data.audio && typeof data.audio === 'object') {
+    const url = sanitizeResourceUrl(data.audio.url, { allowEmpty: true });
+    if (url) {
+      out.audio = { url };
+      const name = sanitizePlainText(data.audio.name, { maxLength: 120 });
+      if (name) out.audio.name = name;
+    }
+  }
+
+  return out;
+}
+
+function assertContentType(contentType) {
+  if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+    const err = new Error('内容类型只能是 photo / note / audio');
+    err.status = 400;
     throw err;
   }
 }
@@ -47,13 +116,16 @@ export async function createContent(projectId, userId, payload) {
     throw err;
   }
 
+  assertContentType(content_type);
+  const normalizedData = normalizeContentData(content_data);
+
   // 如果传递了 location 对象且包含经纬度，则自动在后台创建 Location
   if (location && location.latitude && location.longitude && !location_id) {
     const newLoc = await Location.create({
       latitude: location.latitude,
       longitude: location.longitude,
-      name: location.name || null,
-      address: location.address || null
+      name: sanitizePlainText(location.name, { maxLength: 200 }) || null,
+      address: sanitizePlainText(location.address, { maxLength: 200 }) || null,
     });
     location_id = newLoc.location_id;
   }
@@ -61,7 +133,7 @@ export async function createContent(projectId, userId, payload) {
   return Content.create({
     project_id: project.project_id,
     content_type,
-    content_data,
+    content_data: normalizedData,
     record_time,
     location_id: location_id || null,
     sort_order: sort_order || 0,
@@ -89,10 +161,18 @@ export async function updateContent(projectId, contentId, userId, payload) {
   ensureProjectEditable(project);
   const content = await getContentOrThrow(projectId, contentId, userId);
   const { content_type, content_data, record_time, location_id, sort_order } = payload;
-  
+
+  if (content_type !== undefined) {
+    assertContentType(content_type);
+  }
+
+  const nextContentData = content_data !== undefined
+    ? normalizeContentData(content_data)
+    : content.content_data;
+
   return content.update({
     content_type: content_type !== undefined ? content_type : content.content_type,
-    content_data: content_data !== undefined ? content_data : content.content_data,
+    content_data: nextContentData,
     record_time: record_time !== undefined ? record_time : content.record_time,
     location_id: location_id !== undefined ? location_id : content.location_id,
     sort_order: sort_order !== undefined ? sort_order : content.sort_order,

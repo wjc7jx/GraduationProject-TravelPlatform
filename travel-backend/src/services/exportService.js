@@ -11,7 +11,7 @@ import {
   formatWeekday,
   escapeHtml,
 } from './export/memorialComponents.js';
-import { sanitizeAndEmbedImages } from './export/htmlSanitizer.js';
+import { sanitizeAndEmbedImages } from '../utils/sanitize.js';
 import { fetchAsDataUri } from './export/remoteAssets.js';
 
 const __filename = fileURLToPath(import.meta.url);

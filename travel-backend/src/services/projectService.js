@@ -8,6 +8,25 @@ import {
   sanitizeLocation,
 } from './privacyService.js';
 import { getActiveProjectShare } from './projectShareService.js';
+import { sanitizePlainText, sanitizeResourceUrl } from '../utils/sanitize.js';
+
+/** 把以逗号分隔的 tags 字符串清洗为统一格式。 */
+function normalizeTags(input) {
+  if (input === undefined || input === null) return undefined;
+  if (typeof input !== 'string') return '';
+  const parts = input.split(',')
+    .map((tag) => sanitizePlainText(tag, { maxLength: 24 }))
+    .filter(Boolean);
+  const unique = Array.from(new Set(parts)).slice(0, 20);
+  return unique.join(',');
+}
+
+/** 封面图地址：空值放行，其它走资源白名单。 */
+function normalizeCoverImage(input) {
+  if (input === undefined) return undefined;
+  if (input === null || input === '') return '';
+  return sanitizeResourceUrl(input, { allowEmpty: true });
+}
 
 export async function listProjects(userId, filters = {}) {
   const where = {
@@ -87,14 +106,22 @@ export async function createProject(userId, payload) {
     err.status = 400;
     throw err;
   }
+
+  const cleanTitle = sanitizePlainText(title, { maxLength: 120 });
+  if (!cleanTitle) {
+    const err = new Error('旅行名称不能为空');
+    err.status = 400;
+    throw err;
+  }
+
   return Project.create({
     user_id: userId,
-    title,
-    subtitle,
-    cover_image,
+    title: cleanTitle,
+    subtitle: sanitizePlainText(subtitle, { maxLength: 200 }) || null,
+    cover_image: normalizeCoverImage(cover_image) || null,
     start_date,
     end_date,
-    tags,
+    tags: normalizeTags(tags) || null,
   });
 }
 
@@ -182,13 +209,36 @@ export async function updateProject(projectId, userId, payload) {
     throw err;
   }
 
+  let nextTitle = project.title;
+  if (title !== undefined) {
+    const cleaned = sanitizePlainText(title, { maxLength: 120 });
+    if (!cleaned) {
+      const err = new Error('旅行名称不能为空');
+      err.status = 400;
+      throw err;
+    }
+    nextTitle = cleaned;
+  }
+
+  const nextSubtitle = subtitle !== undefined
+    ? (sanitizePlainText(subtitle, { maxLength: 200 }) || null)
+    : project.subtitle;
+
+  const nextCover = cover_image !== undefined
+    ? (normalizeCoverImage(cover_image) || null)
+    : project.cover_image;
+
+  const nextTags = tags !== undefined
+    ? (normalizeTags(tags) || null)
+    : project.tags;
+
   return project.update({
-    title: title !== undefined ? title : project.title,
-    subtitle: subtitle !== undefined ? subtitle : project.subtitle,
-    cover_image: cover_image !== undefined ? cover_image : project.cover_image,
+    title: nextTitle,
+    subtitle: nextSubtitle,
+    cover_image: nextCover,
     start_date: start_date !== undefined ? start_date : project.start_date,
     end_date: end_date !== undefined ? end_date : project.end_date,
-    tags: tags !== undefined ? tags : project.tags,
+    tags: nextTags,
     is_archived: nextArchived !== undefined ? nextArchived : project.is_archived,
   });
 }

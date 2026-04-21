@@ -9,16 +9,41 @@ const MARKER_ICON: Record<string, string> = {
 };
 const MARKER_ACTIVE_ICON = '/assets/img/marker-active.svg';
 
-// 按天循环使用的轨迹色板（与纸质质感色系一致，加 CC 透明度让它柔和一些）
+// 按天循环使用的轨迹色板（提高不透明度，保证地图上可读性）
 const DAY_POLYLINE_COLORS = [
-  '#C85A3DCC', // 陶土红
-  '#2A4B3CCC', // 深林绿
-  '#B88A3ECC', // 琥珀棕
-  '#6B7A8FCC', // 青灰
-  '#8A5B5BCC', // 砖褐
-  '#527A6BCC', // 湖松
-  '#9B8355CC'  // 卡其
+  '#C85A3DE6', // 陶土红
+  '#2A4B3CE6', // 深林绿
+  '#B88A3EE6', // 琥珀棕
+  '#6B7A8FE6', // 青灰
+  '#8A5B5BE6', // 砖褐
+  '#527A6BE6', // 湖松
+  '#9B8355E6'  // 卡其
 ];
+
+// 长距离跳跃阈值（km）：超过此距离的相邻节点视为"位移/交通段"，改用虚线呈现
+const LONG_HOP_KM = 1.5;
+// 跨天衔接线颜色（低饱和暖灰）
+const CROSS_DAY_LINK_COLOR = '#6E6256B3';
+// 非激活段的降色后缀（保持色相、降透明度；太淡会看不清）
+function dimDayColor(base: string): string {
+  if (base && base.length === 9 && base[0] === '#') {
+    return base.slice(0, 7) + '8C';
+  }
+  return base;
+}
+// 两点间球面距离（km），用 Haversine 近似
+function haversineKm(aLat: number, aLon: number, bLat: number, bLon: number): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLon = toRad(bLon - aLon);
+  const la1 = toRad(aLat);
+  const la2 = toRad(bLat);
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
 
 const SHEET_SNAP_SMALL = 30;
 const SHEET_SNAP_MID = 55;
@@ -304,25 +329,8 @@ Page({
       };
     });
 
-    // A2：按"天"拆分 polyline；颜色循环使用"原始天序"（让筛选后的单天与全程时同色）
-    const polylines: any[] = [];
-    visibleGroups.forEach((day: any) => {
-      const originalIdx = this.data.timelineData.findIndex((g: any) => g.date === day.date);
-      const safeIdx = originalIdx >= 0 ? originalIdx : 0;
-      const dayPts = (day.items || [])
-        .filter((i: any) => i.hasLoc)
-        .map((i: any) => ({ latitude: i.lat, longitude: i.lon }));
-      if (dayPts.length >= 2) {
-        polylines.push({
-          points: dayPts,
-          color: DAY_POLYLINE_COLORS[safeIdx % DAY_POLYLINE_COLORS.length],
-          width: 4,
-          arrowLine: true,
-          borderColor: '#FFFFFF80',
-          borderWidth: 1
-        });
-      }
-    });
+    // A2：按"天"分色；每天内部再按段距离切为实线/虚线；激活段高亮、跨天细虚线衔接
+    const polylines = this.buildPolylines(visibleGroups, activeIdx);
 
     const allPoints = list.map((item: any) => ({ latitude: item.lat, longitude: item.lon }));
     const progressCurrent = this.computeProgress(list, activeIdx);
@@ -343,6 +351,71 @@ Page({
     });
 
     this.resetMapViewport(true);
+  },
+
+  // 生成轨迹 polyline：按天分色 + 段距离切虚实 + 激活段高亮 + 跨天衔接
+  buildPolylines(visibleGroups: any[], activeIdx: number): any[] {
+    const polylines: any[] = [];
+    const dayFlats: any[][] = [];
+
+    visibleGroups.forEach((day: any, vi: number) => {
+      const originalIdx = this.data.timelineData.findIndex((g: any) => g.date === day.date);
+      const safeIdx = originalIdx >= 0 ? originalIdx : 0;
+      const baseColor = DAY_POLYLINE_COLORS[safeIdx % DAY_POLYLINE_COLORS.length];
+      const dimColor = dimDayColor(baseColor);
+
+      const pts = (day.items || []).filter((i: any) => i.hasLoc);
+      dayFlats[vi] = pts;
+      if (pts.length < 2) return;
+
+      // active 节点在当天有定位列表中的下标；<0 表示 active 不在本日
+      const activeInDay = pts.findIndex((p: any) => p.globalIndex === activeIdx);
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        const distKm = haversineKm(a.lat, a.lon, b.lat, b.lon);
+        const isLong = distKm > LONG_HOP_KM;
+        const isActiveSeg =
+          activeInDay >= 0 && (i === activeInDay || i + 1 === activeInDay);
+        // 当天有激活节点但不是本段 → 降色；否则保持满色
+        const useBase = activeInDay < 0 || isActiveSeg;
+
+        polylines.push({
+          points: [
+            { latitude: a.lat, longitude: a.lon },
+            { latitude: b.lat, longitude: b.lon }
+          ],
+          color: useBase ? baseColor : dimColor,
+          width: isActiveSeg ? 6 : 4,
+          arrowLine: !isLong,
+          dottedLine: isLong,
+          borderColor: '#FFFFFF80',
+          borderWidth: 1
+        });
+      }
+    });
+
+    // 跨天衔接：上一天末 → 下一天首，细灰虚线（按天聚焦时 visibleGroups 只有 1 天，自然不画）
+    for (let d = 0; d < dayFlats.length - 1; d++) {
+      const cur = dayFlats[d];
+      const next = dayFlats[d + 1];
+      if (!cur || !next || !cur.length || !next.length) continue;
+      const last = cur[cur.length - 1];
+      const first = next[0];
+      polylines.push({
+        points: [
+          { latitude: last.lat, longitude: last.lon },
+          { latitude: first.lat, longitude: first.lon }
+        ],
+        color: CROSS_DAY_LINK_COLOR,
+        width: 2,
+        dottedLine: true,
+        arrowLine: false
+      });
+    }
+
+    return polylines;
   },
 
   // B3：根据节点位置网格聚合，生成停留气泡（低饱和琥珀色），表达"同一点多次停留"
@@ -627,6 +700,12 @@ Page({
       showResetViewport: true,
       progressCurrent: this.computeProgress(flatLoc, index)
     };
+
+    // 同步重算轨迹，让"激活段加粗 + 其它段降透明"随点击即时更新
+    const visibleGroups = this.data.activeDayDate
+      ? this.data.timelineData.filter((g: any) => g.date === this.data.activeDayDate)
+      : this.data.timelineData;
+    patch.polylines = this.buildPolylines(visibleGroups, index);
 
     if (prevActiveIdx >= 0 && prevActiveIdx !== nextActiveIdx) {
       const prev = prevMarkers[prevActiveIdx];

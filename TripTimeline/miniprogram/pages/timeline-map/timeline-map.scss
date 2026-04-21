@@ -24,15 +24,31 @@
 }
 
 .map-tool-btn {
-  padding: 16rpx 24rpx;
+  padding: 14rpx 26rpx;
   border-radius: 999rpx;
-  background: rgba(247, 245, 240, 0.95);
-  border: 1px solid rgba(42, 75, 60, 0.16);
+  background: rgba(247, 245, 240, 0.72);
+  border: 1px solid rgba(42, 75, 60, 0.1);
   color: var(--color-primary);
   font-size: 24rpx;
   font-family: var(--font-sans);
   font-weight: 600;
-  box-shadow: 0 8rpx 24rpx rgba(42, 75, 60, 0.16);
+  letter-spacing: 1rpx;
+  box-shadow: 0 6rpx 18rpx rgba(42, 75, 60, 0.08);
+  transition: all 0.3s ease;
+  opacity: 0.75;           /* UX：默认低饱和常驻 */
+}
+
+.map-tool-btn:active {
+  transform: scale(0.96);
+}
+
+/* UX：偏离全程 / 按天筛选时 → 强调态 */
+.map-tool-btn.is-active {
+  background: rgba(42, 75, 60, 0.95);
+  color: #F7F5F0;
+  border-color: rgba(42, 75, 60, 0.95);
+  box-shadow: 0 10rpx 28rpx rgba(42, 75, 60, 0.22);
+  opacity: 1;
 }
 
 .share-badge {
@@ -207,6 +223,54 @@
   color: var(--color-accent);
   margin-bottom: 12rpx;
   font-weight: 700;
+}
+
+/* A4：天分组头 —— 可点击，激活时变陶土红 + 浮起 */
+.timeline-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin: 36rpx 0 20rpx 0;
+  padding: 14rpx 20rpx 14rpx 60rpx;   /* 左 60rpx 对齐节点内容 */
+  border-radius: 14rpx;
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.25s ease;
+}
+
+.timeline-day-header .day-text {
+  font-size: 24rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: var(--color-primary);
+  font-feature-settings: "tnum", "lnum";
+}
+
+.timeline-day-header .day-cta {
+  font-size: 20rpx;
+  color: var(--color-text-sub);
+  letter-spacing: 1rpx;
+  opacity: 0.75;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.timeline-day-header:active {
+  transform: scale(0.99);
+}
+
+.timeline-day-header.is-active {
+  background: rgba(200, 90, 61, 0.08);
+  border-color: rgba(200, 90, 61, 0.25);
+}
+
+.timeline-day-header.is-active .day-text {
+  color: var(--color-accent);
+}
+
+.timeline-day-header.is-active .day-cta {
+  color: var(--color-accent);
+  opacity: 1;
 }
 
 /* --- 时间轴节点 --- */

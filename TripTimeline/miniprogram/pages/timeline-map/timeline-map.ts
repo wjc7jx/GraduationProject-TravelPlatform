@@ -54,8 +54,14 @@ Page({
     // A7/A8: 未定位节点数 & 进度指示
     noLocCount: 0,
     totalCount: 0,
-    locatedCount: 0,     // 有定位节点总数（= markers.length，便于 wxml 简化）
+    locatedCount: 0,     // 当前视图中的有定位节点数（按天筛选时会变化）
     progressCurrent: 0,  // 当前激活节点在"有定位列表"中的序号（1-based，0 = 无）
+
+    // A4: 按天聚焦状态；为空表示全程
+    activeDayDate: '',
+
+    // B3: 停留热力 circles
+    circles: [] as any[],
 
     projectDetail: null as any,
     timelineData: [] as any[],
@@ -231,7 +237,8 @@ Page({
           group.items.push({...item, globalIndex: globalIndex++});
         });
 
-        this.setData({ timelineData: grouped });
+        // 数据刷新时清空按天筛选，避免旧日被保留
+        this.setData({ timelineData: grouped, activeDayDate: '' });
 
         const groupedItems = grouped.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
         const firstLoc = groupedItems.find(i => i.hasLoc);
@@ -259,10 +266,18 @@ Page({
   },
 
   initMapData() {
+    // 全局数量始终基于"所有节点"，未定位提醒条不随按天筛选变化
     const flatAll: any[] = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
     const totalCount = flatAll.length;
-    const list = flatAll.filter((item: any) => item.hasLoc);
-    const noLocCount = totalCount - list.length;
+    const noLocCount = flatAll.filter((i: any) => !i.hasLoc).length;
+
+    // A4：按天筛选视图范围
+    const dayDate = this.data.activeDayDate;
+    const visibleGroups = dayDate
+      ? this.data.timelineData.filter((g: any) => g.date === dayDate)
+      : this.data.timelineData;
+    const flatVisible: any[] = visibleGroups.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+    const list = flatVisible.filter((item: any) => item.hasLoc);
 
     // A1：按 content_type 选图标；激活态保持红色描边款
     const activeIdx = this.data.activeIndex;
@@ -275,6 +290,8 @@ Page({
         iconPath: isActive ? MARKER_ACTIVE_ICON : (MARKER_ICON[item.type] || MARKER_ICON.note),
         width: isActive ? 36 : 26,
         height: isActive ? 36 : 26,
+        // A3：激活 marker 不参与聚合，避免激活中的点被藏进气泡
+        joinCluster: !isActive,
         callout: {
           content: item.title,
           color: isActive ? '#FFFFFF' : '#1C1C1C',
@@ -287,16 +304,18 @@ Page({
       };
     });
 
-    // A2：按"天"拆分 polyline，每天一色 + 箭头方向
+    // A2：按"天"拆分 polyline；颜色循环使用"原始天序"（让筛选后的单天与全程时同色）
     const polylines: any[] = [];
-    this.data.timelineData.forEach((day: any, idx: number) => {
+    visibleGroups.forEach((day: any) => {
+      const originalIdx = this.data.timelineData.findIndex((g: any) => g.date === day.date);
+      const safeIdx = originalIdx >= 0 ? originalIdx : 0;
       const dayPts = (day.items || [])
         .filter((i: any) => i.hasLoc)
         .map((i: any) => ({ latitude: i.lat, longitude: i.lon }));
       if (dayPts.length >= 2) {
         polylines.push({
           points: dayPts,
-          color: DAY_POLYLINE_COLORS[idx % DAY_POLYLINE_COLORS.length],
+          color: DAY_POLYLINE_COLORS[safeIdx % DAY_POLYLINE_COLORS.length],
           width: 4,
           arrowLine: true,
           borderColor: '#FFFFFF80',
@@ -308,9 +327,13 @@ Page({
     const allPoints = list.map((item: any) => ({ latitude: item.lat, longitude: item.lon }));
     const progressCurrent = this.computeProgress(list, activeIdx);
 
+    // B3：停留热力 circles（按 ~100m 网格聚合，count≥2 时显示光晕）
+    const circles = this.buildStayCircles(list);
+
     this.setData({
       markers,
       polylines,
+      circles,
       allMapPoints: allPoints,
       totalCount,
       noLocCount,
@@ -320,6 +343,30 @@ Page({
     });
 
     this.resetMapViewport(true);
+  },
+
+  // B3：根据节点位置网格聚合，生成停留气泡（低饱和琥珀色），表达"同一点多次停留"
+  buildStayCircles(locList: any[]): any[] {
+    const grid: Record<string, { lat: number; lon: number; count: number }> = {};
+    locList.forEach((i: any) => {
+      const key = `${i.lat.toFixed(3)}_${i.lon.toFixed(3)}`;
+      if (!grid[key]) grid[key] = { lat: i.lat, lon: i.lon, count: 0 };
+      grid[key].count += 1;
+    });
+    const circles: any[] = [];
+    Object.values(grid).forEach((cell) => {
+      if (cell.count < 2) return;
+      const radius = Math.min(280, 100 + cell.count * 40);
+      circles.push({
+        latitude: cell.lat,
+        longitude: cell.lon,
+        color: '#B88A3EFF',
+        fillColor: '#B88A3E26',
+        radius,
+        strokeWidth: 1
+      });
+    });
+    return circles;
   },
 
   // 计算激活节点在"有定位列表"中的位置（1-based）
@@ -362,7 +409,22 @@ Page({
   },
 
   onResetViewportTap() {
-    this.resetMapViewport(false);
+    // A4 + UX：回到全览时同步清除按天筛选
+    if (this.data.activeDayDate) {
+      this.setData({ activeDayDate: '' });
+      this.initMapData();
+    } else {
+      this.resetMapViewport(false);
+    }
+  },
+
+  // A4：点击时间轴 day header → 仅显示当天 markers/polyline/circles；再次点击或点"回到全览"恢复
+  onDayHeaderTap(e: any) {
+    const date = e.currentTarget.dataset.date;
+    if (!date) return;
+    const nextDay = this.data.activeDayDate === date ? '' : date;
+    this.setData({ activeDayDate: nextDay });
+    this.initMapData();
   },
 
   onMapRegionChange(e: any) {
@@ -499,6 +561,27 @@ Page({
     });
   },
 
+  // A3：点击聚合气泡 → 放大地图使簇内点展开
+  onMarkerClusterTap(e: any) {
+    const { clusterId, markerIds } = e.detail || {};
+    if (!markerIds || !markerIds.length) return;
+    // 根据 markerIds 反推簇内 points 并 includePoints 到更近距离
+    const idSet = new Set(markerIds);
+    const points = this.data.markers
+      .filter((m: any) => idSet.has(m.id))
+      .map((m: any) => ({ latitude: m.latitude, longitude: m.longitude }));
+    if (!points.length) return;
+    const mapCtx = wx.createMapContext('storyMap');
+    const paddingBottom = this.calcMapBottomPadding();
+    mapCtx.includePoints({
+      points,
+      padding: [120, 60, paddingBottom, 60]
+    });
+    this.setData({ showResetViewport: true });
+    // clusterId 只用于避免 TS 未使用警告
+    void clusterId;
+  },
+
   // 点击地图标记联动时间轴
   onMarkerTap(e: any) {
     const index = e.detail.markerId;
@@ -522,44 +605,66 @@ Page({
     const target = this.getNodeByIndex(index);
     if (!target || !target.hasLoc) {
       if (this.data.activeIndex !== index) {
-        // A8：即使没有定位也更新一次 progress（将变 0）
         this.setData({ activeIndex: index, progressCurrent: 0 });
       }
       return;
     }
-    const prevMarkers = this.data.markers;
-    const markers = prevMarkers.map((m: any) => {
-      const isActive = m.id === index;
-      // A1：非激活态回到节点自身类别图标
-      const nodeForMarker = this.getNodeByIndex(m.id);
-      const typeIcon = MARKER_ICON[nodeForMarker?.type || 'note'] || MARKER_ICON.note;
-      return {
-        ...m,
-        iconPath: isActive ? MARKER_ACTIVE_ICON : typeIcon,
-        width: isActive ? 36 : 26,
-        height: isActive ? 36 : 26,
-        callout: {
-          ...m.callout,
-          bgColor: isActive ? '#C85A3D' : '#FFFFFF',
-          color: isActive ? '#FFFFFF' : '#1C1C1C',
-          display: isActive ? 'ALWAYS' : 'BYCLICK'
-        }
-      };
-    });
+
+    const prevMarkers = this.data.markers as any[];
+    const prevActiveIdx = prevMarkers.findIndex((m: any) => m.id === this.data.activeIndex);
+    const nextActiveIdx = prevMarkers.findIndex((m: any) => m.id === index);
 
     const flatLoc = this.data.timelineData
       .reduce((acc: any[], cur: any) => acc.concat(cur.items), [])
       .filter((i: any) => i.hasLoc);
 
-    this.setData({
+    // UX：只对"前激活 / 新激活"两个数组下标做路径式 setData，避免整组 markers 重新 diff 导致闪烁
+    const patch: Record<string, any> = {
       activeIndex: index,
       centerLat: target.lat,
       centerLon: target.lon,
-      markers,
       mapScale: 15,
       showResetViewport: true,
       progressCurrent: this.computeProgress(flatLoc, index)
-    });
+    };
+
+    if (prevActiveIdx >= 0 && prevActiveIdx !== nextActiveIdx) {
+      const prev = prevMarkers[prevActiveIdx];
+      const prevNode = this.getNodeByIndex(prev.id);
+      const prevIcon = MARKER_ICON[prevNode?.type || 'note'] || MARKER_ICON.note;
+      patch[`markers[${prevActiveIdx}]`] = {
+        ...prev,
+        iconPath: prevIcon,
+        width: 26,
+        height: 26,
+        joinCluster: true,
+        callout: {
+          ...prev.callout,
+          bgColor: '#FFFFFF',
+          color: '#1C1C1C',
+          display: 'BYCLICK'
+        }
+      };
+    }
+
+    if (nextActiveIdx >= 0) {
+      const next = prevMarkers[nextActiveIdx];
+      patch[`markers[${nextActiveIdx}]`] = {
+        ...next,
+        iconPath: MARKER_ACTIVE_ICON,
+        width: 36,
+        height: 36,
+        joinCluster: false,
+        callout: {
+          ...next.callout,
+          bgColor: '#C85A3D',
+          color: '#FFFFFF',
+          display: 'ALWAYS'
+        }
+      };
+    }
+
+    this.setData(patch);
 
     const mapCtx = wx.createMapContext('storyMap');
     mapCtx.moveToLocation({

@@ -3,16 +3,19 @@
 
 <view class="page-container">
   <!-- 沉浸式地图 (满屏底层) -->
-  <map 
-    id="storyMap" 
-    class="story-map fade-up" 
+  <map
+    id="storyMap"
+    class="story-map fade-up"
     style="animation-delay: 0.1s"
-    longitude="{{centerLon}}" 
-    latitude="{{centerLat}}" 
-    scale="{{mapScale}}" 
+    longitude="{{centerLon}}"
+    latitude="{{centerLat}}"
+    scale="{{mapScale}}"
     markers="{{markers}}"
     polyline="{{polylines}}"
+    circles="{{circles}}"
+    enable-cluster="{{true}}"
     bindmarkertap="onMarkerTap"
+    bindmarkerclustertap="onMarkerClusterTap"
     bindtap="onMapTap"
     bindregionchange="onMapRegionChange"
     show-location
@@ -36,8 +39,12 @@
     <text class="progress-label">站</text>
   </view>
 
-  <view class="map-tools" wx:if="{{markers.length > 1 && showResetViewport}}">
-    <view class="map-tool-btn" bindtap="onResetViewportTap">回到全览</view>
+  <!-- UX：常驻"回到全览"胶囊；在按天筛选或手势偏离时高亮并改文案 -->
+  <view class="map-tools" wx:if="{{locatedCount > 1}}">
+    <view
+      class="map-tool-btn {{(showResetViewport || activeDayDate) ? 'is-active' : ''}}"
+      bindtap="onResetViewportTap"
+    >{{activeDayDate ? '返回全程' : '回到全览'}}</view>
   </view>
 
   <!-- 底部可拖拽抽屉 -->
@@ -68,7 +75,14 @@
 
           <!-- 节点列表 (按天分组) -->
           <block wx:for="{{timelineData}}" wx:key="date" wx:for-item="dayGroup" wx:for-index="gIndex">
-            <view class="timeline-day-header">{{dayGroup.date}}</view>
+            <view
+              class="timeline-day-header {{activeDayDate === dayGroup.date ? 'is-active' : ''}}"
+              data-date="{{dayGroup.date}}"
+              bindtap="onDayHeaderTap"
+            >
+              <text class="day-text">{{dayGroup.date}}</text>
+              <text class="day-cta">{{activeDayDate === dayGroup.date ? '仅看此日 · 取消' : '仅看此日'}}</text>
+            </view>
             
             <block wx:for="{{dayGroup.items}}" wx:key="id">
               <!-- 手风琴节点 -->

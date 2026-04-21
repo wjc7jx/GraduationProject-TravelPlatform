@@ -1,11 +1,8 @@
-import { Content, Location, Permission, Project, User, sequelize } from '../models/index.js';
+import { Permission, Project, User, sequelize } from '../models/index.js';
 import { Op } from 'sequelize';
 import {
   canView,
   getProjectRule,
-  getProjectRules,
-  getViewerLevel,
-  sanitizeLocation,
 } from './privacyService.js';
 import { getActiveProjectShare } from './projectShareService.js';
 import { sanitizePlainText, sanitizeResourceUrl } from '../utils/sanitize.js';
@@ -379,121 +376,4 @@ export async function setProjectPinned(projectId, userId, payload) {
     is_pinned: nextPinned,
     pinned_at: nextPinned === 1 ? new Date() : null,
   });
-}
-
-export async function getTimelineMapOverview(userId) {
-  const projects = await Project.findAll({
-    where: {
-      user_id: userId,
-    },
-    order: [['start_date', 'DESC'], ['created_at', 'DESC']],
-  });
-
-  const contents = await Content.findAll({
-    include: [
-      {
-        model: Project,
-        as: 'project',
-        attributes: ['project_id', 'title', 'start_date', 'end_date', 'cover_image'],
-        where: {
-          user_id: userId,
-        },
-        required: true,
-      },
-      {
-        model: Location,
-        as: 'location',
-        attributes: ['location_id', 'longitude', 'latitude', 'name', 'address'],
-        required: false,
-      },
-    ],
-    order: [
-      [{ model: Project, as: 'project' }, 'start_date', 'DESC'],
-      ['record_time', 'ASC'],
-      ['sort_order', 'ASC'],
-    ],
-  });
-
-  const projectRulesMap = await getProjectRules(projects.map((project) => project.project_id));
-  const visibleContents = [];
-  for (const item of contents) {
-    const rule = projectRulesMap.get(Number(item.project_id));
-    const ownerUserId = item.project?.user_id || userId;
-
-    if (!(await canView(rule, ownerUserId, userId))) continue;
-    const viewerLevel = await getViewerLevel(rule, ownerUserId, userId);
-    visibleContents.push(sanitizeLocation(item, viewerLevel));
-  }
-
-  const projectStats = new Map();
-  projects.forEach((project) => {
-    projectStats.set(String(project.project_id), {
-      content_count: 0,
-      point_count: 0,
-      first_record_time: null,
-      last_record_time: null,
-    });
-  });
-
-  const points = visibleContents
-    .filter((item) => item.location)
-    .map((item) => {
-      const location = item.location;
-      const projectId = String(item.project_id);
-      const stats = projectStats.get(projectId);
-      const recordTime = item.record_time || item.created_at;
-
-      if (stats) {
-        stats.content_count += 1;
-        stats.point_count += 1;
-        if (!stats.first_record_time || new Date(recordTime).getTime() < new Date(stats.first_record_time).getTime()) {
-          stats.first_record_time = recordTime;
-        }
-        if (!stats.last_record_time || new Date(recordTime).getTime() > new Date(stats.last_record_time).getTime()) {
-          stats.last_record_time = recordTime;
-        }
-      }
-
-      return {
-        content_id: item.content_id,
-        project_id: item.project_id,
-        record_time: recordTime,
-        content_type: item.content_type,
-        content_data: item.content_data,
-        longitude: Number(location.longitude),
-        latitude: Number(location.latitude),
-        location_name: location.name || '',
-      };
-    });
-
-  visibleContents
-    .filter((item) => !item.location)
-    .forEach((item) => {
-      const stats = projectStats.get(String(item.project_id));
-      const recordTime = item.record_time || item.created_at;
-      if (stats) {
-        stats.content_count += 1;
-        if (!stats.first_record_time || new Date(recordTime).getTime() < new Date(stats.first_record_time).getTime()) {
-          stats.first_record_time = recordTime;
-        }
-        if (!stats.last_record_time || new Date(recordTime).getTime() > new Date(stats.last_record_time).getTime()) {
-          stats.last_record_time = recordTime;
-        }
-      }
-    });
-
-  return {
-    projects: projects.map((project) => {
-      const stats = projectStats.get(String(project.project_id));
-      return {
-        ...project.toJSON(),
-        year: Number(String(project.start_date || project.created_at).slice(0, 4)),
-        content_count: stats?.content_count || 0,
-        point_count: stats?.point_count || 0,
-        first_record_time: stats?.first_record_time || null,
-        last_record_time: stats?.last_record_time || null,
-      };
-    }),
-    points,
-  };
 }

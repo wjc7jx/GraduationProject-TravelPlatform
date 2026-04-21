@@ -77,17 +77,6 @@
       </view>
     </view>
 
-    <view class="year-review-card" bindtap="goToYearReview">
-      <view class="year-review-left">
-        <app-icon name="world" size="44rpx" color="#FFFFFF" custom-class="year-review-icon"></app-icon>
-        <view class="year-review-texts">
-          <view class="year-review-title">{{reviewYearTitle}}</view>
-          <view class="year-review-sub">{{reviewSummaryLine}}</view>
-        </view>
-      </view>
-      <text class="year-review-chevron">›</text>
-    </view>
-
     <view class="friends-section">
       <view class="friends-section-title">旅伴</view>
 

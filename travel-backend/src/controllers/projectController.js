@@ -5,7 +5,6 @@ import {
   deleteProject,
   getProjectById,
   setProjectPinned,
-  getTimelineMapOverview,
 } from '../services/projectService.js';
 import {
   createProjectShare,
@@ -21,15 +20,6 @@ export async function getProjects(req, res, next) {
     const { startDate, endDate, keyword, tag } = req.query;
     const data = await listProjects(req.user.user_id, { startDate, endDate, keyword, tag });
     sendSuccess(res, data, '获取项目列表成功');
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function getTimelineMapData(req, res, next) {
-  try {
-    const data = await getTimelineMapOverview(req.user.user_id);
-    sendSuccess(res, data, '获取时间地图总览成功');
   } catch (error) {
     next(error);
   }

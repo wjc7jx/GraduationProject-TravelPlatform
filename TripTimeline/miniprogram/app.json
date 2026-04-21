@@ -2,7 +2,6 @@
   "pages": [
     "pages/index/index",
     "pages/timeline-map/timeline-map",
-    "pages/year-review/year-review",
     "pages/content-view/content-view",
     "pages/editor/editor",
     "pages/profile/profile",

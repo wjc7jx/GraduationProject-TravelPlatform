@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "年度回顾",
-  "navigationStyle": "custom",
-  "usingComponents": {
-    "navigation-bar": "../../components/navigation-bar/navigation-bar"
-  }
-}

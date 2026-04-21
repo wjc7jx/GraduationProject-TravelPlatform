@@ -27,8 +27,6 @@ Page({
     applyingInviteCode: false,
     greetingTitle: '嗨，旅行者',
     heroStatLine: '已记录 0 次旅行',
-    reviewYearTitle: '',
-    reviewSummaryLine: '在地图中按年份回顾足迹',
     hasToken: false,
     profileNickname: '',
     avatarDisplaySrc: '',
@@ -66,13 +64,10 @@ Page({
 
   async loadProfileStats() {
     const token = wx.getStorageSync('token')
-    const year = new Date().getFullYear()
     if (!token) {
       this.setData({
         greetingTitle: '嗨，旅行者',
         heroStatLine: '已记录 0 次旅行',
-        reviewYearTitle: `${year} 年度回顾`,
-        reviewSummaryLine: '登录后查看足迹汇总',
       })
       return
     }
@@ -89,22 +84,14 @@ Page({
       })
       const projects = list || []
       const tripCount = projects.length
-      const totalFootprints = projects.reduce(
-        (sum, p) => sum + (Number(p.locationCount) || 0),
-        0
-      )
       this.setData({
         greetingTitle,
         heroStatLine: `已记录 ${tripCount} 次旅行`,
-        reviewYearTitle: `${year} 年度回顾`,
-        reviewSummaryLine: `${totalFootprints} 个足迹 · ${tripCount} 次旅行`,
       })
     } catch {
       this.setData({
         greetingTitle,
         heroStatLine: '已记录 0 次旅行',
-        reviewYearTitle: `${year} 年度回顾`,
-        reviewSummaryLine: '按年份汇总旅程与地图足迹',
       })
     }
   },
@@ -449,12 +436,6 @@ Page({
     } finally {
       this.setData({ applyingInviteCode: false })
     }
-  },
-
-  goToYearReview() {
-    wx.navigateTo({
-      url: '/pages/year-review/year-review',
-    })
   },
 
   onCopyInviteCode() {

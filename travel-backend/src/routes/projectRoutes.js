@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import {
 	getProjects,
-	getTimelineMapData,
 	getProjectDetail,
 	addProject,
 	editProject,
@@ -21,7 +20,6 @@ const router = Router();
 
 router.use(authMiddleware);
 router.get('/', getProjects);
-router.get('/timeline-map', getTimelineMapData);
 router.get('/:id/exports/html', exportProjectHtml);
 router.get('/:id/exports/pdf', exportProjectPdf);
 router.get('/:id/privacy', getProjectPrivacyRule);

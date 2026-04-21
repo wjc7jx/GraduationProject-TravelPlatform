@@ -15,13 +15,12 @@
 | Tab 1 | `pages/index/index` | 旅途 |
 | Tab 2 | `pages/profile/profile` | 我的 |
 
-### 二级页面（6 个）
+### 二级页面（5 个）
 
 | 页面路径 | 功能说明 | 入口来源 |
 |---------|--------|---------|
 | `pages/project-detail/project-detail` | 项目详情卡片 | index 卡片点击 |
 | `pages/timeline-map/timeline-map` | 时间轴 + 地图查看 | project-detail 操作卡 |
-| `pages/year-review/year-review` | 年度回顾（按年时间轴） | profile 入口 |
 | `pages/content-view/content-view` | 内容详情浏览 | 时间轴节点点击 |
 | `pages/editor/editor` | 新建/编辑日志记录 | FAB、时间轴 |
 | `pages/project-editor/project-editor` | 创建/编辑项目信息 | project-detail 管理 |

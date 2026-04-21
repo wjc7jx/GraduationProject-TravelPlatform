@@ -20,6 +20,22 @@
 
   <view class="share-badge" wx:if="{{isShareView}}">分享浏览模式</view>
 
+  <!-- A7：未定位节点提醒条（点击跳到第一条未定位记录） -->
+  <view class="no-loc-hint" wx:if="{{noLocCount > 0}}" bindtap="onNoLocHintTap">
+    <view class="no-loc-dot"></view>
+    <text class="no-loc-text">{{noLocCount}} 条记录缺少定位</text>
+    <text class="no-loc-cta" wx:if="{{!isShareView}}">去补充</text>
+    <text class="no-loc-cta" wx:else>查看</text>
+  </view>
+
+  <!-- A8：当前激活节点在有定位序列中的进度 -->
+  <view class="progress-badge" wx:if="{{locatedCount > 0 && progressCurrent > 0}}">
+    <text class="progress-current">{{progressCurrent}}</text>
+    <text class="progress-sep">/</text>
+    <text class="progress-total">{{locatedCount}}</text>
+    <text class="progress-label">站</text>
+  </view>
+
   <view class="map-tools" wx:if="{{markers.length > 1 && showResetViewport}}">
     <view class="map-tool-btn" bindtap="onResetViewportTap">回到全览</view>
   </view>
@@ -70,8 +86,17 @@
                       <text class="node-time">{{item.time}}</text>
                       <text class="node-category">{{item.category}}</text>
                     </view>
-                    <!-- 折叠时也显示的简化的标题部分 -->
-                    <view class="node-title collapsed-title" wx:if="{{activeIndex !== item.globalIndex}}">{{item.title}}</view>
+                    <!-- 折叠时显示首图缩略 + 标题（A6） -->
+                    <view class="collapsed-row" wx:if="{{activeIndex !== item.globalIndex}}">
+                      <image
+                        wx:if="{{item.images && item.images.length > 0}}"
+                        class="collapsed-thumb"
+                        src="{{item.images[0]}}"
+                        mode="aspectFill"
+                        lazy-load
+                      ></image>
+                      <view class="node-title collapsed-title">{{item.title}}</view>
+                    </view>
                   </view>
                   
                   <!-- 只有在激活(active)状态下才展开的内容区域 -->

@@ -2,6 +2,28 @@ import { request, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 import { guardArchivedWrite, normalizeProjectArchived } from '../../utils/projectArchive';
 
+const MARKER_ICON: Record<string, string> = {
+  photo: '/assets/img/marker-photo.svg',
+  note: '/assets/img/marker-note.svg',
+  audio: '/assets/img/marker-audio.svg'
+};
+const MARKER_ACTIVE_ICON = '/assets/img/marker-active.svg';
+
+// 按天循环使用的轨迹色板（与纸质质感色系一致，加 CC 透明度让它柔和一些）
+const DAY_POLYLINE_COLORS = [
+  '#C85A3DCC', // 陶土红
+  '#2A4B3CCC', // 深林绿
+  '#B88A3ECC', // 琥珀棕
+  '#6B7A8FCC', // 青灰
+  '#8A5B5BCC', // 砖褐
+  '#527A6BCC', // 湖松
+  '#9B8355CC'  // 卡其
+];
+
+const SHEET_SNAP_SMALL = 30;
+const SHEET_SNAP_MID = 55;
+const SHEET_SNAP_LARGE = 80;
+
 Page({
   _audioContext: null as WechatMiniprogram.InnerAudioContext | null,
 
@@ -28,7 +50,13 @@ Page({
     markers: [] as any[],
     polylines: [] as any[],
     allMapPoints: [] as any[],
-    
+
+    // A7/A8: 未定位节点数 & 进度指示
+    noLocCount: 0,
+    totalCount: 0,
+    locatedCount: 0,     // 有定位节点总数（= markers.length，便于 wxml 简化）
+    progressCurrent: 0,  // 当前激活节点在"有定位列表"中的序号（1-based，0 = 无）
+
     projectDetail: null as any,
     timelineData: [] as any[],
     _startY: 0,
@@ -175,6 +203,7 @@ Page({
 
           return {
             id: item.content_id,
+            type: item.content_type || 'note',
             dateStr: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`,
             time: d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
             category: item.content_type === 'photo' ? '照片' : (item.content_type === 'note' ? '日记' : '音频'),
@@ -230,45 +259,74 @@ Page({
   },
 
   initMapData() {
-    const list = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []).filter((item: any) => item.hasLoc);
-    const markers = list.map((item: any) => ({
-      id: item.globalIndex,
-      latitude: item.lat,
-      longitude: item.lon,
-      iconPath: item.globalIndex === this.data.activeIndex ? '/assets/img/marker-active.svg' : '/assets/img/marker.svg',
-      width: item.globalIndex === this.data.activeIndex ? 32 : 24,
-      height: item.globalIndex === this.data.activeIndex ? 32 : 24,
-      callout: {
-        content: item.title,
-        color: item.globalIndex === this.data.activeIndex ? '#FFFFFF' : '#1C1C1C',
-        fontSize: 12,
-        borderRadius: 4,
-        bgColor: item.globalIndex === this.data.activeIndex ? '#C85A3D' : '#FFFFFF',
-        padding: 6,
-        display: item.globalIndex === this.data.activeIndex ? 'ALWAYS' : 'BYCLICK'
+    const flatAll: any[] = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+    const totalCount = flatAll.length;
+    const list = flatAll.filter((item: any) => item.hasLoc);
+    const noLocCount = totalCount - list.length;
+
+    // A1：按 content_type 选图标；激活态保持红色描边款
+    const activeIdx = this.data.activeIndex;
+    const markers = list.map((item: any) => {
+      const isActive = item.globalIndex === activeIdx;
+      return {
+        id: item.globalIndex,
+        latitude: item.lat,
+        longitude: item.lon,
+        iconPath: isActive ? MARKER_ACTIVE_ICON : (MARKER_ICON[item.type] || MARKER_ICON.note),
+        width: isActive ? 36 : 26,
+        height: isActive ? 36 : 26,
+        callout: {
+          content: item.title,
+          color: isActive ? '#FFFFFF' : '#1C1C1C',
+          fontSize: 12,
+          borderRadius: 4,
+          bgColor: isActive ? '#C85A3D' : '#FFFFFF',
+          padding: 6,
+          display: isActive ? 'ALWAYS' : 'BYCLICK'
+        }
+      };
+    });
+
+    // A2：按"天"拆分 polyline，每天一色 + 箭头方向
+    const polylines: any[] = [];
+    this.data.timelineData.forEach((day: any, idx: number) => {
+      const dayPts = (day.items || [])
+        .filter((i: any) => i.hasLoc)
+        .map((i: any) => ({ latitude: i.lat, longitude: i.lon }));
+      if (dayPts.length >= 2) {
+        polylines.push({
+          points: dayPts,
+          color: DAY_POLYLINE_COLORS[idx % DAY_POLYLINE_COLORS.length],
+          width: 4,
+          arrowLine: true,
+          borderColor: '#FFFFFF80',
+          borderWidth: 1
+        });
       }
-    }));
+    });
 
-    const points = list.map((item: any) => ({
-      latitude: item.lat,
-      longitude: item.lon
-    }));
-
-    const polylines = points.length ? [{
-      points,
-      color: '#C85A3D80',
-      width: 4,
-      dottedLine: true
-    }] : [];
+    const allPoints = list.map((item: any) => ({ latitude: item.lat, longitude: item.lon }));
+    const progressCurrent = this.computeProgress(list, activeIdx);
 
     this.setData({
       markers,
       polylines,
-      allMapPoints: points,
+      allMapPoints: allPoints,
+      totalCount,
+      noLocCount,
+      locatedCount: list.length,
+      progressCurrent,
       showResetViewport: false
     });
 
     this.resetMapViewport(true);
+  },
+
+  // 计算激活节点在"有定位列表"中的位置（1-based）
+  computeProgress(locList: any[], activeIdx: number): number {
+    if (!locList || !locList.length) return 0;
+    const pos = locList.findIndex((i: any) => i.globalIndex === activeIdx);
+    return pos >= 0 ? pos + 1 : 0;
   },
 
   resetMapViewport(initial = false) {
@@ -280,14 +338,27 @@ Page({
       });
       return;
     }
+    // A5：padding 按当前抽屉高度动态计算，确保所有 marker 都在抽屉之上
+    const paddingBottom = this.calcMapBottomPadding();
     setTimeout(() => {
       const mapCtx = wx.createMapContext('storyMap');
       mapCtx.includePoints({
         points,
-        padding: [60, 48, 360, 48] // 底部给抽屉和按钮留出空间
+        padding: [120, 48, paddingBottom, 48]
       });
     }, initial ? 500 : 80);
     this.setData({ showResetViewport: false });
+  },
+
+  // 把 sheetHeight(vh) 换算成 px 再加一点 FAB/安全区余量
+  calcMapBottomPadding(): number {
+    try {
+      const sys = wx.getSystemInfoSync();
+      const sheetPx = Math.round((this.data.sheetHeight / 100) * sys.windowHeight);
+      return sheetPx + 80;
+    } catch (e) {
+      return 360;
+    }
   },
 
   onResetViewportTap() {
@@ -328,14 +399,24 @@ Page({
   onTouchEnd() {
     this.setData({ isDragging: false });
     const currentHeight = this.data.sheetHeight;
-    // 吸附逻辑：滑动超过中间值吸附过去
-    let snapHeight = 30; // 默认缩起状态
-    if (currentHeight > 55) {
-      snapHeight = 80; // 展开状态
+    const prevHeight = this.data._startHeight;
+
+    // A5：三档吸附（小 30 / 中 55 / 大 80）——用阈值带而非单一中点，交互更顺滑
+    let snapHeight: number;
+    if (currentHeight >= 68) {
+      snapHeight = SHEET_SNAP_LARGE;
+    } else if (currentHeight >= 42) {
+      snapHeight = SHEET_SNAP_MID;
     } else {
-      snapHeight = 30; 
+      snapHeight = SHEET_SNAP_SMALL;
     }
+
     this.setData({ sheetHeight: snapHeight });
+
+    // 抽屉高度显著改变时，若用户正处于"全览态"就重新 fit，一次拿满视野
+    if (Math.abs(snapHeight - prevHeight) > 4 && !this.data.showResetViewport && this.data.allMapPoints.length) {
+      setTimeout(() => this.resetMapViewport(false), 420);
+    }
   },
 
   onMapTap() {
@@ -441,18 +522,22 @@ Page({
     const target = this.getNodeByIndex(index);
     if (!target || !target.hasLoc) {
       if (this.data.activeIndex !== index) {
-        this.setData({ activeIndex: index });
+        // A8：即使没有定位也更新一次 progress（将变 0）
+        this.setData({ activeIndex: index, progressCurrent: 0 });
       }
-      return; // 没有定位直接返回
+      return;
     }
     const prevMarkers = this.data.markers;
     const markers = prevMarkers.map((m: any) => {
       const isActive = m.id === index;
+      // A1：非激活态回到节点自身类别图标
+      const nodeForMarker = this.getNodeByIndex(m.id);
+      const typeIcon = MARKER_ICON[nodeForMarker?.type || 'note'] || MARKER_ICON.note;
       return {
         ...m,
-        iconPath: isActive ? '/assets/img/marker-active.svg' : '/assets/img/marker.svg',
-        width: isActive ? 32 : 24,
-        height: isActive ? 32 : 24,
+        iconPath: isActive ? MARKER_ACTIVE_ICON : typeIcon,
+        width: isActive ? 36 : 26,
+        height: isActive ? 36 : 26,
         callout: {
           ...m.callout,
           bgColor: isActive ? '#C85A3D' : '#FFFFFF',
@@ -462,13 +547,18 @@ Page({
       };
     });
 
+    const flatLoc = this.data.timelineData
+      .reduce((acc: any[], cur: any) => acc.concat(cur.items), [])
+      .filter((i: any) => i.hasLoc);
+
     this.setData({
       activeIndex: index,
       centerLat: target.lat,
       centerLon: target.lon,
       markers,
       mapScale: 15,
-      showResetViewport: true
+      showResetViewport: true,
+      progressCurrent: this.computeProgress(flatLoc, index)
     });
 
     const mapCtx = wx.createMapContext('storyMap');
@@ -481,6 +571,19 @@ Page({
   getNodeByIndex(index: number) {
     const targetItems = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
     return targetItems.find((i: any) => i.globalIndex === index);
+  },
+
+  // A7：点击"N 条未定位"条 → 滚动到第一条未定位节点并展开抽屉
+  onNoLocHintTap() {
+    const flat = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+    const first = flat.find((i: any) => !i.hasLoc);
+    if (!first) return;
+    this.setData({
+      activeIndex: first.globalIndex,
+      scrollToId: 'node-' + first.id,
+      sheetHeight: SHEET_SNAP_LARGE,
+      progressCurrent: 0
+    });
   },
 
   goToEditor() {

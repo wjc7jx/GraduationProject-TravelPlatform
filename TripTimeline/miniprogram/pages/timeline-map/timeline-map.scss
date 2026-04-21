@@ -50,6 +50,98 @@
   box-shadow: 0 10rpx 28rpx rgba(178, 79, 54, 0.12);
 }
 
+/* A7：未定位节点提醒条 */
+.no-loc-hint {
+  position: absolute;
+  top: 180rpx;
+  left: 24rpx;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 14rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(247, 245, 240, 0.95);
+  border: 1px solid rgba(184, 138, 62, 0.35);
+  box-shadow: 0 10rpx 28rpx rgba(42, 75, 60, 0.12);
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.no-loc-hint:active {
+  transform: scale(0.97);
+  background: rgba(255, 248, 232, 0.98);
+}
+
+.no-loc-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #B88A3E;
+  box-shadow: 0 0 0 6rpx rgba(184, 138, 62, 0.18);
+  flex-shrink: 0;
+}
+
+.no-loc-text {
+  font-size: 24rpx;
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-feature-settings: "tnum", "lnum";
+}
+
+.no-loc-cta {
+  font-size: 22rpx;
+  color: #B88A3E;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  padding-left: 8rpx;
+  border-left: 1px solid rgba(184, 138, 62, 0.3);
+  margin-left: 4rpx;
+}
+
+/* A8：当前激活节点 进度徽章 */
+.progress-badge {
+  position: absolute;
+  top: 112rpx;
+  right: 24rpx;
+  z-index: 12;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4rpx;
+  padding: 10rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(42, 75, 60, 0.92);
+  color: #F7F5F0;
+  box-shadow: 0 10rpx 28rpx rgba(42, 75, 60, 0.22);
+  font-family: var(--font-serif);
+  font-feature-settings: "tnum", "lnum";
+}
+
+.progress-current {
+  font-size: 32rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.progress-sep {
+  font-size: 24rpx;
+  opacity: 0.55;
+  margin: 0 2rpx;
+}
+
+.progress-total {
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+
+.progress-label {
+  font-family: var(--font-sans);
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  margin-left: 6rpx;
+  opacity: 0.65;
+}
+
 /* --- 底部抽屉 --- */
 .bottom-sheet {
   position: absolute;
@@ -152,6 +244,19 @@
   z-index: 2;
 }
 
+/* A7：无定位节点在时间轴上使用空心斜线样式，提示"位置缺失" */
+.node-dot.no-loc {
+  background-color: transparent;
+  border: 2rpx dashed var(--color-text-sub);
+  opacity: 0.75;
+}
+
+.timeline-node.active .node-dot.no-loc {
+  border-color: var(--color-accent);
+  background-color: transparent;
+  box-shadow: 0 0 0 8rpx rgba(200, 90, 61, 0.12);
+}
+
 /* 激活状态的原点变红并带呼吸圈 */
 .timeline-node.active .node-dot {
   background-color: var(--color-accent);
@@ -182,6 +287,23 @@
   gap: 8rpx;
 }
 
+/* A6：折叠态 缩略图 + 标题 */
+.collapsed-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  min-width: 0;            /* 允许 ellipsis 生效 */
+}
+
+.collapsed-thumb {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 10rpx;
+  flex-shrink: 0;
+  background-color: var(--bg-surface);
+  box-shadow: 0 6rpx 18rpx rgba(42, 75, 60, 0.12);
+}
+
 /* 折叠时显示的简洁标题 */
 .collapsed-title {
   font-size: 28rpx;
@@ -190,7 +312,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 /* 展开的详情内容区 */

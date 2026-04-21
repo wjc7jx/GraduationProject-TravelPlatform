@@ -76,7 +76,11 @@ Page({
 
     // 文字内容
     title: '',
-    content: ''
+    content: '',
+
+    // 合规审核状态（仅编辑态有值）
+    reviewFlagged: false,
+    reviewReason: ''
   },
 
   onLoad(options: any) {
@@ -204,7 +208,9 @@ Page({
         audioFileName: payload.audio?.name || '',
         audioValue: audioUrl
           ? { url: audioUrl, name: payload.audio?.name || '音频文件' }
-          : { url: '', name: '' }
+          : { url: '', name: '' },
+        reviewFlagged: String(target.review_status || '') === 'flagged',
+        reviewReason: String(target.review_reason || '')
       });
 
       // 初始化如果编辑器已 ready

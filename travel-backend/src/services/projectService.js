@@ -31,7 +31,8 @@ function normalizeCoverImage(input) {
 }
 
 /**
- * 项目文本内容送检：命中/出错一律写审计日志，永远不抛。
+ * 项目文本内容送检：命中时写审计日志 + 数据库标记；接口异常仅记审计，不标记。
+ * 永远不抛：不能影响用户主链路。
  */
 function queueProjectAudit({ project, userId, action }) {
   const title = (project.title || '').trim();
@@ -51,9 +52,11 @@ function queueProjectAudit({ project, userId, action }) {
         scene: AUDIT_SCENE.PROFILE,
       });
       if (result.pass) return;
+
+      const hit = result.reason === 'risky' || result.reason === 'review';
       logContentAudit({
         event: 'content_sec_check',
-        hit: result.reason === 'risky' || result.reason === 'review',
+        hit,
         reason: result.reason,
         userId,
         openid,
@@ -66,6 +69,32 @@ function queueProjectAudit({ project, userId, action }) {
         text: combined,
         detail: result.raw,
       });
+
+      if (hit) {
+        try {
+          await Project.update(
+            {
+              review_status: 'flagged',
+              review_reason: String(result.reason || 'flagged').slice(0, 64),
+              review_checked_at: new Date(),
+            },
+            { where: { project_id: project.project_id } }
+          );
+        } catch (dbErr) {
+          logContentAudit({
+            event: 'content_sec_check',
+            hit: false,
+            reason: 'db_update_failed',
+            userId,
+            resource: {
+              type: 'project',
+              id: project.project_id,
+              action,
+            },
+            detail: { message: String(dbErr?.message || dbErr) },
+          });
+        }
+      }
     } catch (err) {
       logContentAudit({
         event: 'content_sec_check',
@@ -178,6 +207,9 @@ export async function createProject(userId, payload) {
     start_date,
     end_date,
     tags: normalizeTags(tags) || null,
+    review_status: 'ok',
+    review_reason: null,
+    review_checked_at: null,
   });
 
   queueProjectAudit({ project: created, userId, action: 'create' });
@@ -291,7 +323,8 @@ export async function updateProject(projectId, userId, payload) {
     ? (normalizeTags(tags) || null)
     : project.tags;
 
-  const updated = await project.update({
+  const textTouched = title !== undefined || subtitle !== undefined || tags !== undefined;
+  const updatePayload = {
     title: nextTitle,
     subtitle: nextSubtitle,
     cover_image: nextCover,
@@ -299,9 +332,17 @@ export async function updateProject(projectId, userId, payload) {
     end_date: end_date !== undefined ? end_date : project.end_date,
     tags: nextTags,
     is_archived: nextArchived !== undefined ? nextArchived : project.is_archived,
-  });
+  };
 
-  const textTouched = title !== undefined || subtitle !== undefined || tags !== undefined;
+  // 文本字段变更时，乐观清零合规状态，等待下一次异步检测结果。
+  if (textTouched) {
+    updatePayload.review_status = 'ok';
+    updatePayload.review_reason = null;
+    updatePayload.review_checked_at = null;
+  }
+
+  const updated = await project.update(updatePayload);
+
   if (textTouched) {
     queueProjectAudit({ project: updated, userId, action: 'update' });
   }

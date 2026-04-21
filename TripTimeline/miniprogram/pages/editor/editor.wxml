@@ -3,6 +3,11 @@
 
 <scroll-view class="editor-scroll" scroll-y>
   <view class="editor-container fade-up">
+    <view wx:if="{{reviewFlagged}}" class="review-banner">
+      <view class="review-banner-title">⚠ 该记录被判定存在合规风险</view>
+      <view class="review-banner-desc">请调整标题或正文后重新保存，系统会自动重新检测。未通过前此条记录无法导出或分享。</view>
+    </view>
+
     <view class="page-head">
       <view class="page-title">此刻，值得记录</view>
       <view class="page-subtitle">{{pageSubtitle}}</view>

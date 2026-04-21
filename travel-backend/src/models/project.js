@@ -52,6 +52,19 @@ export function initProject(sequelize) {
         allowNull: false,
         defaultValue: 0,
       },
+      review_status: {
+        type: DataTypes.ENUM('ok', 'flagged'),
+        allowNull: false,
+        defaultValue: 'ok',
+      },
+      review_reason: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+      },
+      review_checked_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       sequelize,
@@ -66,6 +79,7 @@ export function initProject(sequelize) {
         { fields: ['user_id', 'updated_at'] },
         { fields: ['user_id', 'is_pinned', 'pinned_at'] },
         { fields: ['user_id', 'is_archived'] },
+        { name: 'idx_projects_review_status', fields: ['review_status'] },
       ],
     }
   );

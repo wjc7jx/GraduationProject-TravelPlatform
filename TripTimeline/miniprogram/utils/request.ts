@@ -89,13 +89,23 @@ export const request = <T = any>(options: RequestOptions): Promise<T> => {
             wx.removeStorageSync('token');
             wx.removeStorageSync('userInfo');
           }
-          const errorMessage = (res.data as any)?.message || `请求失败: ${res.statusCode}`;
-          wx.showToast({
-            title: errorMessage,
-            icon: 'none',
-            duration: 2000
-          });
-          reject(new Error(errorMessage));
+          const body: any = res.data || {};
+          const errorMessage = body?.message || `请求失败: ${res.statusCode}`;
+          // 合规命中交给页面自己弹模态，不在此处 toast，避免被截断
+          const bizCode = body?.data?.code || body?.code;
+          const isReviewBlocked = bizCode === 'CONTENT_REVIEW_BLOCKED';
+          if (!isReviewBlocked) {
+            wx.showToast({
+              title: errorMessage,
+              icon: 'none',
+              duration: 2000
+            });
+          }
+          const err: any = new Error(errorMessage);
+          err.statusCode = res.statusCode;
+          err.data = body;
+          err.code = bizCode || null;
+          reject(err);
         }
       },
       fail: (err) => {

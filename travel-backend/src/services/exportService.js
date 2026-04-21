@@ -13,6 +13,7 @@ import {
 } from './export/memorialComponents.js';
 import { sanitizeAndEmbedImages } from '../utils/sanitize.js';
 import { fetchAsDataUri } from './export/remoteAssets.js';
+import { assertProjectContentReviewable } from './contentReviewGuard.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -366,6 +367,7 @@ export async function buildExportData(projectId, userId, options = {}) {
 export const renderMemorialHtml = renderMemorialHtmlImpl;
 
 export async function generateProjectHtmlExport(projectId, userId) {
+  await assertProjectContentReviewable(projectId, { action: '导出' });
   // HTML 下载场景：保留远程 URL，文件体积更小；用户浏览器打开时再取。
   const payload = await buildExportData(projectId, userId, { inlineRemote: false });
   const html = renderMemorialHtml(payload);
@@ -374,6 +376,7 @@ export async function generateProjectHtmlExport(projectId, userId) {
 }
 
 export async function generateProjectPdfExport(projectId, userId) {
+  await assertProjectContentReviewable(projectId, { action: '导出' });
   // PDF 场景：把对象存储资源预取成 data URI，避免 headless Chrome 渲染竞速。
   const payload = await buildExportData(projectId, userId, {
     inlineRemote: env.export.pdfInlineRemote,

@@ -35,6 +35,19 @@ export function initContent(sequelize) {
         allowNull: false,
         defaultValue: 0,
       },
+      review_status: {
+        type: DataTypes.ENUM('ok', 'flagged'),
+        allowNull: false,
+        defaultValue: 'ok',
+      },
+      review_reason: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+      },
+      review_checked_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       sequelize,
@@ -48,6 +61,7 @@ export function initContent(sequelize) {
         { fields: ['project_id'] },
         { fields: ['project_id', 'record_time'] },
         { fields: ['location_id'] },
+        { name: 'idx_contents_project_review', fields: ['project_id', 'review_status'] },
       ],
     }
   );

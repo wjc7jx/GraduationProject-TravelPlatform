@@ -102,7 +102,8 @@ function collectAuditText(contentData) {
 }
 
 /**
- * 异步内容送检：命中/接口异常均写审计日志，永远不抛。
+ * 异步内容送检：命中写审计日志 + 数据库标记；接口异常仅记审计，不标记。
+ * 永远不抛：不能影响用户主链路。
  */
 function queueContentAudit({ content, userId, action }) {
   const contentData = content.content_data || {};
@@ -121,9 +122,11 @@ function queueContentAudit({ content, userId, action }) {
         scene: AUDIT_SCENE.SOCIAL_LOG,
       });
       if (result.pass) return;
+
+      const hit = result.reason === 'risky' || result.reason === 'review';
       logContentAudit({
         event: 'content_sec_check',
-        hit: result.reason === 'risky' || result.reason === 'review',
+        hit,
         reason: result.reason,
         userId,
         openid,
@@ -137,6 +140,33 @@ function queueContentAudit({ content, userId, action }) {
         text: combined,
         detail: result.raw,
       });
+
+      if (hit) {
+        try {
+          await Content.update(
+            {
+              review_status: 'flagged',
+              review_reason: String(result.reason || 'flagged').slice(0, 64),
+              review_checked_at: new Date(),
+            },
+            { where: { content_id: content.content_id } }
+          );
+        } catch (dbErr) {
+          logContentAudit({
+            event: 'content_sec_check',
+            hit: false,
+            reason: 'db_update_failed',
+            userId,
+            resource: {
+              type: 'content',
+              id: content.content_id,
+              action,
+              project_id: content.project_id,
+            },
+            detail: { message: String(dbErr?.message || dbErr) },
+          });
+        }
+      }
     } catch (err) {
       logContentAudit({
         event: 'content_sec_check',
@@ -214,6 +244,9 @@ export async function createContent(projectId, userId, payload) {
     record_time,
     location_id: location_id || null,
     sort_order: sort_order || 0,
+    review_status: 'ok',
+    review_reason: null,
+    review_checked_at: null,
   });
 
   queueContentAudit({ content: created, userId, action: 'create' });
@@ -250,13 +283,22 @@ export async function updateContent(projectId, contentId, userId, payload) {
     ? normalizeContentData(content_data)
     : content.content_data;
 
-  const updated = await content.update({
+  const updatePayload = {
     content_type: content_type !== undefined ? content_type : content.content_type,
     content_data: nextContentData,
     record_time: record_time !== undefined ? record_time : content.record_time,
     location_id: location_id !== undefined ? location_id : content.location_id,
     sort_order: sort_order !== undefined ? sort_order : content.sort_order,
-  });
+  };
+
+  // 文本/标题/附件等可送检字段变更时，乐观清零合规状态，等待下一次异步检测结果。
+  if (content_data !== undefined) {
+    updatePayload.review_status = 'ok';
+    updatePayload.review_reason = null;
+    updatePayload.review_checked_at = null;
+  }
+
+  const updated = await content.update(updatePayload);
 
   if (content_data !== undefined) {
     queueContentAudit({ content: updated, userId, action: 'update' });

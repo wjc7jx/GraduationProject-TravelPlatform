@@ -17,6 +17,14 @@
     </view>
   </view>
 
+  <!-- 合规风险横幅 -->
+  <view wx:if="{{reviewFlagged}}" class="review-banner">
+    <view class="review-banner-title">⚠ 该项目存在合规风险内容</view>
+    <view wx:if="{{reviewScope === 'project'}}" class="review-banner-desc">项目信息（标题/副标题/标签）被判定存在风险，请点击右下角「管理」→「编辑项目」调整后重新保存。</view>
+    <view wx:elif="{{reviewScope === 'content'}}" class="review-banner-desc">共 {{flaggedContentCount}} 条记录被判定存在风险，请进入对应记录修改。未解除前本项目无法导出或分享。</view>
+    <view wx:else class="review-banner-desc">请先定位到被标记的记录并修改，解除风险后即可导出或分享。</view>
+  </view>
+
   <!-- 操作导航区 -->
   <view class="action-grid">
     <!-- 进入时间轴与地图 -->

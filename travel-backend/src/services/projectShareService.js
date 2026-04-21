@@ -2,6 +2,7 @@ import { Project, ProjectShare } from '../models/index.js';
 import { randomUUID } from 'crypto';
 import QRCode from 'qrcode';
 import { getProjectRule } from './privacyService.js';
+import { assertProjectContentReviewable } from './contentReviewGuard.js';
 
 const DEFAULT_SHARE_EXPIRES_HOURS = 7 * 24;
 const MAX_SHARE_EXPIRES_HOURS = 90 * 24;
@@ -78,6 +79,9 @@ export async function createProjectShare(projectId, creatorUserId, payload = {})
     err.status = 403;
     throw err;
   }
+
+  // 合规命中时不允许创建新分享
+  await assertProjectContentReviewable(pid, { action: '分享' });
 
   const expiresInHours = Number(payload.expires_in_hours ?? DEFAULT_SHARE_EXPIRES_HOURS);
   if (!Number.isInteger(expiresInHours) || expiresInHours <= 0 || expiresInHours > MAX_SHARE_EXPIRES_HOURS) {
@@ -200,6 +204,9 @@ export async function getActiveProjectShare(projectId, shareId) {
     err.status = 410;
     throw err;
   }
+
+  // 存量分享：若项目或其内容后来被命中，此处也会拦截，令链接对访客失效。
+  await assertProjectContentReviewable(pid, { action: '访问该分享' });
 
   return share;
 }

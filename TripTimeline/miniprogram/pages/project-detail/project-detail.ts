@@ -6,18 +6,35 @@ const VISIBILITY_PRIVATE = 1;
 /** PDF 由服务端 Puppeteer 生成，耗时长；downloadFile 在开发者工具/localhost 下易出现 ENOENT，故用 request arraybuffer + writeFile */
 const EXPORT_BINARY_TIMEOUT_MS = 180000;
 
-function parseErrorMessageFromArrayBuffer(ab: ArrayBuffer): string | null {
+function parseErrorPayloadFromArrayBuffer(ab: ArrayBuffer): { message: string | null; code: string | null } {
   try {
     const bytes = new Uint8Array(ab);
     let txt = '';
     for (let i = 0; i < bytes.length; i++) {
       txt += String.fromCharCode(bytes[i]);
     }
-    const j = JSON.parse(txt) as { message?: string; msg?: string };
-    return j.message || j.msg || null;
+    const j = JSON.parse(txt) as { message?: string; msg?: string; data?: { code?: string } | null; code?: string | number };
+    return {
+      message: j.message || j.msg || null,
+      code: (j?.data?.code || (typeof j?.code === 'string' ? j.code : null)) || null,
+    };
   } catch {
-    return null;
+    return { message: null, code: null };
   }
+}
+
+function parseErrorMessageFromArrayBuffer(ab: ArrayBuffer): string | null {
+  return parseErrorPayloadFromArrayBuffer(ab).message;
+}
+
+function showReviewBlockedModal(action: '导出' | '分享') {
+  wx.showModal({
+    title: `${action}被合规检测拦截`,
+    content: '该项目存在被判定为违规的内容，请先进入有提示的记录修改并重新保存，系统会自动重新检测。',
+    showCancel: false,
+    confirmText: '我知道了',
+    confirmColor: '#C0360C'
+  });
 }
 
 function saveRemoteBinaryToUserData(
@@ -35,10 +52,13 @@ function saveRemoteBinaryToUserData(
       timeout: timeoutMs,
       success(res) {
         if (res.statusCode < 200 || res.statusCode >= 300) {
-          const hint = res.data
-            ? parseErrorMessageFromArrayBuffer(res.data as ArrayBuffer)
-            : null;
-          reject(new Error(hint || `请求失败(${res.statusCode})`));
+          const payload = res.data
+            ? parseErrorPayloadFromArrayBuffer(res.data as ArrayBuffer)
+            : { message: null, code: null };
+          const err: any = new Error(payload.message || `请求失败(${res.statusCode})`);
+          err.statusCode = res.statusCode;
+          err.code = payload.code;
+          reject(err);
           return;
         }
         const data = res.data as ArrayBuffer;
@@ -74,7 +94,11 @@ Page({
       locations: 0,
       photos: 0,
       days: 0
-    }
+    },
+    reviewFlagged: false,
+    reviewReason: '',
+    reviewScope: '' as '' | 'project' | 'content',
+    flaggedContentCount: 0
   },
 
   onLoad(options: any) {
@@ -204,6 +228,12 @@ Page({
         success: () => wx.showToast({ title: '口令已复制', icon: 'success' }),
       })
     } catch (error) {
+      if (error && typeof error === 'object' && (error as any).code === 'CONTENT_REVIEW_BLOCKED') {
+        showReviewBlockedModal('分享')
+        await this.fetchProjectDetail(projectId)
+        await this.fetchStats(projectId)
+        return
+      }
       const message = error && typeof error === 'object' && 'message' in error
         ? String((error as Error).message)
         : '生成分享口令失败'
@@ -235,6 +265,12 @@ Page({
       wx.previewImage({ current: localPath, urls: [localPath] })
     } catch (error) {
       wx.hideLoading()
+      if (error && typeof error === 'object' && (error as any).code === 'CONTENT_REVIEW_BLOCKED') {
+        showReviewBlockedModal('分享')
+        await this.fetchProjectDetail(projectId)
+        await this.fetchStats(projectId)
+        return
+      }
       const message = error && typeof error === 'object' && 'message' in error
         ? String((error as Error).message)
         : '二维码生成失败'
@@ -272,17 +308,28 @@ Page({
       
       let locationsCount = 0;
       let photosCount = 0;
+      let flaggedCount = 0;
 
       res.forEach(item => {
         if (item.location || item.location_id) locationsCount++;
         if (item.content_type === 'photo') {
           photosCount++;
         }
+        if (String(item.review_status || '') === 'flagged') flaggedCount++;
       });
+
+      const prevFlagged = this.data.reviewFlagged;
+      const prevScope = this.data.reviewScope;
+      // 合并项目级 flag 与内容级 flag
+      const nextFlagged = prevFlagged || flaggedCount > 0;
+      const nextScope = prevScope === 'project' ? 'project' : (flaggedCount > 0 ? 'content' : prevScope);
 
       this.setData({
         'stats.locations': locationsCount,
-        'stats.photos': photosCount
+        'stats.photos': photosCount,
+        flaggedContentCount: flaggedCount,
+        reviewFlagged: nextFlagged,
+        reviewScope: nextScope
       });
     } catch(e) {
       console.error('Fetch stats failed', e);
@@ -315,6 +362,7 @@ Page({
         days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
       }
 
+      const projectFlagged = String(res.review_status || '') === 'flagged';
       this.setData({
         isOwner: Number(wx.getStorageSync('userInfo')?.user_id || 0) === Number(res.user_id || 0),
         projectDetail: {
@@ -325,7 +373,10 @@ Page({
           date: dateStr,
           isArchived: Number(res.is_archived) === 1
         },
-        'stats.days': days
+        'stats.days': days,
+        reviewFlagged: projectFlagged,
+        reviewReason: String(res.review_reason || ''),
+        reviewScope: projectFlagged ? 'project' : ''
       });
       await this.fetchProjectVisibility(id)
       await this.ensureShareLinkReady(res)
@@ -610,6 +661,12 @@ Page({
       });
     } catch (err) {
       wx.hideLoading();
+      if (err && typeof err === 'object' && (err as any).code === 'CONTENT_REVIEW_BLOCKED') {
+        showReviewBlockedModal('导出');
+        await this.fetchProjectDetail(this.data.projectId as string);
+        await this.fetchStats(this.data.projectId as string);
+        return;
+      }
       const msg = err && typeof err === 'object' && 'message' in err
         ? String((err as Error).message)
         : '';
@@ -653,6 +710,12 @@ Page({
       });
     } catch (err) {
       wx.hideLoading();
+      if (err && typeof err === 'object' && (err as any).code === 'CONTENT_REVIEW_BLOCKED') {
+        showReviewBlockedModal('导出');
+        await this.fetchProjectDetail(this.data.projectId as string);
+        await this.fetchStats(this.data.projectId as string);
+        return;
+      }
       const msg = err && typeof err === 'object' && 'message' in err
         ? String((err as Error).message)
         : '';

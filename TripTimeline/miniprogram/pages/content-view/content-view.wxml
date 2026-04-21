@@ -5,6 +5,10 @@
     <view wx:if="{{loading}}" class="loading-text">加载中...</view>
 
     <block wx:else>
+      <view wx:if="{{reviewFlagged}}" class="review-banner" catchtap="noop">
+        <view class="review-banner-title">⚠ 该记录存在合规风险，暂无法导出或分享</view>
+        <view class="review-banner-desc">请点击下方「编辑当前记录」修改后重新保存，系统会自动重新检测。</view>
+      </view>
       <view class="tip-text">{{isProjectArchived ? '当前项目已归档，仅可查看记录' : '点击卡片进入编辑'}}</view>
 
       <view class="meta-row">

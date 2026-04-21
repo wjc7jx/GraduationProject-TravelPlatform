@@ -24,6 +24,28 @@
   font-size: 22rpx;
 }
 
+.review-banner {
+  background: linear-gradient(135deg, #fff3e6 0%, #ffe0d4 100%);
+  border: 2rpx solid #ff8f5a;
+  border-radius: 20rpx;
+  padding: 20rpx 24rpx;
+  box-shadow: 0 10rpx 24rpx rgba(255, 96, 36, 0.14);
+
+  .review-banner-title {
+    color: #c0360c;
+    font-size: 28rpx;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .review-banner-desc {
+    color: #8a4728;
+    font-size: 24rpx;
+    margin-top: 6rpx;
+    line-height: 1.6;
+  }
+}
+
 .meta-row {
   display: flex;
   justify-content: space-between;

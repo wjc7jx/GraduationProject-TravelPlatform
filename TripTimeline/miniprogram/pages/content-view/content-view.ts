@@ -19,7 +19,9 @@ Page({
     locationAddress: '',
     images: [] as string[],
     audioUrl: '',
-    audioValue: { url: '', name: '' } as { url: string; name: string }
+    audioValue: { url: '', name: '' } as { url: string; name: string },
+    reviewFlagged: false,
+    reviewReason: ''
   },
 
   onLoad(options: any) {
@@ -92,7 +94,9 @@ Page({
         locationAddress: locationText.address || location.address || '',
         images,
         audioUrl,
-        audioValue: rawAudioUrl ? { url: rawAudioUrl, name: audioName } : { url: '', name: '' }
+        audioValue: rawAudioUrl ? { url: rawAudioUrl, name: audioName } : { url: '', name: '' },
+        reviewFlagged: String(target.review_status || '') === 'flagged',
+        reviewReason: String(target.review_reason || '')
       });
     } catch (e) {
       this.setData({ loading: false });

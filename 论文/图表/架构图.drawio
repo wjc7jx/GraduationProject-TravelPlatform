@@ -1,0 +1,88 @@
+<mxfile host="drawio.min2k.com" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0" version="@DRAWIO-VERSION@">
+  <diagram name="第 1 页" id="wosE1_fdyuBWjlhbTFL6">
+    <mxGraphModel dx="850" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-1" value="客户端" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5de55d;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="130" y="70" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-2" value="微信小程序端" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="270" y="70" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-3" value="业务层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="130" y="195" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="K3j6NXD3OmIhDSEhFiQu-4" target="K3j6NXD3OmIhDSEhFiQu-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="270" y="160" width="350" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-5" value="时间轴生成模块" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="294" y="170" width="96" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-6" value="地图轨迹模块&lt;span style=&quot;color: rgba(0, 0, 0, 0); font-family: monospace; font-size: 0px; text-align: start; white-space: nowrap;&quot;&gt;%3CmxGraphModel%3E%3Croot%3E%3CmxCell%20id%3D%220%22%2F%3E%3CmxCell%20id%3D%221%22%20parent%3D%220%22%2F%3E%3CmxCell%20id%3D%222%22%20value%3D%22%E6%97%B6%E9%97%B4%E8%BD%B4%E7%94%9F%E6%88%90%E6%A8%A1%E5%9D%97%22%20style%3D%22rounded%3D0%3BwhiteSpace%3Dwrap%3Bhtml%3D1%3BfillColor%3D%23dae8fc%3BstrokeColor%3D%236c8ebf%3B%22%20vertex%3D%221%22%20parent%3D%221%22%3E%3CmxGeometry%20x%3D%22294%22%20y%3D%22170%22%20width%3D%2296%22%20height%3D%2240%22%20as%3D%22geometry%22%2F%3E%3C%2FmxCell%3E%3C%2Froot%3E%3C%2FmxGraphModel%3E&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="400" y="170" width="96" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-7" value="分享与隐私模块" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="510" y="170" width="96" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-8" value="项目管理模块" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="294" y="220" width="96" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-9" value="内容记录模块" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="400" y="220" width="96" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-10" value="Express" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="528" y="225" width="72" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-11" value="数据访问层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d08cf2;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="130" y="320" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-12" value="Sequlize ORM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="270" y="320" width="350" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-13" value="存储层" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f97871;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="130" y="420" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-14" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="270" y="410" width="400" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-15" value="MySQL" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.database;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="360" y="420" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-16" value="OSS" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.database;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="528" y="420" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-17" value="权&lt;div&gt;限&lt;/div&gt;&lt;div&gt;控&lt;/div&gt;&lt;div&gt;制&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="630" y="160" width="40" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.437;entryY=0.973;entryDx=0;entryDy=0;entryPerimeter=0;startArrow=classic;startFill=1;endArrow=none;endFill=0;" edge="1" parent="1" source="K3j6NXD3OmIhDSEhFiQu-4" target="K3j6NXD3OmIhDSEhFiQu-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.437;entryY=0.044;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="K3j6NXD3OmIhDSEhFiQu-12" target="K3j6NXD3OmIhDSEhFiQu-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-29" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="140" y="146" as="sourcePoint" />
+            <mxPoint x="660" y="146" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-30" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="142" y="305" as="sourcePoint" />
+            <mxPoint x="602" y="305" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="K3j6NXD3OmIhDSEhFiQu-32" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="142" y="396" as="sourcePoint" />
+            <mxPoint x="662" y="396" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

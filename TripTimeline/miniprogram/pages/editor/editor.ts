@@ -25,6 +25,9 @@ Page({
     );
   },
 
+  // 富文本编辑器上下文（由 onEditorReady 初始化）
+  editorCtx: null as any,
+
   data: {
     projectId: '',
     contentId: '',
@@ -824,7 +827,19 @@ Page({
           address: this.data.locationAddress || this.data.location.address
         } : null;
       } else {
-        requestData.location_id = this.data.existingLocationId;
+        // 编辑模式下也允许补充/更新坐标，否则 timeline-map 无法获得 location.latitude/longitude
+        const hasLoc = this.hasValidLocation(this.data.location);
+        const shouldSendLocation = hasLoc && (this.data.locationEditedByUser || !this.data.existingLocationId);
+        if (shouldSendLocation) {
+          requestData.location = {
+            latitude: this.data.location.lat,
+            longitude: this.data.location.lon,
+            name: this.data.locationName || this.data.location.name,
+            address: this.data.locationAddress || this.data.location.address
+          };
+        } else {
+          requestData.location_id = this.data.existingLocationId;
+        }
       }
 
       await request<any>({
@@ -837,7 +852,6 @@ Page({
 
       this.setData({ submitStatus: 'success' });
       setTimeout(() => wx.navigateBack(), 1500);
-
     } catch (e) {
       this.setData({ submitStatus: 'error' });
       wx.vibrateShort({ type: 'medium' });

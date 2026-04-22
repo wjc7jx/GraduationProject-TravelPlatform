@@ -273,7 +273,7 @@ export async function updateContent(projectId, contentId, userId, payload) {
   const project = await getProjectOrThrow(projectId, userId);
   ensureProjectEditable(project);
   const content = await getContentOrThrow(projectId, contentId, userId);
-  const { content_type, content_data, record_time, location_id, sort_order } = payload;
+  const { content_type, content_data, record_time, location_id, sort_order, location } = payload;
 
   if (content_type !== undefined) {
     assertContentType(content_type);
@@ -290,6 +290,37 @@ export async function updateContent(projectId, contentId, userId, payload) {
     location_id: location_id !== undefined ? location_id : content.location_id,
     sort_order: sort_order !== undefined ? sort_order : content.sort_order,
   };
+
+  // 兼容前端编辑态传 location（补定位/更新定位）
+  // - location 为 null：显式清空定位
+  // - location 含经纬度：若已有 location_id 则更新该 Location，否则新建 Location 并绑定
+  if (location === null) {
+    updatePayload.location_id = null;
+  } else if (
+    location
+    && typeof location === 'object'
+    && location.latitude !== undefined
+    && location.longitude !== undefined
+  ) {
+    const lat = Number(location.latitude);
+    const lon = Number(location.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      const nextLocFields = {
+        latitude: lat,
+        longitude: lon,
+        name: sanitizePlainText(location.name, { maxLength: 200 }) || null,
+        address: sanitizePlainText(location.address, { maxLength: 200 }) || null,
+      };
+
+      if (content.location_id) {
+        await Location.update(nextLocFields, { where: { location_id: content.location_id } });
+        updatePayload.location_id = content.location_id;
+      } else {
+        const newLoc = await Location.create(nextLocFields);
+        updatePayload.location_id = newLoc.location_id;
+      }
+    }
+  }
 
   // 文本/标题/附件等可送检字段变更时，乐观清零合规状态，等待下一次异步检测结果。
   if (content_data !== undefined) {

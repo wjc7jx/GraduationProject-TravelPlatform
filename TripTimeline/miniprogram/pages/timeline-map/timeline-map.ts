@@ -2,6 +2,53 @@ import { request, asAbsoluteAssetUrl } from '../../utils/request';
 import api from '../../utils/api';
 import { guardArchivedWrite, normalizeProjectArchived } from '../../utils/projectArchive';
 
+const MARKER_ICON: Record<string, string> = {
+  photo: '/assets/img/marker-photo.svg',
+  note: '/assets/img/marker-note.svg',
+  audio: '/assets/img/marker-audio.svg'
+};
+const MARKER_ACTIVE_ICON = '/assets/img/marker-active.svg';
+
+// 按天循环使用的轨迹色板（提高不透明度，保证地图上可读性）
+const DAY_POLYLINE_COLORS = [
+  '#C85A3DE6', // 陶土红
+  '#2A4B3CE6', // 深林绿
+  '#B88A3EE6', // 琥珀棕
+  '#6B7A8FE6', // 青灰
+  '#8A5B5BE6', // 砖褐
+  '#527A6BE6', // 湖松
+  '#9B8355E6'  // 卡其
+];
+
+// 长距离跳跃阈值（km）：超过此距离的相邻节点视为"位移/交通段"，改用虚线呈现
+const LONG_HOP_KM = 1.5;
+// 跨天衔接线颜色（低饱和暖灰）
+const CROSS_DAY_LINK_COLOR = '#6E6256B3';
+// 非激活段的降色后缀（保持色相、降透明度；太淡会看不清）
+function dimDayColor(base: string): string {
+  if (base && base.length === 9 && base[0] === '#') {
+    return base.slice(0, 7) + '8C';
+  }
+  return base;
+}
+// 两点间球面距离（km），用 Haversine 近似
+function haversineKm(aLat: number, aLon: number, bLat: number, bLon: number): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLon = toRad(bLon - aLon);
+  const la1 = toRad(aLat);
+  const la2 = toRad(bLat);
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+const SHEET_SNAP_SMALL = 30;
+const SHEET_SNAP_MID = 55;
+const SHEET_SNAP_LARGE = 80;
+
 Page({
   _audioContext: null as WechatMiniprogram.InnerAudioContext | null,
 
@@ -28,7 +75,19 @@ Page({
     markers: [] as any[],
     polylines: [] as any[],
     allMapPoints: [] as any[],
-    
+
+    // A7/A8: 未定位节点数 & 进度指示
+    noLocCount: 0,
+    totalCount: 0,
+    locatedCount: 0,     // 当前视图中的有定位节点数（按天筛选时会变化）
+    progressCurrent: 0,  // 当前激活节点在"有定位列表"中的序号（1-based，0 = 无）
+
+    // A4: 按天聚焦状态；为空表示全程
+    activeDayDate: '',
+
+    // B3: 停留热力 circles
+    circles: [] as any[],
+
     projectDetail: null as any,
     timelineData: [] as any[],
     _startY: 0,
@@ -175,6 +234,7 @@ Page({
 
           return {
             id: item.content_id,
+            type: item.content_type || 'note',
             dateStr: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`,
             time: d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
             category: item.content_type === 'photo' ? '照片' : (item.content_type === 'note' ? '日记' : '音频'),
@@ -202,7 +262,8 @@ Page({
           group.items.push({...item, globalIndex: globalIndex++});
         });
 
-        this.setData({ timelineData: grouped });
+        // 数据刷新时清空按天筛选，避免旧日被保留
+        this.setData({ timelineData: grouped, activeDayDate: '' });
 
         const groupedItems = grouped.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
         const firstLoc = groupedItems.find(i => i.hasLoc);
@@ -230,45 +291,162 @@ Page({
   },
 
   initMapData() {
-    const list = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []).filter((item: any) => item.hasLoc);
-    const markers = list.map((item: any) => ({
-      id: item.globalIndex,
-      latitude: item.lat,
-      longitude: item.lon,
-      iconPath: item.globalIndex === this.data.activeIndex ? '/assets/img/marker-active.svg' : '/assets/img/marker.svg',
-      width: item.globalIndex === this.data.activeIndex ? 32 : 24,
-      height: item.globalIndex === this.data.activeIndex ? 32 : 24,
-      callout: {
-        content: item.title,
-        color: item.globalIndex === this.data.activeIndex ? '#FFFFFF' : '#1C1C1C',
-        fontSize: 12,
-        borderRadius: 4,
-        bgColor: item.globalIndex === this.data.activeIndex ? '#C85A3D' : '#FFFFFF',
-        padding: 6,
-        display: item.globalIndex === this.data.activeIndex ? 'ALWAYS' : 'BYCLICK'
-      }
-    }));
+    // 全局数量始终基于"所有节点"，未定位提醒条不随按天筛选变化
+    const flatAll: any[] = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+    const totalCount = flatAll.length;
+    const noLocCount = flatAll.filter((i: any) => !i.hasLoc).length;
 
-    const points = list.map((item: any) => ({
-      latitude: item.lat,
-      longitude: item.lon
-    }));
+    // A4：按天筛选视图范围
+    const dayDate = this.data.activeDayDate;
+    const visibleGroups = dayDate
+      ? this.data.timelineData.filter((g: any) => g.date === dayDate)
+      : this.data.timelineData;
+    const flatVisible: any[] = visibleGroups.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+    const list = flatVisible.filter((item: any) => item.hasLoc);
 
-    const polylines = points.length ? [{
-      points,
-      color: '#C85A3D80',
-      width: 4,
-      dottedLine: true
-    }] : [];
+    // A1：按 content_type 选图标；激活态保持红色描边款
+    const activeIdx = this.data.activeIndex;
+    const markers = list.map((item: any) => {
+      const isActive = item.globalIndex === activeIdx;
+      return {
+        id: item.globalIndex,
+        latitude: item.lat,
+        longitude: item.lon,
+        iconPath: isActive ? MARKER_ACTIVE_ICON : (MARKER_ICON[item.type] || MARKER_ICON.note),
+        width: isActive ? 36 : 26,
+        height: isActive ? 36 : 26,
+        // A3：激活 marker 不参与聚合，避免激活中的点被藏进气泡
+        joinCluster: !isActive,
+        callout: {
+          content: item.title,
+          color: isActive ? '#FFFFFF' : '#1C1C1C',
+          fontSize: 12,
+          borderRadius: 4,
+          bgColor: isActive ? '#C85A3D' : '#FFFFFF',
+          padding: 6,
+          display: isActive ? 'ALWAYS' : 'BYCLICK'
+        }
+      };
+    });
+
+    // A2：按"天"分色；每天内部再按段距离切为实线/虚线；激活段高亮、跨天细虚线衔接
+    const polylines = this.buildPolylines(visibleGroups, activeIdx);
+
+    const allPoints = list.map((item: any) => ({ latitude: item.lat, longitude: item.lon }));
+    const progressCurrent = this.computeProgress(list, activeIdx);
+
+    // B3：停留热力 circles（按 ~100m 网格聚合，count≥2 时显示光晕）
+    const circles = this.buildStayCircles(list);
 
     this.setData({
       markers,
       polylines,
-      allMapPoints: points,
+      circles,
+      allMapPoints: allPoints,
+      totalCount,
+      noLocCount,
+      locatedCount: list.length,
+      progressCurrent,
       showResetViewport: false
     });
 
     this.resetMapViewport(true);
+  },
+
+  // 生成轨迹 polyline：按天分色 + 段距离切虚实 + 激活段高亮 + 跨天衔接
+  buildPolylines(visibleGroups: any[], activeIdx: number): any[] {
+    const polylines: any[] = [];
+    const dayFlats: any[][] = [];
+
+    visibleGroups.forEach((day: any, vi: number) => {
+      const originalIdx = this.data.timelineData.findIndex((g: any) => g.date === day.date);
+      const safeIdx = originalIdx >= 0 ? originalIdx : 0;
+      const baseColor = DAY_POLYLINE_COLORS[safeIdx % DAY_POLYLINE_COLORS.length];
+      const dimColor = dimDayColor(baseColor);
+
+      const pts = (day.items || []).filter((i: any) => i.hasLoc);
+      dayFlats[vi] = pts;
+      if (pts.length < 2) return;
+
+      // active 节点在当天有定位列表中的下标；<0 表示 active 不在本日
+      const activeInDay = pts.findIndex((p: any) => p.globalIndex === activeIdx);
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i];
+        const b = pts[i + 1];
+        const distKm = haversineKm(a.lat, a.lon, b.lat, b.lon);
+        const isLong = distKm > LONG_HOP_KM;
+        const isActiveSeg =
+          activeInDay >= 0 && (i === activeInDay || i + 1 === activeInDay);
+        // 当天有激活节点但不是本段 → 降色；否则保持满色
+        const useBase = activeInDay < 0 || isActiveSeg;
+
+        polylines.push({
+          points: [
+            { latitude: a.lat, longitude: a.lon },
+            { latitude: b.lat, longitude: b.lon }
+          ],
+          color: useBase ? baseColor : dimColor,
+          width: isActiveSeg ? 6 : 4,
+          arrowLine: !isLong,
+          dottedLine: isLong,
+          borderColor: '#FFFFFF80',
+          borderWidth: 1
+        });
+      }
+    });
+
+    // 跨天衔接：上一天末 → 下一天首，细灰虚线（按天聚焦时 visibleGroups 只有 1 天，自然不画）
+    for (let d = 0; d < dayFlats.length - 1; d++) {
+      const cur = dayFlats[d];
+      const next = dayFlats[d + 1];
+      if (!cur || !next || !cur.length || !next.length) continue;
+      const last = cur[cur.length - 1];
+      const first = next[0];
+      polylines.push({
+        points: [
+          { latitude: last.lat, longitude: last.lon },
+          { latitude: first.lat, longitude: first.lon }
+        ],
+        color: CROSS_DAY_LINK_COLOR,
+        width: 2,
+        dottedLine: true,
+        arrowLine: false
+      });
+    }
+
+    return polylines;
+  },
+
+  // B3：根据节点位置网格聚合，生成停留气泡（低饱和琥珀色），表达"同一点多次停留"
+  buildStayCircles(locList: any[]): any[] {
+    const grid: Record<string, { lat: number; lon: number; count: number }> = {};
+    locList.forEach((i: any) => {
+      const key = `${i.lat.toFixed(3)}_${i.lon.toFixed(3)}`;
+      if (!grid[key]) grid[key] = { lat: i.lat, lon: i.lon, count: 0 };
+      grid[key].count += 1;
+    });
+    const circles: any[] = [];
+    Object.values(grid).forEach((cell) => {
+      if (cell.count < 2) return;
+      const radius = Math.min(280, 100 + cell.count * 40);
+      circles.push({
+        latitude: cell.lat,
+        longitude: cell.lon,
+        color: '#B88A3EFF',
+        fillColor: '#B88A3E26',
+        radius,
+        strokeWidth: 1
+      });
+    });
+    return circles;
+  },
+
+  // 计算激活节点在"有定位列表"中的位置（1-based）
+  computeProgress(locList: any[], activeIdx: number): number {
+    if (!locList || !locList.length) return 0;
+    const pos = locList.findIndex((i: any) => i.globalIndex === activeIdx);
+    return pos >= 0 ? pos + 1 : 0;
   },
 
   resetMapViewport(initial = false) {
@@ -280,18 +458,46 @@ Page({
       });
       return;
     }
+    // A5：padding 按当前抽屉高度动态计算，确保所有 marker 都在抽屉之上
+    const paddingBottom = this.calcMapBottomPadding();
     setTimeout(() => {
       const mapCtx = wx.createMapContext('storyMap');
       mapCtx.includePoints({
         points,
-        padding: [60, 48, 360, 48] // 底部给抽屉和按钮留出空间
+        padding: [120, 48, paddingBottom, 48]
       });
     }, initial ? 500 : 80);
     this.setData({ showResetViewport: false });
   },
 
+  // 把 sheetHeight(vh) 换算成 px 再加一点 FAB/安全区余量
+  calcMapBottomPadding(): number {
+    try {
+      const sys = wx.getSystemInfoSync();
+      const sheetPx = Math.round((this.data.sheetHeight / 100) * sys.windowHeight);
+      return sheetPx + 80;
+    } catch (e) {
+      return 360;
+    }
+  },
+
   onResetViewportTap() {
-    this.resetMapViewport(false);
+    // A4 + UX：回到全览时同步清除按天筛选
+    if (this.data.activeDayDate) {
+      this.setData({ activeDayDate: '' });
+      this.initMapData();
+    } else {
+      this.resetMapViewport(false);
+    }
+  },
+
+  // A4：点击时间轴 day header → 仅显示当天 markers/polyline/circles；再次点击或点"回到全览"恢复
+  onDayHeaderTap(e: any) {
+    const date = e.currentTarget.dataset.date;
+    if (!date) return;
+    const nextDay = this.data.activeDayDate === date ? '' : date;
+    this.setData({ activeDayDate: nextDay });
+    this.initMapData();
   },
 
   onMapRegionChange(e: any) {
@@ -328,14 +534,24 @@ Page({
   onTouchEnd() {
     this.setData({ isDragging: false });
     const currentHeight = this.data.sheetHeight;
-    // 吸附逻辑：滑动超过中间值吸附过去
-    let snapHeight = 30; // 默认缩起状态
-    if (currentHeight > 55) {
-      snapHeight = 80; // 展开状态
+    const prevHeight = this.data._startHeight;
+
+    // A5：三档吸附（小 30 / 中 55 / 大 80）——用阈值带而非单一中点，交互更顺滑
+    let snapHeight: number;
+    if (currentHeight >= 68) {
+      snapHeight = SHEET_SNAP_LARGE;
+    } else if (currentHeight >= 42) {
+      snapHeight = SHEET_SNAP_MID;
     } else {
-      snapHeight = 30; 
+      snapHeight = SHEET_SNAP_SMALL;
     }
+
     this.setData({ sheetHeight: snapHeight });
+
+    // 抽屉高度显著改变时，若用户正处于"全览态"就重新 fit，一次拿满视野
+    if (Math.abs(snapHeight - prevHeight) > 4 && !this.data.showResetViewport && this.data.allMapPoints.length) {
+      setTimeout(() => this.resetMapViewport(false), 420);
+    }
   },
 
   onMapTap() {
@@ -418,6 +634,27 @@ Page({
     });
   },
 
+  // A3：点击聚合气泡 → 放大地图使簇内点展开
+  onMarkerClusterTap(e: any) {
+    const { clusterId, markerIds } = e.detail || {};
+    if (!markerIds || !markerIds.length) return;
+    // 根据 markerIds 反推簇内 points 并 includePoints 到更近距离
+    const idSet = new Set(markerIds);
+    const points = this.data.markers
+      .filter((m: any) => idSet.has(m.id))
+      .map((m: any) => ({ latitude: m.latitude, longitude: m.longitude }));
+    if (!points.length) return;
+    const mapCtx = wx.createMapContext('storyMap');
+    const paddingBottom = this.calcMapBottomPadding();
+    mapCtx.includePoints({
+      points,
+      padding: [120, 60, paddingBottom, 60]
+    });
+    this.setData({ showResetViewport: true });
+    // clusterId 只用于避免 TS 未使用警告
+    void clusterId;
+  },
+
   // 点击地图标记联动时间轴
   onMarkerTap(e: any) {
     const index = e.detail.markerId;
@@ -441,35 +678,72 @@ Page({
     const target = this.getNodeByIndex(index);
     if (!target || !target.hasLoc) {
       if (this.data.activeIndex !== index) {
-        this.setData({ activeIndex: index });
+        this.setData({ activeIndex: index, progressCurrent: 0 });
       }
-      return; // 没有定位直接返回
+      return;
     }
-    const prevMarkers = this.data.markers;
-    const markers = prevMarkers.map((m: any) => {
-      const isActive = m.id === index;
-      return {
-        ...m,
-        iconPath: isActive ? '/assets/img/marker-active.svg' : '/assets/img/marker.svg',
-        width: isActive ? 32 : 24,
-        height: isActive ? 32 : 24,
-        callout: {
-          ...m.callout,
-          bgColor: isActive ? '#C85A3D' : '#FFFFFF',
-          color: isActive ? '#FFFFFF' : '#1C1C1C',
-          display: isActive ? 'ALWAYS' : 'BYCLICK'
-        }
-      };
-    });
 
-    this.setData({
+    const prevMarkers = this.data.markers as any[];
+    const prevActiveIdx = prevMarkers.findIndex((m: any) => m.id === this.data.activeIndex);
+    const nextActiveIdx = prevMarkers.findIndex((m: any) => m.id === index);
+
+    const flatLoc = this.data.timelineData
+      .reduce((acc: any[], cur: any) => acc.concat(cur.items), [])
+      .filter((i: any) => i.hasLoc);
+
+    // UX：只对"前激活 / 新激活"两个数组下标做路径式 setData，避免整组 markers 重新 diff 导致闪烁
+    const patch: Record<string, any> = {
       activeIndex: index,
       centerLat: target.lat,
       centerLon: target.lon,
-      markers,
       mapScale: 15,
-      showResetViewport: true
-    });
+      showResetViewport: true,
+      progressCurrent: this.computeProgress(flatLoc, index)
+    };
+
+    // 同步重算轨迹，让"激活段加粗 + 其它段降透明"随点击即时更新
+    const visibleGroups = this.data.activeDayDate
+      ? this.data.timelineData.filter((g: any) => g.date === this.data.activeDayDate)
+      : this.data.timelineData;
+    patch.polylines = this.buildPolylines(visibleGroups, index);
+
+    if (prevActiveIdx >= 0 && prevActiveIdx !== nextActiveIdx) {
+      const prev = prevMarkers[prevActiveIdx];
+      const prevNode = this.getNodeByIndex(prev.id);
+      const prevIcon = MARKER_ICON[prevNode?.type || 'note'] || MARKER_ICON.note;
+      patch[`markers[${prevActiveIdx}]`] = {
+        ...prev,
+        iconPath: prevIcon,
+        width: 26,
+        height: 26,
+        joinCluster: true,
+        callout: {
+          ...prev.callout,
+          bgColor: '#FFFFFF',
+          color: '#1C1C1C',
+          display: 'BYCLICK'
+        }
+      };
+    }
+
+    if (nextActiveIdx >= 0) {
+      const next = prevMarkers[nextActiveIdx];
+      patch[`markers[${nextActiveIdx}]`] = {
+        ...next,
+        iconPath: MARKER_ACTIVE_ICON,
+        width: 36,
+        height: 36,
+        joinCluster: false,
+        callout: {
+          ...next.callout,
+          bgColor: '#C85A3D',
+          color: '#FFFFFF',
+          display: 'ALWAYS'
+        }
+      };
+    }
+
+    this.setData(patch);
 
     const mapCtx = wx.createMapContext('storyMap');
     mapCtx.moveToLocation({
@@ -481,6 +755,19 @@ Page({
   getNodeByIndex(index: number) {
     const targetItems = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
     return targetItems.find((i: any) => i.globalIndex === index);
+  },
+
+  // A7：点击"N 条未定位"条 → 滚动到第一条未定位节点并展开抽屉
+  onNoLocHintTap() {
+    const flat = this.data.timelineData.reduce((acc: any[], cur: any) => acc.concat(cur.items), []);
+    const first = flat.find((i: any) => !i.hasLoc);
+    if (!first) return;
+    this.setData({
+      activeIndex: first.globalIndex,
+      scrollToId: 'node-' + first.id,
+      sheetHeight: SHEET_SNAP_LARGE,
+      progressCurrent: 0
+    });
   },
 
   goToEditor() {

@@ -1,0 +1,86 @@
+<mxfile host="drawio.min2k.com" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0" version="@DRAWIO-VERSION@">
+  <diagram name="第 1 页" id="QI6Qp3c-D2vekUwPcHVq">
+    <mxGraphModel dx="622" dy="996" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-1" target="CNvLt4Og-Cs5GY5tcprp-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-1" value="" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_2;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="243" y="60" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-2" target="CNvLt4Og-Cs5GY5tcprp-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-2" value="用户进入时间轴/地图页面" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="213" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-3" target="CNvLt4Og-Cs5GY5tcprp-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-3" value="选择旅行项目" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="213" y="200" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-4" value="提示暂无旅行记录" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="313" y="450" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-5" value="系统加载该项目的旅行记录" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="213" y="280" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-6" target="CNvLt4Og-Cs5GY5tcprp-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-6" value="展示时间轴列表" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="110" y="440" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-7" target="CNvLt4Og-Cs5GY5tcprp-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-7" value="展示地图位置分布" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="110" y="540" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-8" value="用户点击查看具体记录详情" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="110" y="640" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-11" target="CNvLt4Og-Cs5GY5tcprp-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-22" value="是" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="CNvLt4Og-Cs5GY5tcprp-15">
+          <mxGeometry x="-0.2706" y="-2" relative="1" as="geometry">
+            <mxPoint y="-9" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-11" target="CNvLt4Og-Cs5GY5tcprp-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-23" value="否" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="CNvLt4Og-Cs5GY5tcprp-18">
+          <mxGeometry x="-0.4783" y="1" relative="1" as="geometry">
+            <mxPoint y="-11" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-11" value="是否存在记录" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="210" y="370" width="106" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-5" target="CNvLt4Og-Cs5GY5tcprp-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-24" value="" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="228" y="720" width="42" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-25" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-8" target="CNvLt4Og-Cs5GY5tcprp-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-4" target="CNvLt4Og-Cs5GY5tcprp-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-27" value="" style="verticalLabelPosition=bottom;verticalAlign=top;html=1;shape=mxgraph.flowchart.or;" vertex="1" parent="1">
+          <mxGeometry x="231" y="790" width="36" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="CNvLt4Og-Cs5GY5tcprp-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="CNvLt4Og-Cs5GY5tcprp-24" target="CNvLt4Og-Cs5GY5tcprp-27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

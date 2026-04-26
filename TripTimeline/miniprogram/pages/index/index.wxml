@@ -11,7 +11,7 @@
   ></project-filter>
 
   <!-- 授权与登录状态 -->
-  <view wx:if="{{!hasAuth && !isLoading}}" class="empty-state container fade-up" style="animation-delay: 0.3s">
+  <view wx:if="{{!hasAuth && !isLoading}}" class="empty-state fade-up" style="animation-delay: 0.3s">
     <image class="empty-icon" src="/assets/img/empty-travel.png" mode="aspectFit"></image>
     <view class="empty-title">欢迎使用旅行时光轴</view>
     <view class="empty-desc">请先授权登录，开启你的专属旅行日记</view>
@@ -19,7 +19,7 @@
   </view>
 
   <!-- 空项目状态 -->
-  <view wx:elif="{{hasAuth && projects.length === 0 && !isLoading}}" class="empty-state container fade-up" style="animation-delay: 0.3s">
+  <view wx:elif="{{hasAuth && projects.length === 0 && !isLoading}}" class="empty-state fade-up" style="animation-delay: 0.3s">
     <app-icon wx:if="{{hasActiveFilter}}" class="empty-icon" name="search" size="100rpx"></app-icon>
     <app-icon wx:else class="empty-icon" name="globe" size="100rpx"></app-icon>
     <view class="empty-title">{{hasActiveFilter ? '没有匹配的结果' : '第一本旅行日记'}}</view>

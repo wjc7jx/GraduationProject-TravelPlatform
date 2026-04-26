@@ -68,6 +68,20 @@ App<IAppOption>({
     return { projectId, shareId }
   },
 
+  getShareCommandFingerprint(parsed: { projectId: string; shareId: string }) {
+    return `${parsed.projectId}|${parsed.shareId}`
+  },
+
+  openShareCommand(parsed: { projectId: string; shareId: string }, options: { markHandled?: boolean } = {}) {
+    const fingerprint = this.getShareCommandFingerprint(parsed)
+    if (options.markHandled !== false) {
+      wx.setStorageSync(LAST_HANDLED_SHARE_KEY, fingerprint)
+    }
+    wx.navigateTo({
+      url: `/pages/timeline-map/timeline-map?projectId=${encodeURIComponent(parsed.projectId)}&shareId=${encodeURIComponent(parsed.shareId)}`,
+    })
+  },
+
   async tryHandleClipboardShareCommand() {
     const token = wx.getStorageSync('token')
     if (!token) return
@@ -83,7 +97,7 @@ App<IAppOption>({
       const parsed = this.parseClipboardShareCommand(clipboard)
       if (!parsed) return
 
-      const fingerprint = `${parsed.projectId}|${parsed.shareId}`
+      const fingerprint = this.getShareCommandFingerprint(parsed)
       const lastHandled = String(wx.getStorageSync(LAST_HANDLED_SHARE_KEY) || '')
       if (fingerprint === lastHandled) return
 
@@ -94,10 +108,7 @@ App<IAppOption>({
         cancelText: '稍后',
         success: (res) => {
           if (!res.confirm) return
-          wx.setStorageSync(LAST_HANDLED_SHARE_KEY, fingerprint)
-          wx.navigateTo({
-            url: `/pages/timeline-map/timeline-map?projectId=${encodeURIComponent(parsed.projectId)}&shareId=${encodeURIComponent(parsed.shareId)}`,
-          })
+          this.openShareCommand(parsed, { markHandled: true })
         }
       })
     } catch (error) {

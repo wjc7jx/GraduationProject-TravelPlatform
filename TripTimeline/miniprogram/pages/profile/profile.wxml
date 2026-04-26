@@ -81,6 +81,28 @@
       </view>
     </view>
 
+    <view class="share-command-card">
+      <view class="share-command-card-title">查看分享口令</view>
+      <view class="share-command-hint">粘贴旅行项目分享口令，例如：TripTimeline://share?projectId=...&amp;shareId=...</view>
+
+      <view class="share-command-row">
+        <input
+          class="share-command-input"
+          type="text"
+          maxlength="256"
+          placeholder="粘贴分享口令"
+          value="{{shareCommandInput}}"
+          bindinput="onShareCommandInput"
+        />
+        <button
+          class="share-command-open-btn"
+          bindtap="onOpenShareCommandTap"
+          loading="{{openingShareCommand}}"
+          disabled="{{openingShareCommand || !shareCommandInput}}"
+        >查看</button>
+      </view>
+    </view>
+
     <view class="friends-section">
       <view class="friends-section-title">旅伴</view>
 

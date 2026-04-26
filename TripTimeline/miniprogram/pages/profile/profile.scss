@@ -364,6 +364,70 @@ page {
   border: none;
 }
 
+/* 分享口令兜底 */
+.share-command-card {
+  background: #ffffff;
+  border-radius: 32rpx;
+  border: 1rpx solid #dcd8d0;
+  padding: 32rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.share-command-card-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1c1c1c;
+}
+
+.share-command-hint {
+  font-size: 24rpx;
+  color: #8a877e;
+  line-height: 1.45;
+}
+
+.share-command-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.share-command-input {
+  flex: 8;
+  height: 72rpx;
+  border-radius: 16rpx;
+  background: #e8e5df;
+  border: 1rpx solid #dcd8d0;
+  padding: 0 24rpx;
+  color: #1c1c1c;
+  font-size: 26rpx;
+  box-sizing: border-box;
+}
+
+.share-command-open-btn {
+  flex: 2;
+  height: 72rpx;
+  border-radius: 16rpx;
+  line-height: 72rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #ffffff;
+  background: #2a4b3c;
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+
+.share-command-open-btn::after {
+  border: none;
+}
+
+.share-command-open-btn[disabled] {
+  opacity: 0.55;
+}
+
 /* 旅伴 */
 .friends-section {
   display: flex;

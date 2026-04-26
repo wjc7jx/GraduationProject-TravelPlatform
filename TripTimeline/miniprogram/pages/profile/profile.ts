@@ -33,6 +33,8 @@ Page({
     avatarUrlForApi: '',
     savingProfile: false,
     choosingAvatar: false,
+    shareCommandInput: '',
+    openingShareCommand: false,
   },
 
   noop() {},
@@ -310,6 +312,49 @@ Page({
   onInviteCodeInput(e: WechatMiniprogram.CustomEvent) {
     const value = String(e.detail?.value || '').replace(/\s+/g, '').toUpperCase()
     this.setData({ inviteCodeInput: value })
+  },
+
+  onShareCommandInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail?.value || '').trim().slice(0, 256)
+    this.setData({ shareCommandInput: value })
+  },
+
+  async onOpenShareCommandTap() {
+    const token = wx.getStorageSync('token')
+    if (!token) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    if (this.data.openingShareCommand) return
+
+    const text = String(this.data.shareCommandInput || '').trim()
+    if (!text) {
+      wx.showToast({ title: '请粘贴分享口令', icon: 'none' })
+      return
+    }
+
+    const app = getApp<IAppOption>() as any
+    const parsed = typeof app?.parseClipboardShareCommand === 'function'
+      ? app.parseClipboardShareCommand(text)
+      : null
+
+    if (!parsed || !parsed.projectId || !parsed.shareId) {
+      wx.showToast({ title: '分享口令格式不正确', icon: 'none' })
+      return
+    }
+
+    this.setData({ openingShareCommand: true })
+    try {
+      if (typeof app?.openShareCommand === 'function') {
+        app.openShareCommand(parsed, { markHandled: true })
+      } else {
+        wx.navigateTo({
+          url: `/pages/timeline-map/timeline-map?projectId=${encodeURIComponent(parsed.projectId)}&shareId=${encodeURIComponent(parsed.shareId)}`,
+        })
+      }
+    } finally {
+      this.setData({ openingShareCommand: false })
+    }
   },
 
   onProfileNicknameBlur(e: WechatMiniprogram.Input) {

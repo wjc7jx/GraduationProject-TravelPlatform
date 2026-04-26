@@ -94,6 +94,7 @@ page {
 /* 拍立得/老证件相片风格 */
 .profile-avatar-btn {
   flex-shrink: 0;
+  position: relative;
   width: 150rpx;
   height: 150rpx;
   padding: 0 !important;
@@ -116,13 +117,31 @@ page {
   transform: rotate(0deg) scale(0.96);
 }
 
-.profile-avatar-btn::after {
-  border: none;
-}
-
-.profile-avatar-btn[disabled] {
+.profile-avatar-btn.is-disabled {
   opacity: 0.6;
   filter: grayscale(100%);
+}
+
+.profile-avatar-picker {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0;
+  border-radius: inherit;
+  line-height: 1;
+  background: transparent;
+  color: transparent;
+  overflow: hidden;
+}
+
+.profile-avatar-picker::after {
+  border: none;
 }
 
 .profile-avatar-img {

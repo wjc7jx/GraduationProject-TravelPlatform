@@ -351,41 +351,6 @@ Page({
     }
   },
 
-  onChooseAvatarTap() {
-    const token = wx.getStorageSync('token')
-    if (!token) {
-      wx.showToast({ title: '请先登录', icon: 'none' })
-      return
-    }
-    if (this.data.choosingAvatar) return
-
-    // Prefer programmatic API if available to avoid native button chrome
-    const wxAny = wx as any
-    if (typeof wxAny.chooseAvatar === 'function') {
-      wxAny.chooseAvatar({
-        success: (res: any) => {
-          // res may contain avatarUrl
-          const avatarUrl = res?.avatarUrl || res?.avatarUrlList?.[0]
-          if (avatarUrl) {
-            // reuse existing upload handler signature
-            // @ts-ignore - synthesize event
-            this.onChooseAvatar({ detail: { avatarUrl } } as any)
-          }
-        },
-      })
-      return
-    }
-
-    // Fallback to chooseImage when chooseAvatar is not supported
-    wx.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'], success: (res) => {
-      const path = res.tempFilePaths && res.tempFilePaths[0]
-      if (path) {
-        // @ts-ignore
-        this.onChooseAvatar({ detail: { avatarUrl: path } } as any)
-      }
-    } })
-  },
-
   async onSaveProfileTap() {
     const token = wx.getStorageSync('token')
     if (!token) {

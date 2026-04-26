@@ -13,12 +13,16 @@
 
       <view class="user-profile-row">
         <view
-          class="profile-avatar-btn"
-          bindtap="onChooseAvatarTap"
-          disabled="{{!hasToken}}"
+          class="profile-avatar-btn {{!hasToken ? 'is-disabled' : ''}}"
         >
           <image wx:if="{{avatarDisplaySrc}}" class="profile-avatar-img" src="{{avatarDisplaySrc}}" mode="aspectFill"></image>
           <view wx:else class="profile-avatar-placeholder">我</view>
+          <button
+            class="profile-avatar-picker"
+            open-type="chooseAvatar"
+            bindchooseavatar="onChooseAvatar"
+            disabled="{{!hasToken || choosingAvatar}}"
+          ></button>
         </view>
 
         <view class="user-profile-fields">

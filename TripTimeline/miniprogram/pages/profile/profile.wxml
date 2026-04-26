@@ -98,7 +98,6 @@
           class="share-command-open-btn"
           bindtap="onOpenShareCommandTap"
           loading="{{openingShareCommand}}"
-          disabled="{{openingShareCommand || !shareCommandInput}}"
         >查看</button>
       </view>
     </view>

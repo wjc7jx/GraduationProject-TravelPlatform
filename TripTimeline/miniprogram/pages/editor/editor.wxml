@@ -139,6 +139,7 @@
           />
           <view class="search-btn" bindtap="searchLocationByKeyword">{{isLocationSearching ? '搜索中' : '搜索'}}</view>
         </view>
+
         <view wx:if="{{locationSuggestions.length > 0}}" class="suggestions-list">
           <view
             wx:for="{{locationSuggestions}}"
@@ -151,33 +152,37 @@
             <view class="suggestion-address">{{item.address}}</view>
           </view>
         </view>
-        <view class="location-manual-fields">
-          <input
-            class="form-input"
-            placeholder="地点名称（可手动调整）"
-            value="{{locationName}}"
-            bindinput="onLocationNameInput"
-          />
-          <input
-            class="form-input"
-            placeholder="详细地址（可选）"
-            value="{{locationAddress}}"
-            bindinput="onLocationAddressInput"
-          />
+
+        <view wx:if="{{locationName || locationAddress || locationMarker.length > 0}}" class="selected-location-card">
+          <view class="selected-location-head">
+            <view class="selected-location-kicker">已选地点</view>
+            <view class="selected-location-title">{{locationName || '未命名地点'}}</view>
+            <view wx:if="{{locationAddress}}" class="selected-location-address">{{locationAddress}}</view>
+          </view>
+
+          <view class="display-name-field">
+            <view class="display-name-label">显示为</view>
+            <input
+              class="form-input display-name-input"
+              placeholder="例如：重庆西站"
+              value="{{locationName}}"
+              bindinput="onLocationNameInput"
+            />
+          </view>
+
+          <view wx:if="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
+          <map
+            wx:if="{{locationMarker.length > 0}}"
+            class="location-map"
+            latitude="{{location.lat}}"
+            longitude="{{location.lon}}"
+            scale="16"
+            markers="{{locationMarker}}"
+            show-location="{{true}}"
+          ></map>
         </view>
-        <view wx:if="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
-        <map
-          wx:if="{{locationMarker.length > 0}}"
-          class="location-map"
-          latitude="{{location.lat}}"
-          longitude="{{location.lon}}"
-          scale="16"
-          markers="{{locationMarker}}"
-          show-location="{{true}}"
-        ></map>
-        <view class="coord-text" wx:if="{{locationMarker.length > 0}}">
-          {{location.lat}}, {{location.lon}}
-        </view>
+
+        <view wx:elif="{{autoFillHint}}" class="hint-text">{{autoFillHint}}</view>
       </view>
     </view>
 

@@ -273,7 +273,6 @@ Page({
 
     this.setData({
       locationName: name,
-      locationSearchKeyword: name,
       location: nextLocation,
       locationEditedByUser: true
     });

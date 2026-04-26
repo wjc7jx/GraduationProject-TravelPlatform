@@ -487,10 +487,10 @@
     }
 
     .location-panel {
-      margin-top: 4rpx;
+      margin-top: 6rpx;
       display: flex;
       flex-direction: column;
-      gap: 12rpx;
+      gap: 14rpx;
     }
 
     .search-row {
@@ -512,6 +512,7 @@
 
     .search-input {
       flex: 1;
+      background: #fbf8f1;
     }
 
     .search-btn {
@@ -530,15 +531,20 @@
     }
 
     .suggestions-list {
-      border-radius: 12rpx;
+      border-radius: 16rpx;
       overflow: hidden;
       border: 2rpx solid #e0d7ca;
-      background: #fbf8f1;
+      background: rgba(251, 248, 241, 0.96);
+      box-shadow: 0 8rpx 18rpx rgba(31, 61, 49, 0.06);
     }
 
     .suggestion-item {
-      padding: 16rpx 18rpx;
+      padding: 18rpx 20rpx;
       border-bottom: 1rpx solid #ebe2d6;
+    }
+
+    .suggestion-item:active {
+      background: rgba(31, 61, 49, 0.07);
     }
 
     .suggestion-item:last-child {
@@ -557,26 +563,65 @@
       color: #7b7367;
     }
 
-    .location-manual-fields {
+    .selected-location-card {
       display: flex;
       flex-direction: column;
-      gap: 10rpx;
+      gap: 16rpx;
+      padding: 20rpx;
+      border-radius: 18rpx;
+      border: 2rpx solid rgba(39, 77, 63, 0.16);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0)),
+        rgba(245, 241, 233, 0.72);
+    }
+
+    .selected-location-head {
+      display: flex;
+      flex-direction: column;
+      gap: 6rpx;
+    }
+
+    .selected-location-kicker,
+    .display-name-label {
+      font-size: 21rpx;
+      color: #7a756b;
+      letter-spacing: 1rpx;
+    }
+
+    .selected-location-title {
+      font-size: 30rpx;
+      line-height: 1.35;
+      color: #213930;
+      font-weight: 800;
+    }
+
+    .selected-location-address {
+      font-size: 23rpx;
+      line-height: 1.5;
+      color: #756e64;
+    }
+
+    .display-name-field {
+      display: flex;
+      flex-direction: column;
+      gap: 8rpx;
+    }
+
+    .display-name-input {
+      height: 72rpx;
+      background: #fbf8f1;
     }
 
     .hint-text {
       font-size: 22rpx;
       color: #6f7d74;
-    }
-
-    .coord-text {
-      font-size: 21rpx;
-      color: #6f675d;
+      line-height: 1.45;
     }
 
     .location-map {
       width: 100%;
       height: 280rpx;
-      border-radius: 12rpx;
+      border-radius: 16rpx;
       overflow: hidden;
       border: 2rpx solid #dfd4c4;
     }

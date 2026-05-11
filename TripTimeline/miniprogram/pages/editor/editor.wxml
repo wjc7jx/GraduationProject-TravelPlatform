@@ -17,6 +17,7 @@
     <view class="text-section form-card">
       <input
         class="title-input"
+        maxlength="120"
         placeholder="给这个瞬间一个名字"
         placeholder-class="ph-title"
         value="{{title}}"
@@ -31,6 +32,9 @@
         bindinput="onEditorInput"
         bindstatuschange="onStatusChange"
       ></editor>
+      <view class="body-count {{bodyCount >= bodyLimit ? 'over-limit' : ''}}">
+        {{bodyCount}}/{{bodyLimit}}
+      </view>
     </view>
 
     <!-- 音频附件区 -->
@@ -131,6 +135,7 @@
         <view class="search-row">
           <input
             class="form-input search-input"
+            maxlength="100"
             placeholder="搜索地点，如：西湖、天安门"
             value="{{locationSearchKeyword}}"
             bindinput="onLocationSearchInput"
@@ -164,6 +169,7 @@
             <view class="display-name-label">显示为</view>
             <input
               class="form-input display-name-input"
+              maxlength="100"
               placeholder="例如：重庆西站"
               value="{{locationName}}"
               bindinput="onLocationNameInput"

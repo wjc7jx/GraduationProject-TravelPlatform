@@ -30,8 +30,8 @@
   <view class="form-card">
     <!-- 标题组 -->
     <view class="title-group">
-      <input class="title-input" placeholder="这次旅程叫什么？" placeholder-class="title-placeholder" value="{{title}}" bindinput="onTitleInput" />
-      <input class="subtitle-input" placeholder="副标题..." placeholder-class="subtitle-placeholder" value="{{subtitle}}" bindinput="onSubtitleInput" />
+      <input class="title-input" maxlength="100" placeholder="这次旅程叫什么？" placeholder-class="title-placeholder" value="{{title}}" bindinput="onTitleInput" />
+      <input class="subtitle-input" maxlength="200" placeholder="副标题..." placeholder-class="subtitle-placeholder" value="{{subtitle}}" bindinput="onSubtitleInput" />
     </view>
 
     <!-- 行程时间 -->
@@ -86,7 +86,7 @@
 
       <!-- 自定义标签输入（常驻显示） -->
       <view class="tag-input-wrap" wx:if="{{showTagSelector && tags.length < 5}}">
-        <input class="tag-input" placeholder="+ 自定义印记，回车添加" placeholder-class="tag-placeholder" value="{{tagInput}}" bindinput="onTagInput" bindconfirm="addTag" confirm-type="done" />
+        <input class="tag-input" maxlength="24" placeholder="+ 自定义印记，回车添加" placeholder-class="tag-placeholder" value="{{tagInput}}" bindinput="onTagInput" bindconfirm="addTag" confirm-type="done" />
       </view>
     </view>
 

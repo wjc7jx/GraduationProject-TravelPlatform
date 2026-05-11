@@ -10,6 +10,9 @@ import { readAndParseExif } from '../../utils/exif';
 import { uploadFileToQiniu } from '../../utils/qiniuUpload';
 import { fetchProjectArchivedState, guardArchivedWrite } from '../../utils/projectArchive';
 
+const MAX_BODY_TEXT_LENGTH = 2500;
+const BODY_LIMIT_TOAST_INTERVAL = 1500;
+
 Page({
 
   hasValidLocation(location: any) {
@@ -27,6 +30,11 @@ Page({
 
   // 富文本编辑器上下文（由 onEditorReady 初始化）
   editorCtx: null as any,
+  lastValidDelta: null as any,
+  lastValidHtml: '',
+  lastValidTextCount: 0,
+  lastLimitToastAt: 0,
+  isRestoringEditor: false,
 
   data: {
     projectId: '',
@@ -43,6 +51,8 @@ Page({
     // 格式化状态
     formats: {} as any,
     htmlContent: '',
+    bodyCount: 0,
+    bodyLimit: MAX_BODY_TEXT_LENGTH,
     showAudioPanel: false,
     keyboardHeight: 0,
 
@@ -120,10 +130,32 @@ Page({
       if (this.data.isEditMode && this.data.htmlContent) {
         this.editorCtx.setContents({
           html: this.data.htmlContent,
-          success: () => {}
+          success: () => {
+            this.syncBodyCountFromEditor();
+          }
         });
+      } else {
+        this.syncBodyCountFromEditor();
       }
     }).exec();
+  },
+
+  syncBodyCountFromEditor() {
+    if (!this.editorCtx) return;
+    this.editorCtx.getContents({
+      success: (res: any) => {
+        const text = res?.text || '';
+        const html = res?.html || '';
+        this.lastValidDelta = res?.delta || this.lastValidDelta;
+        this.lastValidHtml = html;
+        this.lastValidTextCount = text.length;
+        this.setData({
+          htmlContent: html,
+          bodyCount: text.length
+        });
+      },
+      fail: () => {}
+    });
   },
 
   format(e: any) {
@@ -133,8 +165,52 @@ Page({
   },
 
   onEditorInput(e: any) {
+    if (this.isRestoringEditor) {
+      this.isRestoringEditor = false;
+      return;
+    }
+    const html = e.detail?.html || '';
+    const text = e.detail?.text || '';
+    const textCount = text.length;
+    if (textCount > MAX_BODY_TEXT_LENGTH) {
+      const now = Date.now();
+      if (now - this.lastLimitToastAt > BODY_LIMIT_TOAST_INTERVAL) {
+        this.lastLimitToastAt = now;
+        wx.showToast({ title: '正文已达到最大字数', icon: 'none' });
+      }
+
+      const safeDelta = this.lastValidDelta;
+      const safeHtml = this.lastValidHtml;
+      const safeCount = this.lastValidTextCount;
+      if (this.editorCtx) {
+        this.isRestoringEditor = true;
+        if (safeDelta) {
+          this.editorCtx.setContents({
+            delta: safeDelta,
+            success: () => {
+              this.setData({ htmlContent: safeHtml, bodyCount: safeCount });
+            }
+          });
+        } else {
+          this.editorCtx.setContents({
+            html: safeHtml,
+            success: () => {
+              this.setData({ htmlContent: safeHtml, bodyCount: safeCount });
+            }
+          });
+        }
+      } else {
+        this.setData({ htmlContent: safeHtml, bodyCount: safeCount });
+      }
+      return;
+    }
+
+    this.lastValidDelta = e.detail?.delta || this.lastValidDelta;
+    this.lastValidHtml = html;
+    this.lastValidTextCount = textCount;
     this.setData({
-      htmlContent: e.detail.html
+      htmlContent: html,
+      bodyCount: textCount
     });
   },
 
@@ -220,7 +296,9 @@ Page({
       if (this.editorCtx && this.data.htmlContent) {
         this.editorCtx.setContents({
           html: this.data.htmlContent,
-          success: () => {}
+          success: () => {
+            this.syncBodyCountFromEditor();
+          }
         });
       }
 

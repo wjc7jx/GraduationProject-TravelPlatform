@@ -48,7 +48,7 @@ function normalizeContentData(input) {
   }
 
   if (data.location_text && typeof data.location_text === 'object') {
-    const name = sanitizePlainText(data.location_text.name, { maxLength: 200 });
+    const name = sanitizePlainText(data.location_text.name, { maxLength: 100 });
     const address = sanitizePlainText(data.location_text.address, { maxLength: 200 });
     if (name || address) {
       out.location_text = {};
@@ -231,7 +231,7 @@ export async function createContent(projectId, userId, payload) {
     const newLoc = await Location.create({
       latitude: location.latitude,
       longitude: location.longitude,
-      name: sanitizePlainText(location.name, { maxLength: 200 }) || null,
+      name: sanitizePlainText(location.name, { maxLength: 100 }) || null,
       address: sanitizePlainText(location.address, { maxLength: 200 }) || null,
     });
     location_id = newLoc.location_id;
@@ -308,7 +308,7 @@ export async function updateContent(projectId, contentId, userId, payload) {
       const nextLocFields = {
         latitude: lat,
         longitude: lon,
-        name: sanitizePlainText(location.name, { maxLength: 200 }) || null,
+        name: sanitizePlainText(location.name, { maxLength: 100 }) || null,
         address: sanitizePlainText(location.address, { maxLength: 200 }) || null,
       };
 

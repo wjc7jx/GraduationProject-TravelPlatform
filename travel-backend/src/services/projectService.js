@@ -189,7 +189,7 @@ export async function createProject(userId, payload) {
     throw err;
   }
 
-  const cleanTitle = sanitizePlainText(title, { maxLength: 120 });
+  const cleanTitle = sanitizePlainText(title, { maxLength: 100 });
   if (!cleanTitle) {
     const err = new Error('旅行名称不能为空');
     err.status = 400;
@@ -299,7 +299,7 @@ export async function updateProject(projectId, userId, payload) {
 
   let nextTitle = project.title;
   if (title !== undefined) {
-    const cleaned = sanitizePlainText(title, { maxLength: 120 });
+    const cleaned = sanitizePlainText(title, { maxLength: 100 });
     if (!cleaned) {
       const err = new Error('旅行名称不能为空');
       err.status = 400;

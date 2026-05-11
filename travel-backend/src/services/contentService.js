@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { Content, Location, User } from '../models/index.js';
 import { getProjectById, getProjectOrThrow } from './projectService.js';
 import { filterViewableContents } from './privacyService.js';
@@ -101,8 +102,15 @@ function collectAuditText(contentData) {
   };
 }
 
+function contentNeedsAudit(contentData) {
+  const { title, body } = collectAuditText(contentData || {});
+  const combined = [title, body].filter(Boolean).join(' \n ').trim();
+  return Boolean(combined);
+}
+
 /**
- * 异步内容送检：命中写审计日志 + 数据库标记；接口异常仅记审计，不标记。
+ * 异步内容送检：通过则置 ok；命中写审计日志 + flagged；接口异常仅记审计。
+ * 按 pending + updated_at 条件更新，避免用户快速连续保存时旧异步结果覆盖新状态。
  * 永远不抛：不能影响用户主链路。
  */
 function queueContentAudit({ content, userId, action }) {
@@ -111,8 +119,15 @@ function queueContentAudit({ content, userId, action }) {
   const combined = [title, body].filter(Boolean).join(' \n ').trim();
   if (!combined) return;
 
+  const contentId = content.content_id;
+  const projectId = content.project_id;
+
   setImmediate(async () => {
     try {
+      const row = await Content.findByPk(contentId, { attributes: ['updated_at'] });
+      if (!row?.updated_at) return;
+      const baselineUpdatedAt = row.updated_at;
+
       const user = await User.findByPk(userId, { attributes: ['openid'] }).catch(() => null);
       const openid = user?.openid || '';
       const result = await checkTextContent({
@@ -121,7 +136,40 @@ function queueContentAudit({ content, userId, action }) {
         openid,
         scene: AUDIT_SCENE.SOCIAL_LOG,
       });
-      if (result.pass) return;
+
+      const staleWhere = {
+        content_id: contentId,
+        review_status: 'pending',
+        updated_at: { [Op.eq]: baselineUpdatedAt },
+      };
+
+      if (result.pass) {
+        try {
+          await Content.update(
+            {
+              review_status: 'ok',
+              review_reason: null,
+              review_checked_at: new Date(),
+            },
+            { where: staleWhere }
+          );
+        } catch (dbErr) {
+          logContentAudit({
+            event: 'content_sec_check',
+            hit: false,
+            reason: 'db_update_failed',
+            userId,
+            resource: {
+              type: 'content',
+              id: contentId,
+              action,
+              project_id: projectId,
+            },
+            detail: { message: String(dbErr?.message || dbErr) },
+          });
+        }
+        return;
+      }
 
       const hit = result.reason === 'risky' || result.reason === 'review';
       logContentAudit({
@@ -132,9 +180,9 @@ function queueContentAudit({ content, userId, action }) {
         openid,
         resource: {
           type: 'content',
-          id: content.content_id,
+          id: contentId,
           action,
-          project_id: content.project_id,
+          project_id: projectId,
         },
         scene: AUDIT_SCENE.SOCIAL_LOG,
         text: combined,
@@ -149,7 +197,7 @@ function queueContentAudit({ content, userId, action }) {
               review_reason: String(result.reason || 'flagged').slice(0, 64),
               review_checked_at: new Date(),
             },
-            { where: { content_id: content.content_id } }
+            { where: staleWhere }
           );
         } catch (dbErr) {
           logContentAudit({
@@ -159,9 +207,9 @@ function queueContentAudit({ content, userId, action }) {
             userId,
             resource: {
               type: 'content',
-              id: content.content_id,
+              id: contentId,
               action,
-              project_id: content.project_id,
+              project_id: projectId,
             },
             detail: { message: String(dbErr?.message || dbErr) },
           });
@@ -175,9 +223,9 @@ function queueContentAudit({ content, userId, action }) {
         userId,
         resource: {
           type: 'content',
-          id: content.content_id,
+          id: contentId,
           action,
-          project_id: content.project_id,
+          project_id: projectId,
         },
         text: combined,
         detail: { message: String(err?.message || err) },
@@ -225,6 +273,7 @@ export async function createContent(projectId, userId, payload) {
 
   assertContentType(content_type);
   const normalizedData = normalizeContentData(content_data);
+  const needsAudit = contentNeedsAudit(normalizedData);
 
   // 如果传递了 location 对象且包含经纬度，则自动在后台创建 Location
   if (location && location.latitude && location.longitude && !location_id) {
@@ -244,12 +293,14 @@ export async function createContent(projectId, userId, payload) {
     record_time,
     location_id: location_id || null,
     sort_order: sort_order || 0,
-    review_status: 'ok',
+    review_status: needsAudit ? 'pending' : 'ok',
     review_reason: null,
     review_checked_at: null,
   });
 
-  queueContentAudit({ content: created, userId, action: 'create' });
+  if (needsAudit) {
+    queueContentAudit({ content: created, userId, action: 'create' });
+  }
   return created;
 }
 
@@ -322,16 +373,18 @@ export async function updateContent(projectId, contentId, userId, payload) {
     }
   }
 
-  // 文本/标题/附件等可送检字段变更时，乐观清零合规状态，等待下一次异步检测结果。
+  let needsContentAuditQueue = false;
+  // 文本/标题等可送检字段变更时进入 pending，等待异步检测结果。
   if (content_data !== undefined) {
-    updatePayload.review_status = 'ok';
+    needsContentAuditQueue = contentNeedsAudit(nextContentData);
+    updatePayload.review_status = needsContentAuditQueue ? 'pending' : 'ok';
     updatePayload.review_reason = null;
     updatePayload.review_checked_at = null;
   }
 
   const updated = await content.update(updatePayload);
 
-  if (content_data !== undefined) {
+  if (needsContentAuditQueue) {
     queueContentAudit({ content: updated, userId, action: 'update' });
   }
   return updated;

@@ -1,20 +1,24 @@
 /**
  * 端到端验证合规审核标记流程（不触及真实微信 msgSecCheck）：
- * 1. 造一个 user / project / content。
+ * 1. 造 user / project / content（含文本的内容为 pending；项目先手动置 ok 以便单独测内容拦截）。
  * 2. 手工 UPDATE content.review_status=flagged 模拟命中。
  * 3. assertProjectContentReviewable 应抛 403 CONTENT_REVIEW_BLOCKED。
  * 4. generateProjectHtmlExport 应被拦截。
  * 5. createProjectShare 应被拦截。
- * 6. 通过 contentService.updateContent 重新保存，review_status 应重置为 ok。
- * 7. 再次断言应放行。
- * 8. 清理测试数据。
+ * 6. updateContent 后 review_status 应为 pending（异步审核未完成）。
+ * 7. assertProjectContentReviewable 应抛 CONTENT_REVIEW_PENDING。
+ * 8. 手工将 content 置 ok 模拟异步通过后应放行。
+ * 9. 清理测试数据。
  */
 import '../src/models/index.js';
 import { sequelize, User, Project, Content } from '../src/models/index.js';
 import { createContent, updateContent } from '../src/services/contentService.js';
 import { generateProjectHtmlExport } from '../src/services/exportService.js';
 import { createProjectShare } from '../src/services/projectShareService.js';
-import { assertProjectContentReviewable } from '../src/services/contentReviewGuard.js';
+import {
+  assertProjectContentReviewable,
+  REVIEW_PENDING_CODE,
+} from '../src/services/contentReviewGuard.js';
 import { setProjectPrivacy } from '../src/services/privacyService.js';
 
 const LOG = (...a) => console.log('[smoke]', ...a);
@@ -35,12 +39,25 @@ async function main() {
   });
   LOG('created project', project.project_id);
 
+  await Project.update(
+    {
+      review_status: 'ok',
+      review_reason: null,
+      review_checked_at: new Date(),
+    },
+    { where: { project_id: project.project_id } }
+  );
+  LOG('project review_status forced ok for isolated content-flag test');
+
   const content = await createContent(project.project_id, user.user_id, {
     content_type: 'note',
     content_data: { title: `${tag}-c`, content: '<p>hello world</p>' },
     record_time: new Date().toISOString(),
   });
   LOG('created content', content.content_id, 'review_status=', content.review_status);
+  if (content.review_status !== 'pending') {
+    throw new Error('STEP 1b FAIL: new content with text should start as pending');
+  }
 
   await Content.update(
     { review_status: 'flagged', review_reason: 'risky', review_checked_at: new Date() },
@@ -92,13 +109,34 @@ async function main() {
   });
   const refreshed = await Content.findByPk(content.content_id);
   LOG('after updateContent: review_status=', refreshed.review_status, 'reason=', refreshed.review_reason);
-  if (refreshed.review_status !== 'ok' || refreshed.review_reason !== null) {
-    throw new Error('STEP 6 FAIL: updateContent did not reset review state');
+  if (refreshed.review_status !== 'pending' || refreshed.review_reason !== null) {
+    throw new Error('STEP 6 FAIL: updateContent should set pending when text needs audit');
   }
 
-  // 步骤 7
+  // 步骤 7：pending 应拦截传播
+  let blocked7 = null;
+  try {
+    await assertProjectContentReviewable(project.project_id, { action: '导出' });
+  } catch (err) {
+    blocked7 = err;
+  }
+  if (!blocked7 || blocked7.code !== REVIEW_PENDING_CODE) {
+    throw new Error(`STEP 7 FAIL: expected ${REVIEW_PENDING_CODE}, got ${blocked7 && blocked7.code}`);
+  }
+  LOG('step7 guard blocked pending as expected');
+
+  await Content.update(
+    {
+      review_status: 'ok',
+      review_reason: null,
+      review_checked_at: new Date(),
+    },
+    { where: { content_id: content.content_id } }
+  );
+
+  // 步骤 8
   await assertProjectContentReviewable(project.project_id, { action: '导出' });
-  LOG('step7 guard passes after reset');
+  LOG('step8 guard passes after simulated async ok');
 
   // 清理
   await Content.destroy({ where: { content_id: content.content_id } });

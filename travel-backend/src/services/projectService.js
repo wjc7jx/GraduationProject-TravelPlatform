@@ -1,5 +1,5 @@
-import { Permission, Project, User, sequelize } from '../models/index.js';
 import { Op } from 'sequelize';
+import { Permission, Project, User, sequelize } from '../models/index.js';
 import {
   canView,
   getProjectRule,
@@ -28,7 +28,7 @@ function normalizeCoverImage(input) {
 }
 
 /**
- * 项目文本内容送检：命中时写审计日志 + 数据库标记；接口异常仅记审计，不标记。
+ * 项目文本内容送检：通过则 ok；命中 flagged；按 pending+updated_at 更新以防旧异步覆盖新保存。
  * 永远不抛：不能影响用户主链路。
  */
 function queueProjectAudit({ project, userId, action }) {
@@ -38,8 +38,14 @@ function queueProjectAudit({ project, userId, action }) {
   const combined = [title, subtitle, tags].filter(Boolean).join(' \n ').trim();
   if (!combined) return;
 
+  const projectId = project.project_id;
+
   setImmediate(async () => {
     try {
+      const row = await Project.findByPk(projectId, { attributes: ['updated_at'] });
+      if (!row?.updated_at) return;
+      const baselineUpdatedAt = row.updated_at;
+
       const user = await User.findByPk(userId, { attributes: ['openid'] }).catch(() => null);
       const openid = user?.openid || '';
       const result = await checkTextContent({
@@ -48,7 +54,39 @@ function queueProjectAudit({ project, userId, action }) {
         openid,
         scene: AUDIT_SCENE.PROFILE,
       });
-      if (result.pass) return;
+
+      const staleWhere = {
+        project_id: projectId,
+        review_status: 'pending',
+        updated_at: { [Op.eq]: baselineUpdatedAt },
+      };
+
+      if (result.pass) {
+        try {
+          await Project.update(
+            {
+              review_status: 'ok',
+              review_reason: null,
+              review_checked_at: new Date(),
+            },
+            { where: staleWhere }
+          );
+        } catch (dbErr) {
+          logContentAudit({
+            event: 'content_sec_check',
+            hit: false,
+            reason: 'db_update_failed',
+            userId,
+            resource: {
+              type: 'project',
+              id: projectId,
+              action,
+            },
+            detail: { message: String(dbErr?.message || dbErr) },
+          });
+        }
+        return;
+      }
 
       const hit = result.reason === 'risky' || result.reason === 'review';
       logContentAudit({
@@ -59,7 +97,7 @@ function queueProjectAudit({ project, userId, action }) {
         openid,
         resource: {
           type: 'project',
-          id: project.project_id,
+          id: projectId,
           action,
         },
         scene: AUDIT_SCENE.PROFILE,
@@ -75,7 +113,7 @@ function queueProjectAudit({ project, userId, action }) {
               review_reason: String(result.reason || 'flagged').slice(0, 64),
               review_checked_at: new Date(),
             },
-            { where: { project_id: project.project_id } }
+            { where: staleWhere }
           );
         } catch (dbErr) {
           logContentAudit({
@@ -85,7 +123,7 @@ function queueProjectAudit({ project, userId, action }) {
             userId,
             resource: {
               type: 'project',
-              id: project.project_id,
+              id: projectId,
               action,
             },
             detail: { message: String(dbErr?.message || dbErr) },
@@ -100,7 +138,7 @@ function queueProjectAudit({ project, userId, action }) {
         userId,
         resource: {
           type: 'project',
-          id: project.project_id,
+          id: projectId,
           action,
         },
         text: combined,
@@ -204,7 +242,7 @@ export async function createProject(userId, payload) {
     start_date,
     end_date,
     tags: normalizeTags(tags) || null,
-    review_status: 'ok',
+    review_status: 'pending',
     review_reason: null,
     review_checked_at: null,
   });
@@ -331,9 +369,9 @@ export async function updateProject(projectId, userId, payload) {
     is_archived: nextArchived !== undefined ? nextArchived : project.is_archived,
   };
 
-  // 文本字段变更时，乐观清零合规状态，等待下一次异步检测结果。
+  // 文本字段变更时进入 pending，等待异步检测结果。
   if (textTouched) {
-    updatePayload.review_status = 'ok';
+    updatePayload.review_status = 'pending';
     updatePayload.review_reason = null;
     updatePayload.review_checked_at = null;
   }

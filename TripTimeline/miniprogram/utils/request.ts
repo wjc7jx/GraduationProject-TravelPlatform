@@ -93,8 +93,9 @@ export const request = <T = any>(options: RequestOptions): Promise<T> => {
           const errorMessage = body?.message || `请求失败: ${res.statusCode}`;
           // 合规命中交给页面自己弹模态，不在此处 toast，避免被截断
           const bizCode = body?.data?.code || body?.code;
-          const isReviewBlocked = bizCode === 'CONTENT_REVIEW_BLOCKED';
-          if (!isReviewBlocked) {
+          const isReviewSilent =
+            bizCode === 'CONTENT_REVIEW_BLOCKED' || bizCode === 'CONTENT_REVIEW_PENDING';
+          if (!isReviewSilent) {
             wx.showToast({
               title: errorMessage,
               icon: 'none',

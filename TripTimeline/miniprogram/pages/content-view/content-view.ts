@@ -21,6 +21,7 @@ Page({
     audioUrl: '',
     audioValue: { url: '', name: '' } as { url: string; name: string },
     reviewFlagged: false,
+    reviewPending: false,
     reviewReason: ''
   },
 
@@ -96,6 +97,7 @@ Page({
         audioUrl,
         audioValue: rawAudioUrl ? { url: rawAudioUrl, name: audioName } : { url: '', name: '' },
         reviewFlagged: String(target.review_status || '') === 'flagged',
+        reviewPending: String(target.review_status || '') === 'pending',
         reviewReason: String(target.review_reason || '')
       });
     } catch (e) {

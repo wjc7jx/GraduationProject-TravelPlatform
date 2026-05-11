@@ -53,7 +53,7 @@ export function initProject(sequelize) {
         defaultValue: 0,
       },
       review_status: {
-        type: DataTypes.ENUM('ok', 'flagged'),
+        type: DataTypes.ENUM('ok', 'pending', 'flagged'),
         allowNull: false,
         defaultValue: 'ok',
       },

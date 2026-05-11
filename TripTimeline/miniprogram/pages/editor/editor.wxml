@@ -7,6 +7,10 @@
       <view class="review-banner-title">⚠ 该记录被判定存在合规风险</view>
       <view class="review-banner-desc">请调整标题或正文后重新保存，系统会自动重新检测。未通过前此条记录无法导出或分享。</view>
     </view>
+    <view wx:elif="{{reviewPending}}" class="review-banner review-banner-pending">
+      <view class="review-banner-title">内容安全审核中</view>
+      <view class="review-banner-desc">异步检测完成后即可参与分享或导出，请稍候。</view>
+    </view>
 
     <view class="page-head">
       <view class="page-title">此刻，值得记录</view>

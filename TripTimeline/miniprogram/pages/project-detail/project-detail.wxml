@@ -25,6 +25,13 @@
     <view wx:else class="review-banner-desc">请先定位到被标记的记录并修改，解除风险后即可导出或分享。</view>
   </view>
 
+  <view wx:elif="{{reviewPending}}" class="review-banner review-banner-pending">
+    <view class="review-banner-title">内容安全审核中</view>
+    <view wx:if="{{reviewPendingScope === 'project'}}" class="review-banner-desc">项目信息正在异步检测，完成后即可分享或导出，请稍候。</view>
+    <view wx:elif="{{reviewPendingScope === 'content'}}" class="review-banner-desc">共 {{pendingContentCount}} 条记录尚在审核中，全部通过后即可分享或导出。</view>
+    <view wx:else class="review-banner-desc">检测完成后即可分享或导出，请稍候刷新页面。</view>
+  </view>
+
   <!-- 操作导航区 -->
   <view class="action-grid">
     <!-- 进入时间轴与地图 -->

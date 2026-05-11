@@ -29,6 +29,20 @@
   }
 }
 
+.review-banner.review-banner-pending {
+  background: linear-gradient(135deg, #eef6ff 0%, #e3ecf8 100%);
+  border-color: #6b9bd1;
+  box-shadow: 0 10rpx 24rpx rgba(42, 75, 120, 0.12);
+
+  .review-banner-title {
+    color: #2a4b78;
+  }
+
+  .review-banner-desc {
+    color: #4a6278;
+  }
+}
+
 .header-banner {
   width: 100%;
   height: 480rpx;

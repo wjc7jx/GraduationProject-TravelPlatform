@@ -37,6 +37,16 @@ function showReviewBlockedModal(action: '导出' | '分享') {
   });
 }
 
+function showReviewPendingModal(action: '导出' | '分享') {
+  wx.showModal({
+    title: `${action}暂不可用`,
+    content: '内容安全审核尚未完成，请稍候片刻后再试。',
+    showCancel: false,
+    confirmText: '我知道了',
+    confirmColor: '#2A4B3C'
+  });
+}
+
 function saveRemoteBinaryToUserData(
   url: string,
   headers: Record<string, string>,
@@ -98,7 +108,11 @@ Page({
     reviewFlagged: false,
     reviewReason: '',
     reviewScope: '' as '' | 'project' | 'content',
-    flaggedContentCount: 0
+    flaggedContentCount: 0,
+    projectReviewPending: false,
+    reviewPending: false,
+    reviewPendingScope: '' as '' | 'project' | 'content',
+    pendingContentCount: 0
   },
 
   onLoad(options: any) {
@@ -234,6 +248,12 @@ Page({
         await this.fetchStats(projectId)
         return
       }
+      if (error && typeof error === 'object' && (error as any).code === 'CONTENT_REVIEW_PENDING') {
+        showReviewPendingModal('分享')
+        await this.fetchProjectDetail(projectId)
+        await this.fetchStats(projectId)
+        return
+      }
       const message = error && typeof error === 'object' && 'message' in error
         ? String((error as Error).message)
         : '生成分享口令失败'
@@ -267,6 +287,12 @@ Page({
       wx.hideLoading()
       if (error && typeof error === 'object' && (error as any).code === 'CONTENT_REVIEW_BLOCKED') {
         showReviewBlockedModal('分享')
+        await this.fetchProjectDetail(projectId)
+        await this.fetchStats(projectId)
+        return
+      }
+      if (error && typeof error === 'object' && (error as any).code === 'CONTENT_REVIEW_PENDING') {
+        showReviewPendingModal('分享')
         await this.fetchProjectDetail(projectId)
         await this.fetchStats(projectId)
         return
@@ -309,6 +335,7 @@ Page({
       let locationsCount = 0;
       let photosCount = 0;
       let flaggedCount = 0;
+      let pendingCount = 0;
 
       res.forEach(item => {
         if (item.location || item.location_id) locationsCount++;
@@ -316,20 +343,30 @@ Page({
           photosCount++;
         }
         if (String(item.review_status || '') === 'flagged') flaggedCount++;
+        if (String(item.review_status || '') === 'pending') pendingCount++;
       });
 
       const prevFlagged = this.data.reviewFlagged;
       const prevScope = this.data.reviewScope;
+      const prevProjectPending = this.data.projectReviewPending;
       // 合并项目级 flag 与内容级 flag
       const nextFlagged = prevFlagged || flaggedCount > 0;
       const nextScope = prevScope === 'project' ? 'project' : (flaggedCount > 0 ? 'content' : prevScope);
+      const nextPending =
+        !nextFlagged && (prevProjectPending || pendingCount > 0);
+      const pendingScope = nextFlagged
+        ? ''
+        : (prevProjectPending ? 'project' : (pendingCount > 0 ? 'content' : ''));
 
       this.setData({
         'stats.locations': locationsCount,
         'stats.photos': photosCount,
         flaggedContentCount: flaggedCount,
+        pendingContentCount: pendingCount,
         reviewFlagged: nextFlagged,
-        reviewScope: nextScope
+        reviewScope: nextScope,
+        reviewPending: nextPending,
+        reviewPendingScope: pendingScope as '' | 'project' | 'content'
       });
     } catch(e) {
       console.error('Fetch stats failed', e);
@@ -363,6 +400,7 @@ Page({
       }
 
       const projectFlagged = String(res.review_status || '') === 'flagged';
+      const projectPending = String(res.review_status || '') === 'pending';
       this.setData({
         isOwner: Number(wx.getStorageSync('userInfo')?.user_id || 0) === Number(res.user_id || 0),
         projectDetail: {
@@ -376,7 +414,10 @@ Page({
         'stats.days': days,
         reviewFlagged: projectFlagged,
         reviewReason: String(res.review_reason || ''),
-        reviewScope: projectFlagged ? 'project' : ''
+        reviewScope: projectFlagged ? 'project' : '',
+        projectReviewPending: projectPending,
+        reviewPending: !projectFlagged && projectPending,
+        reviewPendingScope: !projectFlagged && projectPending ? 'project' : ''
       });
       await this.fetchProjectVisibility(id)
       await this.ensureShareLinkReady(res)
@@ -667,6 +708,12 @@ Page({
         await this.fetchStats(this.data.projectId as string);
         return;
       }
+      if (err && typeof err === 'object' && (err as any).code === 'CONTENT_REVIEW_PENDING') {
+        showReviewPendingModal('导出');
+        await this.fetchProjectDetail(this.data.projectId as string);
+        await this.fetchStats(this.data.projectId as string);
+        return;
+      }
       const msg = err && typeof err === 'object' && 'message' in err
         ? String((err as Error).message)
         : '';
@@ -712,6 +759,12 @@ Page({
       wx.hideLoading();
       if (err && typeof err === 'object' && (err as any).code === 'CONTENT_REVIEW_BLOCKED') {
         showReviewBlockedModal('导出');
+        await this.fetchProjectDetail(this.data.projectId as string);
+        await this.fetchStats(this.data.projectId as string);
+        return;
+      }
+      if (err && typeof err === 'object' && (err as any).code === 'CONTENT_REVIEW_PENDING') {
+        showReviewPendingModal('导出');
         await this.fetchProjectDetail(this.data.projectId as string);
         await this.fetchStats(this.data.projectId as string);
         return;

@@ -93,6 +93,7 @@ Page({
 
     // 合规审核状态（仅编辑态有值）
     reviewFlagged: false,
+    reviewPending: false,
     reviewReason: ''
   },
 
@@ -289,6 +290,7 @@ Page({
           ? { url: audioUrl, name: payload.audio?.name || '音频文件' }
           : { url: '', name: '' },
         reviewFlagged: String(target.review_status || '') === 'flagged',
+        reviewPending: String(target.review_status || '') === 'pending',
         reviewReason: String(target.review_reason || '')
       });
 

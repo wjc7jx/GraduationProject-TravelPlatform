@@ -40,7 +40,7 @@ export const env = {
     pdfInlineRemoteMaxBytes: Number(process.env.PDF_INLINE_REMOTE_MAX_BYTES) || 15 * 1024 * 1024,
   },
   db: {
-    host: process.env.DB_HOST || '10.238.184.74',
+    host: process.env.DB_HOST || 'localhost',
     port: Number(process.env.DB_PORT) || 3306,
     name: process.env.DB_NAME || 'travel_db',
     user: process.env.DB_USER || 'root',
